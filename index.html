@@ -1,772 +1,584 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ar" dir="rtl">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>معمل الزهور للألمنيوم الحديث - حيدر حميد</title>
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Google Fonts (Cairo) -->
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800&display=swap" rel="stylesheet">
-    <!-- FontAwesome Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        body {
-            font-family: 'Cairo', sans-serif;
-            background-color: #0f172a;
-            color: #f8fafc;
-        }
-        .metal-gradient {
-            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-        }
-        .gold-glow {
-            text-shadow: 0 0 10px rgba(234, 179, 8, 0.3);
-        }
-    </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>متجر حيدر حميد للألمنيوم الحديث — أبواب وشبابيك ألمنيوم | بلد</title>
+<meta name="description" content="متجر حيدر حميد للألمنيوم الحديث في بلد — شارع المحيط، معمل الزهور. تصفّح موديلات الأبواب والشبابيك والواجهات، أضفها للسلة، وأرسل طلبك بضغطة.">
+<meta name="theme-color" content="#1B72E8">
+<link rel="icon" href="data:image/jpeg;base64,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">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Readex+Pro:wght@400;500;600;700&family=Tajawal:wght@300;400;500;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"Store","name":"حيدر حميد للألمنيوم الحديث","telephone":"+9647904694393","address":{"@type":"PostalAddress","streetAddress":"شارع المحيط — معمل الزهور","addressLocality":"بلد","addressCountry":"IQ"}}
+</script>
+<style>
+:root{
+  --bg:#FFFFFF; --wash:#F5F7FC; --card:#FFFFFF;
+  --ink:#0F1724; --muted:#6B7887; --line:#E6EAF3;
+  /* هذه القيم تتبدّل تدريجياً من الجافاسكربت */
+  --brand:#1B72E8; --brand-2:#4285F4; --brand-3:#7BA7FF; --brand-soft:#E8F0FE; --brand-ink:#0B3B8F;
+  --amber:#F5A524; --green:#12A150;
+  --pad:16px; --tabh:64px; --r:16px;
+  --T:2.8s cubic-bezier(.4,0,.2,1);
+  --shadow:0 2px 10px rgba(15,23,36,.06);
+  --shadow-lg:0 12px 30px rgba(15,23,36,.12);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{background:var(--wash);color:var(--ink);font-family:"Tajawal",system-ui,sans-serif;font-size:15px;line-height:1.7;overscroll-behavior-y:none}
+h1,h2,h3,.dsp{font-family:"Readex Pro",system-ui,sans-serif;font-weight:600;line-height:1.4;margin:0}
+.mono{font-family:"IBM Plex Mono",monospace;direction:ltr;unicode-bidi:isolate}
+button,input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
+a{color:inherit;text-decoration:none}
+.app{max-width:520px;margin:0 auto;min-height:100vh;position:relative}
+
+/* ===== شفق متدرّج بالخلفية ===== */
+.aurora{position:absolute;inset:0;overflow:hidden;pointer-events:none}
+.blob{position:absolute;border-radius:50%;filter:blur(34px);opacity:.7;transition:background-color var(--T)}
+.b1{width:190px;height:190px;background:var(--brand-2);top:-70px;inset-inline-start:-40px;animation:f1 19s ease-in-out infinite}
+.b2{width:170px;height:170px;background:var(--brand-3);top:-40px;inset-inline-end:-50px;animation:f2 23s ease-in-out infinite}
+.b3{width:150px;height:150px;background:var(--brand);bottom:-70px;inset-inline-start:35%;animation:f3 27s ease-in-out infinite}
+@keyframes f1{50%{transform:translate(40px,26px) scale(1.15)}}
+@keyframes f2{50%{transform:translate(-34px,30px) scale(1.1)}}
+@keyframes f3{50%{transform:translate(26px,-24px) scale(1.2)}}
+
+/* ===== الهيدر ===== */
+.topbar{position:sticky;top:0;z-index:40;background:var(--brand);color:#fff;padding:12px var(--pad) 15px;
+  border-radius:0 0 22px 22px;overflow:hidden;transition:background-color var(--T),box-shadow var(--T);
+  box-shadow:0 8px 24px color-mix(in srgb,var(--brand) 32%,transparent)}
+.trow,.search{position:relative;z-index:2}
+.trow{display:flex;align-items:center;gap:10px}
+.logo{width:42px;height:42px;border-radius:13px;background:#0F151C;flex:none;overflow:hidden;
+  display:grid;place-items:center;box-shadow:0 2px 8px rgba(0,0,0,.28),0 0 0 1px rgba(255,255,255,.14)}
+.logo img{width:74%;height:auto;display:block}
+.brandcard{margin:0 var(--pad) 14px;background:#0F151C;border-radius:20px;padding:22px;display:grid;place-items:center;
+  box-shadow:var(--shadow)}
+.brandcard img{width:min(220px,62%);height:auto;display:block;border-radius:10px}
+.tt b{display:block;font-family:"Readex Pro";font-weight:600;font-size:14.5px}
+.tt span{display:block;font-size:11.5px;opacity:.85}
+.cartbtn{margin-inline-start:auto;position:relative;width:40px;height:40px;border:0;border-radius:12px;
+  background:rgba(255,255,255,.2);color:#fff;display:grid;place-items:center;cursor:pointer}
+.cartbtn svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.badge{position:absolute;top:-5px;inset-inline-start:-5px;min-width:19px;height:19px;border-radius:99px;
+  background:var(--amber);color:#3A2500;font-size:11px;font-weight:700;display:none;place-items:center;padding:0 5px;font-family:"IBM Plex Mono"}
+.badge.on{display:grid}
+.search{margin-top:12px;display:flex;align-items:center;gap:9px;background:#fff;border-radius:14px;padding:11px 13px}
+.search svg{width:18px;height:18px;stroke:var(--muted);fill:none;stroke-width:1.8;flex:none}
+.search input{border:0;outline:0;width:100%;background:transparent;font-size:14px}
+.search input::placeholder{color:#9AA5B4}
+
+main{padding-bottom:calc(var(--tabh) + 30px);position:relative;z-index:1}
+.view{display:none;animation:rise .28s ease both}
+.view.on{display:block}
+@keyframes rise{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.sec{padding:20px var(--pad) 0}
+.sechead{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:12px}
+.sechead h2{font-size:17px}
+.link{color:var(--brand);font-size:13px;font-weight:500;background:0;border:0;cursor:pointer;padding:0;transition:color var(--T)}
+.sub{color:var(--muted);font-size:13.5px;margin:0}
+
+/* ===== بانر ===== */
+.banner{position:relative;margin:16px var(--pad) 0;border-radius:20px;padding:20px;color:#fff;overflow:hidden;
+  background:var(--brand);transition:background-color var(--T)}
+.banner .in{position:relative;z-index:2}
+.banner h2{font-size:18px}
+.banner p{margin:6px 0 13px;font-size:13px;opacity:.92}
+.banner button{border:0;background:#fff;color:var(--brand);font-family:"Readex Pro";font-weight:600;font-size:13.5px;
+  padding:10px 17px;border-radius:12px;cursor:pointer;transition:color var(--T)}
+
+/* ===== أقسام ===== */
+.cats{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;padding:0 var(--pad);margin-top:14px}
+.cat{background:var(--card);border:1px solid var(--line);border-radius:15px;padding:11px 4px;cursor:pointer;
+  display:flex;flex-direction:column;align-items:center;gap:6px;box-shadow:var(--shadow);transition:transform .18s}
+.cat:active{transform:scale(.96)}
+.cat .ci{width:34px;height:34px;border-radius:11px;background:var(--brand-soft);display:grid;place-items:center;transition:background-color var(--T)}
+.cat .ci svg{width:19px;height:19px;stroke:var(--brand);fill:none;stroke-width:1.6;transition:stroke var(--T)}
+.cat span{font-size:11.5px;font-weight:500}
+
+/* ===== المنتجات ===== */
+.rail{display:flex;gap:12px;overflow-x:auto;padding:2px var(--pad) 6px;scrollbar-width:none}
+.rail::-webkit-scrollbar{display:none}
+.rail .prod{flex:none;width:158px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:0 var(--pad)}
+.prod{background:var(--card);border:1px solid var(--line);border-radius:var(--r);overflow:hidden;text-align:start;
+  padding:0;cursor:pointer;box-shadow:var(--shadow);transition:transform .18s;position:relative;display:block;width:100%}
+.prod:active{transform:scale(.985)}
+.prod .art{background:var(--brand-soft);padding:14px 14px 6px;position:relative;transition:background-color var(--T)}
+.prod .art svg{display:block;width:100%;height:98px}
+.pill{position:absolute;top:9px;inset-inline-start:9px;background:#fff;color:var(--brand);font-size:10.5px;
+  font-weight:700;padding:3px 9px;border-radius:9px;box-shadow:var(--shadow);transition:color var(--T)}
+.prod .meta{padding:10px 12px 12px}
+.prod b{display:block;font-family:"Readex Pro";font-weight:600;font-size:13.5px}
+.prod .desc{display:block;font-size:11.5px;color:var(--muted);margin-top:1px}
+.prod .buy{display:flex;align-items:center;justify-content:space-between;margin-top:9px}
+.price{font-size:12px;color:var(--brand);font-weight:700;font-family:"Readex Pro";transition:color var(--T)}
+.add{width:30px;height:30px;border-radius:10px;border:0;background:var(--brand);color:#fff;font-size:18px;line-height:1;
+  display:grid;place-items:center;transition:background-color var(--T)}
+.chips{display:flex;gap:8px;overflow-x:auto;padding:0 var(--pad) 12px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:none;border:1px solid var(--line);background:#fff;color:var(--muted);border-radius:999px;padding:8px 15px;
+  font-size:13px;cursor:pointer;transition:background-color var(--T),border-color var(--T),color .2s}
+.chip[aria-pressed="true"]{background:var(--brand);border-color:var(--brand);color:#fff;font-weight:500}
+.empty{text-align:center;padding:40px var(--pad);color:var(--muted)}
+.empty b{display:block;font-family:"Readex Pro";font-size:15px;color:var(--ink);margin-bottom:4px}
+
+/* ===== الورقة المنبثقة ===== */
+.scrim{position:fixed;inset:0;background:rgba(15,23,36,.45);z-index:60;opacity:0;pointer-events:none;transition:.25s}
+.scrim.on{opacity:1;pointer-events:auto}
+.sheet{position:fixed;inset-inline:0;bottom:0;z-index:61;max-width:520px;margin:0 auto;background:#fff;
+  border-radius:24px 24px 0 0;padding:8px var(--pad) calc(18px + env(safe-area-inset-bottom));
+  transform:translateY(102%);transition:transform .3s cubic-bezier(.2,.8,.2,1);max-height:90vh;overflow:auto}
+.sheet.on{transform:none}
+.handle{width:42px;height:4px;border-radius:99px;background:var(--line);margin:6px auto 12px}
+.hero-art{background:var(--brand-soft);border-radius:16px;padding:16px;transition:background-color var(--T)}
+.hero-art svg{display:block;width:100%;height:auto;max-height:190px}
+.tags{display:flex;flex-wrap:wrap;gap:7px;margin-top:12px}
+.tag{background:var(--wash);border:1px solid var(--line);border-radius:9px;padding:5px 10px;font-size:11.5px;color:var(--muted)}
+.opt{margin-top:16px}
+.opt label{display:block;font-size:12.5px;color:var(--muted);margin-bottom:6px;font-weight:500}
+.ctrl{width:100%;background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px 13px;outline:0;transition:.18s}
+.ctrl:focus-visible{border-color:var(--brand);box-shadow:0 0 0 3px var(--brand-soft)}
+textarea.ctrl{min-height:80px;resize:vertical}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.stepper{display:flex;align-items:center;border:1px solid var(--line);border-radius:12px;overflow:hidden;width:130px}
+.stepper button{width:40px;height:42px;border:0;background:var(--wash);font-size:18px;cursor:pointer;color:var(--brand);transition:color var(--T)}
+.stepper input{width:50px;text-align:center;border:0;outline:0;font-family:"IBM Plex Mono";font-weight:500}
+.btn{width:100%;border:0;border-radius:14px;padding:15px;font-family:"Readex Pro";font-weight:600;font-size:15px;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:background-color var(--T),transform .15s,box-shadow var(--T)}
+.btn:active{transform:scale(.99)}
+.btn-p{background:var(--brand);color:#fff;box-shadow:0 8px 22px color-mix(in srgb,var(--brand) 35%,transparent)}
+.btn-o{background:#fff;border:1px solid var(--line);color:var(--ink)}
+.btn-wa{background:var(--green);color:#fff}
+.acts{display:grid;gap:10px;margin-top:18px}
+
+/* ===== السلة ===== */
+.line{display:flex;gap:12px;background:#fff;border:1px solid var(--line);border-radius:15px;padding:11px;
+  margin:0 var(--pad) 10px;box-shadow:var(--shadow)}
+.line .thumb{width:70px;height:70px;flex:none;border-radius:12px;background:var(--brand-soft);padding:8px;
+  display:grid;place-items:center;transition:background-color var(--T)}
+.line .thumb svg{width:100%;height:100%}
+.line .body{flex:1;min-width:0}
+.line b{display:block;font-family:"Readex Pro";font-weight:600;font-size:13.5px}
+.line .spec{font-size:11.5px;color:var(--muted);margin-top:2px}
+.line .foot{display:flex;align-items:center;justify-content:space-between;margin-top:7px}
+.qty{display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:10px;padding:2px 4px}
+.qty button{border:0;background:0;color:var(--brand);font-size:16px;width:22px;cursor:pointer;transition:color var(--T)}
+.qty span{font-family:"IBM Plex Mono";font-size:12.5px;min-width:16px;text-align:center}
+.rm{border:0;background:0;color:#C4402F;font-size:12px;cursor:pointer}
+.summary{margin:6px var(--pad) 0;background:#fff;border:1px solid var(--line);border-radius:15px;padding:14px}
+.summary .r{display:flex;justify-content:space-between;font-size:13.5px;color:var(--muted);padding:3px 0}
+.summary .r b{color:var(--ink);font-family:"Readex Pro"}
+.note{background:var(--brand-soft);border-radius:13px;padding:12px;font-size:12.5px;color:var(--brand-ink);
+  margin:12px var(--pad) 0;transition:background-color var(--T),color var(--T)}
+.err{display:none;color:#C4402F;font-size:12px;margin-top:6px}
+.opt.bad .ctrl{border-color:#C4402F}
+.opt.bad .err{display:block}
+
+/* ===== تواصل ===== */
+.info{margin:0 var(--pad);background:#fff;border:1px solid var(--line);border-radius:var(--r);overflow:hidden;box-shadow:var(--shadow)}
+.info .item{display:flex;gap:12px;align-items:flex-start;padding:14px;border-bottom:1px solid var(--line)}
+.info .item:last-child{border-bottom:0}
+.info .ic{width:36px;height:36px;flex:none;border-radius:12px;background:var(--brand-soft);color:var(--brand);
+  display:grid;place-items:center;font-size:16px;transition:background-color var(--T),color var(--T)}
+.info b{display:block;font-family:"Readex Pro";font-weight:600;font-size:13.5px}
+.info span{font-size:12.5px;color:var(--muted)}
+.pair{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:12px var(--pad) 0}
+.steps{margin:0 var(--pad);background:#fff;border:1px solid var(--line);border-radius:var(--r);padding:14px;box-shadow:var(--shadow)}
+.step{display:flex;gap:11px;padding:7px 0}
+.step i{width:23px;height:23px;flex:none;border-radius:50%;background:var(--brand-soft);color:var(--brand);font-style:normal;
+  font-family:"IBM Plex Mono";font-size:11px;display:grid;place-items:center;margin-top:3px;transition:background-color var(--T),color var(--T)}
+.step b{display:block;font-family:"Readex Pro";font-weight:600;font-size:13.5px}
+.step span{font-size:12.5px;color:var(--muted)}
+
+/* ===== التبويبات ===== */
+.tabbar{position:fixed;bottom:0;inset-inline:0;z-index:50;max-width:520px;margin:0 auto;height:var(--tabh);
+  padding-bottom:env(safe-area-inset-bottom);display:grid;grid-template-columns:repeat(4,1fr);
+  background:rgba(255,255,255,.97);backdrop-filter:blur(12px);border-top:1px solid var(--line)}
+.tab{border:0;background:0;color:#9AA5B4;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:3px;font-size:11px;cursor:pointer;position:relative;transition:color var(--T)}
+.tab svg{width:21px;height:21px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.tab[aria-selected="true"]{color:var(--brand);font-weight:700}
+.tab .cb{position:absolute;top:6px;inset-inline-start:calc(50% + 6px);min-width:17px;height:17px;border-radius:99px;
+  background:var(--amber);color:#3A2500;font-size:10px;font-weight:700;display:none;place-items:center;padding:0 4px;font-family:"IBM Plex Mono"}
+.tab .cb.on{display:grid}
+.toast{position:fixed;bottom:calc(var(--tabh) + 18px);inset-inline:0;margin:0 auto;width:max-content;max-width:88%;
+  background:var(--ink);color:#fff;border-radius:12px;padding:11px 16px;font-size:13px;z-index:70;opacity:0;
+  transform:translateY(8px);pointer-events:none;transition:opacity .25s,transform .25s;box-shadow:var(--shadow-lg)}
+.toast.on{opacity:1;transform:none}
+.foot{text-align:center;color:#9AA5B4;font-size:11.5px;padding:24px var(--pad) 12px}
+:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
+@media (prefers-reduced-motion:reduce){.blob{animation:none}*{transition-duration:.2s!important}}
+</style>
 </head>
-<body class="min-h-screen flex flex-col selection:bg-yellow-500 selection:text-slate-900">
+<body>
+<div class="app">
+  <header class="topbar">
+    <div class="aurora"><span class="blob b1"></span><span class="blob b2"></span><span class="blob b3"></span></div>
+    <div class="trow">
+      <div class="logo"><img src="data:image/jpeg;base64,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" alt="شعار حيدر حميد للألمنيوم الحديث"></div>
+      <div class="tt"><b>حيدر حميد للألمنيوم الحديث</b><span>بلد — شارع المحيط، معمل الزهور</span></div>
+      <button class="cartbtn" data-go="cart" aria-label="سلة الطلب">
+        <svg viewBox="0 0 24 24"><path d="M4 5h2l2.4 10.2a2 2 0 0 0 2 1.6h6.5a2 2 0 0 0 2-1.5L21 8H7"/><circle cx="10" cy="20" r="1.3"/><circle cx="18" cy="20" r="1.3"/></svg>
+        <span class="badge" id="badge">0</span></button>
+    </div>
+    <div class="search">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+      <input id="q" type="search" placeholder="دوّر على باب، شباك، كلادينج…" enterkeyhint="search">
+    </div>
+  </header>
 
-    <!-- شريط التنقل (Navbar) -->
-    <nav class="sticky top-0 z-50 bg-slate-900/90 backdrop-blur-md border-b border-slate-800 px-4 py-3">
-        <div class="max-w-7xl mx-auto flex justify-between items-center">
-            <div class="flex items-center space-x-3 space-x-reverse">
-                <div class="bg-gradient-to-tr from-yellow-500 to-amber-600 p-2 rounded-lg text-slate-950 shadow-lg shadow-yellow-500/10">
-                    <i class="fa-solid fa-door-open text-xl"></i>
-                </div>
-                <div>
-                    <h1 class="text-lg md:text-xl font-extrabold tracking-tight text-white">معمل الزهور</h1>
-                    <p class="text-xs text-yellow-500 font-semibold">للألمنيوم الحديث</p>
-                </div>
-            </div>
+  <main>
+    <!-- الرئيسية -->
+    <div class="view on" id="v-home">
+      <div class="banner">
+        <div class="aurora"><span class="blob b1"></span><span class="blob b2"></span></div>
+        <div class="in"><h2>قياس ومعاينة مجاناً</h2>
+          <p>اختر الموديل، حدّد القياس، وأرسل الطلب — ونوصل نقيس بالموقع.</p>
+          <button data-go="shop">ابدأ التسوّق</button></div>
+      </div>
 
-            <!-- معلومات الاتصال السريعة بالرأس -->
-            <div class="hidden md:flex items-center space-x-6 space-x-reverse text-sm">
-                <a href="tel:07904694393" class="flex items-center text-slate-300 hover:text-yellow-500 transition">
-                    <i class="fa-solid fa-phone ml-2 text-yellow-500"></i>
-                    <span>07904694393</span>
-                </a>
-                <span class="text-slate-700">|</span>
-                <span class="flex items-center text-slate-300">
-                    <i class="fa-solid fa-location-dot ml-2 text-yellow-500"></i>
-                    <span>بلد - شارع المحيط</span>
-                </span>
-            </div>
+      <div class="cats" id="cats"></div>
 
-            <div class="flex items-center space-x-3 space-x-reverse">
-                <!-- زر تسجيل الدخول / تبديل الحساب -->
-                <button id="authBtn" onclick="openAuthModal()" class="bg-slate-800 hover:bg-slate-700 text-yellow-500 px-4 py-2 rounded-lg text-sm font-bold border border-slate-700 transition flex items-center gap-2">
-                    <i class="fa-solid fa-user-lock"></i>
-                    <span id="authBtnText">دخول (المالك / زبون)</span>
-                </button>
-            </div>
+      <section class="sec"><div class="sechead"><h2>الأكثر طلباً</h2><button class="link" data-go="shop">الكل</button></div></section>
+      <div class="rail" id="rail"></div>
+
+      <section class="sec">
+        <div class="sechead"><h2>وصل حديثاً</h2><button class="link" data-go="shop">الكل</button></div>
+        <div class="grid" id="new-grid"></div>
+      </section>
+
+      <section class="sec">
+        <div class="sechead"><h2>كيف تطلب</h2></div>
+        <div class="steps">
+          <div class="step"><i>1</i><div><b>اختر الموديل</b><span>حدّد الزجاج واللون والقياس التقريبي.</span></div></div>
+          <div class="step"><i>2</i><div><b>أضفه للسلة</b><span>تكدر تجمع أكثر من قطعة بطلب واحد.</span></div></div>
+          <div class="step"><i>3</i><div><b>أرسل الطلب</b><span>يوصلنا على واتساب وننسّق موعد المعاينة.</span></div></div>
+          <div class="step"><i>4</i><div><b>تصنيع وتركيب</b><span>نصنع على القياس النهائي ونركّب ونسلّم.</span></div></div>
         </div>
-    </nav>
-
-    <!-- الواجهة الرئيسية والبطل (Hero Section) -->
-    <header class="relative overflow-hidden py-16 md:py-24 border-b border-slate-800/80 bg-slate-950">
-        <div class="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-yellow-500/10 via-transparent to-transparent pointer-events-none"></div>
-        <div class="max-w-7xl mx-auto px-4 grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
-            
-            <div class="lg:col-span-7 space-y-6 text-center lg:text-right">
-                <span class="inline-block bg-yellow-500/10 text-yellow-500 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider border border-yellow-500/20">
-                    بإدارة حيدر حميد
-                </span>
-                <h2 class="text-4xl md:text-6xl font-black text-white leading-tight">
-                    معمل الزهور <br>
-                    <span class="text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-amber-500 gold-glow">للألمنيوم الحديث</span>
-                </h2>
-                <p class="text-slate-400 text-base md:text-lg max-w-xl mx-auto lg:mx-0 font-light leading-relaxed">
-                    نقدم لكم أرقى وأحدث التصاميم العصرية للأبواب والشبابيك المصنوعة من أجود خامات الألمنيوم المقاوم للحرارة والرطوبة بأدق المقاييس واللمسات الاحترافية في قضاء بلد.
-                </p>
-                
-                <!-- أرقام وإحصائيات سريعة -->
-                <div class="grid grid-cols-3 gap-4 pt-4 max-w-md mx-auto lg:mx-0">
-                    <div class="bg-slate-900/50 p-3 rounded-xl border border-slate-800 text-center">
-                        <div class="text-yellow-500 text-xl md:text-2xl font-bold">100%</div>
-                        <div class="text-xs text-slate-500 mt-1">جودة وضمان</div>
-                    </div>
-                    <div class="bg-slate-900/50 p-3 rounded-xl border border-slate-800 text-center">
-                        <div class="text-yellow-500 text-xl md:text-2xl font-bold">+10 سنين</div>
-                        <div class="text-xs text-slate-500 mt-1">خبرة فنية</div>
-                    </div>
-                    <div class="bg-slate-900/50 p-3 rounded-xl border border-slate-800 text-center">
-                        <div class="text-yellow-500 text-xl md:text-2xl font-bold">عصري</div>
-                        <div class="text-xs text-slate-500 mt-1">أحدث الموديلات</div>
-                    </div>
-                </div>
-
-                <!-- أزرار العمليات السريعة للزبائن -->
-                <div class="flex flex-col sm:flex-row justify-center lg:justify-start gap-4 pt-4">
-                    <a href="tel:07904694393" class="bg-gradient-to-r from-yellow-500 to-amber-600 hover:from-yellow-600 hover:to-amber-700 text-slate-950 font-bold px-8 py-3.5 rounded-xl shadow-lg shadow-yellow-500/20 transition-all transform hover:-translate-y-0.5 flex items-center justify-center gap-2">
-                        <i class="fa-solid fa-phone-volume text-lg"></i>
-                        اتصل بنا الآن (07904694393)
-                    </a>
-                    <a href="https://wa.me/9647904694393" target="_blank" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-8 py-3.5 rounded-xl transition-all transform hover:-translate-y-0.5 flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/10">
-                        <i class="fa-brands fa-whatsapp text-xl"></i>
-                        مراسلة واتساب الفورية
-                    </a>
-                </div>
-            </div>
-
-            <!-- صورة استعراضية للمعمل والواجهات -->
-            <div class="lg:col-span-5 relative">
-                <div class="absolute -inset-1 rounded-2xl bg-gradient-to-r from-yellow-500 to-amber-600 opacity-20 blur-xl"></div>
-                <div class="relative bg-slate-900 p-2 rounded-2xl border border-slate-800">
-                    <img src="https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=800&q=80" alt="واجهة ألمنيوم حديثة" class="rounded-xl w-full object-cover h-64 md:h-96 shadow-inner" onerror="this.src='https://placehold.co/600x400/1e293b/ffffff?text=Modern+Aluminum'">
-                    <div class="absolute bottom-4 left-4 right-4 bg-slate-950/80 backdrop-blur-md p-4 rounded-xl border border-slate-800/80">
-                        <p class="text-xs text-yellow-500 font-bold mb-1">العنوان بالتفصيل:</p>
-                        <p class="text-sm text-slate-200 flex items-center gap-2">
-                            <i class="fa-solid fa-map-location-dot text-yellow-500"></i>
-                            قضاء بلد - شارع المحيط (معمل الزهور)
-                        </p>
-                    </div>
-                </div>
-            </div>
-
-        </div>
-    </header>
-
-    <!-- واجهة الإشعار للمالك النشط -->
-    <div id="adminNotice" class="hidden bg-yellow-500 text-slate-950 text-center py-2 px-4 font-bold text-sm shadow-md flex justify-between items-center max-w-7xl mx-auto w-full mt-4 rounded-lg">
-        <span class="flex items-center gap-2">
-            <i class="fa-solid fa-user-gear animate-bounce"></i>
-            مرحباً بك يا أستاذ حيدر! أنت الآن في وضع المالك (لوحة التحكم نشطة)
-        </span>
-        <button onclick="logoutAdmin()" class="bg-slate-950 hover:bg-slate-900 text-white px-3 py-1 rounded text-xs transition">
-            خروج من وضع الإدارة
-        </button>
+      </section>
+      <p class="foot">حيدر حميد للألمنيوم الحديث — أبواب • شبابيك • واجهات</p>
     </div>
 
-    <!-- المحتوى الرئيسي (المنتجات والمعرض) -->
-    <main class="flex-grow max-w-7xl mx-auto px-4 py-12 w-full">
-        
-        <!-- التصفية والبحث عن المنتجات -->
-        <div class="flex flex-col md:flex-row justify-between items-center mb-10 gap-6">
-            <div>
-                <h3 class="text-2xl font-extrabold text-white">معرض أعمالنا الفاخرة</h3>
-                <p class="text-slate-400 text-sm mt-1">شاهد أحدث التصاميم التي قمنا بتنفيذها في معمل الزهور</p>
-            </div>
-            
-            <div class="flex items-center gap-2 bg-slate-900 p-1.5 rounded-xl border border-slate-800 w-full md:w-auto overflow-x-auto">
-                <button onclick="filterProducts('all')" id="filter-all" class="filter-btn active bg-yellow-500 text-slate-950 px-4 py-2 rounded-lg text-sm font-bold transition duration-200">
-                    الكل
-                </button>
-                <button onclick="filterProducts('door')" id="filter-door" class="filter-btn text-slate-400 hover:text-white px-4 py-2 rounded-lg text-sm font-bold transition duration-200">
-                    أبواب ألمنيوم
-                </button>
-                <button onclick="filterProducts('window')" id="filter-window" class="filter-btn text-slate-400 hover:text-white px-4 py-2 rounded-lg text-sm font-bold transition duration-200">
-                    شبابيك ألمنيوم
-                </button>
-            </div>
-        </div>
-
-        <!-- لوحة إضافة منتج جديد (تظهر للمالك فقط عند تسجيل الدخول بالكود السري) -->
-        <section id="ownerControlPanel" class="hidden bg-slate-900 rounded-2xl p-6 border-2 border-dashed border-yellow-500/40 mb-12 shadow-xl">
-            <div class="flex items-center justify-between border-b border-slate-800 pb-4 mb-6">
-                <h3 class="text-xl font-black text-yellow-500 flex items-center gap-2">
-                    <i class="fa-solid fa-circle-plus"></i>
-                    إضافة منتج جديد للمعرض (خاص بالمالك)
-                </h3>
-                <span class="bg-yellow-500/20 text-yellow-400 text-xs px-2.5 py-1 rounded-full font-bold">لوحة المالك</span>
-            </div>
-
-            <form id="productForm" onsubmit="saveProduct(event)" class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div class="space-y-4">
-                    <div>
-                        <label class="block text-sm font-bold text-slate-300 mb-1">اسم المنتج أو عنوان التصميم</label>
-                        <input type="text" id="prodTitle" required placeholder="مثال: باب رئيسي فخم لون رمادي دبل كلاس" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 focus:outline-none focus:border-yellow-500 transition">
-                    </div>
-                    
-                    <div>
-                        <label class="block text-sm font-bold text-slate-300 mb-1">نوع المنتج</label>
-                        <select id="prodType" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 focus:outline-none focus:border-yellow-500 transition">
-                            <option value="door">باب ألمنيوم</option>
-                            <option value="window">شباك ألمنيوم</option>
-                        </select>
-                    </div>
-
-                    <div>
-                        <label class="block text-sm font-bold text-slate-300 mb-1">الوصف التفصيلي والمواصفات</label>
-                        <textarea id="prodDesc" rows="3" required placeholder="اكتب مواصفات المنتج مثل السمك، مقاومة الصوت، نوع المفاصل والإكسسوارات..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 focus:outline-none focus:border-yellow-500 transition"></textarea>
-                    </div>
-                </div>
-
-                <div class="space-y-4 flex flex-col justify-between">
-                    <div>
-                        <label class="block text-sm font-bold text-slate-300 mb-1">رابط فيديو استعراضي (اختياري)</label>
-                        <input type="url" id="prodVideo" placeholder="مثال: رابط يوتيوب أو فيديو فيسبوك" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 focus:outline-none focus:border-yellow-500 transition">
-                    </div>
-
-                    <div>
-                        <label class="block text-sm font-bold text-slate-300 mb-1">صورة المنتج</label>
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            <!-- خيار 1: رفع صورة من الجهاز -->
-                            <div class="bg-slate-950 p-3 rounded-xl border border-slate-850 flex flex-col justify-center items-center text-center">
-                                <span class="text-xs text-slate-400 mb-2">رفع صورة من جهازك</span>
-                                <input type="file" id="prodFile" accept="image/*" onchange="handleImageUpload(event)" class="hidden">
-                                <button type="button" onclick="document.getElementById('prodFile').click()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs px-3 py-2 rounded-lg border border-slate-700 transition w-full">
-                                    <i class="fa-solid fa-cloud-arrow-up ml-1 text-yellow-500"></i> اختر ملف الصورة
-                                </button>
-                                <span id="fileNameLabel" class="text-[10px] text-slate-500 mt-1 truncate max-w-full">لم يتم اختيار ملف</span>
-                            </div>
-                            
-                            <!-- خيار 2: رابط صورة خارجي -->
-                            <div class="bg-slate-950 p-3 rounded-xl border border-slate-850 flex flex-col justify-center">
-                                <span class="text-xs text-slate-400 mb-1">أو ضع رابط صورة جاهز</span>
-                                <input type="url" id="prodImgUrl" placeholder="https://..." class="w-full bg-slate-900 border border-slate-850 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-yellow-500">
-                            </div>
-                        </div>
-                        <input type="hidden" id="finalImageSrc">
-                    </div>
-
-                    <!-- معاينة الصورة قبل الحفظ -->
-                    <div id="imagePreviewContainer" class="hidden flex items-center gap-3 bg-slate-950 p-2 rounded-xl border border-slate-800">
-                        <img id="imgPreview" src="" class="w-12 h-12 rounded object-cover">
-                        <span class="text-xs text-emerald-400 font-bold">تم تجهيز الصورة بنجاح!</span>
-                    </div>
-
-                    <button type="submit" class="w-full bg-yellow-500 hover:bg-yellow-600 text-slate-950 font-black py-3 rounded-xl shadow-lg shadow-yellow-500/10 transition flex items-center justify-center gap-2">
-                        <i class="fa-solid fa-floppy-disk"></i>
-                        حفظ ونشر المنتج على الموقع فوراً
-                    </button>
-                </div>
-            </form>
-        </section>
-
-        <!-- شبكة المنتجات (Product Grid) -->
-        <div id="productsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            <!-- المنتجات سيتم توليدها ديناميكياً بواسطة JavaScript -->
-        </div>
-
-        <!-- رسالة عند عدم توفر منتجات -->
-        <div id="noProductsMsg" class="hidden text-center py-16 bg-slate-900/40 rounded-2xl border border-slate-800">
-            <i class="fa-solid fa-magnifying-glass text-slate-600 text-5xl mb-4"></i>
-            <h4 class="text-lg font-bold text-slate-400">لا توجد منتجات حالية في هذا القسم</h4>
-            <p class="text-sm text-slate-500 mt-1">يرجى تسجيل الدخول كمالك وإضافة تصاميم جديدة</p>
-        </div>
-
-    </main>
-
-    <!-- تفاصيل الفروع والمميزات الفنية للمعمل -->
-    <section class="bg-slate-950 border-t border-slate-800 py-16">
-        <div class="max-w-7xl mx-auto px-4">
-            <div class="text-center max-w-2xl mx-auto mb-12">
-                <h3 class="text-3xl font-extrabold text-white">لماذا معمل الزهور للألمنيوم؟</h3>
-                <p class="text-slate-400 text-sm mt-2">نضمن الجودة والاحترافية بفضل الإتقان في أدق التفاصيل واختيار أفضل المواد الأولية</p>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-                <!-- ميزة 1 -->
-                <div class="bg-slate-900/60 p-6 rounded-2xl border border-slate-800 hover:border-yellow-500/30 transition-all">
-                    <div class="w-12 h-12 bg-yellow-500/10 text-yellow-500 rounded-xl flex items-center justify-center text-xl mb-4">
-                        <i class="fa-solid fa-shield-halved"></i>
-                    </div>
-                    <h4 class="text-lg font-bold text-white mb-2">أعلى درجات المتانة والأمان</h4>
-                    <p class="text-sm text-slate-400 leading-relaxed">
-                        نستخدم قطاعات ألمنيوم ذات سماكة عالية وتصفيح متين لضمان مقاومة عالية للصدمات ومحاولات الاختراق الخارجي.
-                    </p>
-                </div>
-
-                <!-- ميزة 2 -->
-                <div class="bg-slate-900/60 p-6 rounded-2xl border border-slate-800 hover:border-yellow-500/30 transition-all">
-                    <div class="w-12 h-12 bg-yellow-500/10 text-yellow-500 rounded-xl flex items-center justify-center text-xl mb-4">
-                        <i class="fa-solid fa-temperature-arrow-down"></i>
-                    </div>
-                    <h4 class="text-lg font-bold text-white mb-2">عزل حراري وصوتي تام</h4>
-                    <p class="text-sm text-slate-400 leading-relaxed">
-                        شبابيكنا وأبوابنا مزودة بطبقات زجاجية مزدوجة وحشوات مطاطية عازلة تمنع تسرب درجات الحرارة العالية والغبار والضوضاء بشكل تام.
-                    </p>
-                </div>
-
-                <!-- ميزة 3 -->
-                <div class="bg-slate-900/60 p-6 rounded-2xl border border-slate-800 hover:border-yellow-500/30 transition-all">
-                    <div class="w-12 h-12 bg-yellow-500/10 text-yellow-500 rounded-xl flex items-center justify-center text-xl mb-4">
-                        <i class="fa-solid fa-palette"></i>
-                    </div>
-                    <h4 class="text-lg font-bold text-white mb-2">ألوان وإكسسوارات عصرية</h4>
-                    <p class="text-sm text-slate-400 leading-relaxed">
-                        نوفر تشكيلة واسعة من الألوان الحرارية والطلاء الإلكتروستاتيكي المقاوم للتقشير، مع إكسسوارات ومقابض إيطالية وتركية فاخرة تدوم طويلاً.
-                    </p>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- نافذة منبثقة لتسجيل الدخول (Auth Modal) -->
-    <div id="authModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm hidden">
-        <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl relative transform scale-95 transition-all duration-300">
-            <!-- زر الإغلاق -->
-            <button onclick="closeAuthModal()" class="absolute top-4 left-4 text-slate-400 hover:text-white text-xl">
-                <i class="fa-solid fa-xmark"></i>
-            </button>
-
-            <div class="text-center mb-6">
-                <div class="inline-flex bg-yellow-500/10 p-3 rounded-full text-yellow-500 mb-3 text-2xl">
-                    <i class="fa-solid fa-user-shield"></i>
-                </div>
-                <h3 class="text-xl font-bold text-white">تسجيل الدخول للموقع</h3>
-                <p class="text-slate-400 text-xs mt-1">الرجاء إدخال بياناتك أو كود المالك للدخول للمنصة</p>
-            </div>
-
-            <!-- تبويبات تسجيل الدخول -->
-            <div class="flex border-b border-slate-800 mb-4 text-sm font-bold">
-                <button onclick="switchAuthTab('customer')" id="tab-customer" class="flex-1 pb-3 text-center border-b-2 border-yellow-500 text-yellow-500 transition">
-                    تسجيل الدخول كزبون
-                </button>
-                <button onclick="switchAuthTab('owner')" id="tab-owner" class="flex-1 pb-3 text-center text-slate-400 hover:text-slate-200 transition">
-                    حساب المالك السري
-                </button>
-            </div>
-
-            <!-- استمارات تسجيل الدخول -->
-            <div class="space-y-4">
-                <!-- استمارة الزبون -->
-                <div id="customerFormSection" class="space-y-3">
-                    <div>
-                        <label class="block text-xs font-bold text-slate-400 mb-1">اسم الزبون الكريم</label>
-                        <input type="text" id="custName" placeholder="اكتب اسمك هنا" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-slate-100 text-sm focus:outline-none focus:border-yellow-500 transition">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-slate-400 mb-1">رقم الهاتف للسرعة بالرد (اختياري)</label>
-                        <input type="tel" id="custPhone" placeholder="مثال: 0770xxxxxxx" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-slate-100 text-sm focus:outline-none focus:border-yellow-500 transition">
-                    </div>
-                    <button onclick="loginAsCustomer()" class="w-full bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-100 font-bold py-2.5 rounded-xl transition text-sm flex items-center justify-center gap-2">
-                        <i class="fa-solid fa-circle-check text-yellow-500"></i>
-                        دخول واستعراض كزبون
-                    </button>
-                </div>
-
-                <!-- استمارة المالك السرية -->
-                <div id="ownerFormSection" class="space-y-3 hidden">
-                    <div class="bg-yellow-500/10 border border-yellow-500/20 p-3 rounded-xl text-yellow-500 text-xs leading-relaxed mb-2">
-                        <i class="fa-solid fa-triangle-exclamation"></i>
-                        هذه الواجهة مخصصة لمالك المعمل فقط لإدارة الموقع وإضافة أو تعديل الصور والمنتجات.
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-slate-400 mb-1">رمز الدخول السري المخصص</label>
-                        <input type="password" id="ownerSecretKey" placeholder="أدخل الكود السري الخاص بك هنا..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-slate-100 text-sm focus:outline-none focus:border-yellow-500 transition text-center tracking-widest font-bold">
-                    </div>
-                    <button onclick="loginAsOwner()" class="w-full bg-gradient-to-r from-yellow-500 to-amber-600 hover:from-yellow-600 hover:to-amber-700 text-slate-950 font-black py-2.5 rounded-xl transition text-sm flex items-center justify-center gap-2 shadow-lg shadow-yellow-500/10">
-                        <i class="fa-solid fa-unlock-keyhole"></i>
-                        تفعيل وضع المالك والتحكم
-                    </button>
-                </div>
-            </div>
-
-            <!-- إشعار حالة خاطئة -->
-            <p id="authErrorMsg" class="hidden text-rose-500 text-xs font-bold text-center mt-3 animate-pulse">
-                <i class="fa-solid fa-circle-xmark"></i> رمز الدخول السري خاطئ! يرجى التأكد وإعادة المحاولة.
-            </p>
-        </div>
+    <!-- المنتجات -->
+    <div class="view" id="v-shop">
+      <section class="sec"><div class="sechead"><h2 id="shop-title">كل المنتجات</h2><span class="sub" id="count"></span></div></section>
+      <div class="chips" id="chips"></div>
+      <div class="grid" id="grid"></div>
+      <div class="empty" id="empty" hidden><b>ما لگينا نتيجة</b>جرّب كلمة ثانية أو اختر قسم من فوق.</div>
+      <p class="foot">الأسعار تحدد بعد المعاينة حسب القياس ونوع الزجاج والمقطع.</p>
     </div>
 
-    <!-- تذييل الصفحة (Footer) -->
-    <footer class="bg-slate-950 border-t border-slate-800 py-12 px-4 mt-auto">
-        <div class="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div class="space-y-4">
-                <h3 class="text-xl font-extrabold text-white">معمل الزهور للألمنيوم الحديث</h3>
-                <p class="text-slate-400 text-xs leading-relaxed">
-                    مظاهر الجمال والتميز تصنع بأيدينا. نحن ملتزمون بتوفير أحدث التقنيات وأفضل تصاميم الألمنيوم التي توفر لكم الأناقة، الراحة والأمان التام لبيوتكم ومؤسساتكم في بلد.
-                </p>
-            </div>
-
-            <div class="space-y-4">
-                <h4 class="text-base font-bold text-white">معلومات الاتصال المباشرة</h4>
-                <ul class="space-y-2.5 text-xs text-slate-400">
-                    <li class="flex items-center gap-2">
-                        <i class="fa-solid fa-phone text-yellow-500 w-4"></i>
-                        <span>حيدر حميد: 07904694393</span>
-                    </li>
-                    <li class="flex items-center gap-2">
-                        <i class="fa-solid fa-location-dot text-yellow-500 w-4"></i>
-                        <span>قضاء بلد - شارع المحيط - معمل الزهور</span>
-                    </li>
-                    <li class="flex items-center gap-2">
-                        <i class="fa-solid fa-clock text-yellow-500 w-4"></i>
-                        <span>أوقات العمل: من 8:00 صباحاً وحتى 8:00 مساءً</span>
-                    </li>
-                </ul>
-            </div>
-
-            <div class="space-y-4">
-                <h4 class="text-base font-bold text-white">روابط سريعة</h4>
-                <div class="grid grid-cols-2 gap-2 text-xs">
-                    <a href="tel:07904694393" class="text-slate-400 hover:text-yellow-500 transition">اتصال مباشر</a>
-                    <a href="https://wa.me/9647904694393" target="_blank" class="text-slate-400 hover:text-yellow-500 transition">واتساب المعمل</a>
-                    <a href="#" class="text-slate-400 hover:text-yellow-500 transition">تصفح المعرض</a>
-                    <a href="#authModal" onclick="openAuthModal()" class="text-slate-400 hover:text-yellow-500 transition">دخول لوحة التحكم</a>
-                </div>
-            </div>
+    <!-- السلة -->
+    <div class="view" id="v-cart">
+      <section class="sec"><div class="sechead"><h2>سلة الطلب</h2><span class="sub" id="cart-count"></span></div></section>
+      <div id="cart-lines"></div>
+      <div class="empty" id="cart-empty"><b>السلة فارغة</b>تصفّح الموديلات وأضف اللي يعجبك.
+        <div class="acts" style="max-width:240px;margin:16px auto 0"><button class="btn btn-p" data-go="shop">تصفّح المنتجات</button></div>
+      </div>
+      <div id="checkout" hidden>
+        <div class="summary">
+          <div class="r"><span>عدد القطع</span><b class="mono" id="sum-qty">0</b></div>
+          <div class="r"><span>الأصناف</span><b class="mono" id="sum-items">0</b></div>
+          <div class="r"><span>السعر</span><b>بعد المعاينة</b></div>
         </div>
-        
-        <div class="max-w-7xl mx-auto border-t border-slate-850 mt-8 pt-8 flex flex-col md:flex-row justify-between items-center text-xs text-slate-500 gap-4">
-            <p>© 2026 معمل الزهور للألمنيوم الحديث. جميع الحقوق محفوظة.</p>
-            <p>تم التصميم بأعلى درجات الفخامة لـ <span class="text-yellow-500 font-bold">حيدر حميد</span></p>
+        <div class="note">المعاينة والقياس مجاناً داخل بلد. السعر النهائي ينحدد بعد قياس الموقع.</div>
+        <section class="sec"><div class="sechead"><h2>معلومات التوصيل</h2></div></section>
+        <div style="padding:0 var(--pad)">
+          <div class="opt" style="margin-top:0"><label for="c-name">الاسم</label>
+            <input class="ctrl" id="c-name" placeholder="اسمك الكامل" autocomplete="name">
+            <p class="err">اكتب اسمك حتى نعرف نتواصل وياك.</p></div>
+          <div class="opt"><label for="c-phone">رقم الهاتف</label>
+            <input class="ctrl mono" id="c-phone" type="tel" inputmode="numeric" placeholder="07XXXXXXXXX" autocomplete="tel">
+            <p class="err">اكتب رقم يبدأ بـ 07 ويتكوّن من 11 رقم.</p></div>
+          <div class="opt"><label for="c-area">العنوان</label>
+            <input class="ctrl" id="c-area" placeholder="المنطقة وأقرب نقطة دالة"></div>
+          <div class="opt"><label>موعد المعاينة المفضّل</label>
+            <div class="row"><input class="ctrl mono" id="c-date" type="date">
+              <select class="ctrl" id="c-time"><option>صباحاً (٩ – ١٢)</option><option>ظهراً (١٢ – ٣)</option><option>عصراً (٣ – ٦)</option><option>أي وقت يناسبكم</option></select></div></div>
+          <div class="opt"><label for="c-note">ملاحظات</label>
+            <textarea class="ctrl" id="c-note" placeholder="أي تفصيل تحب تذكره"></textarea></div>
+          <div class="acts">
+            <button class="btn btn-wa" id="send">إرسال الطلب على واتساب</button>
+            <button class="btn btn-o" id="copy">نسخ نص الطلب</button>
+            <a class="btn btn-o" href="tel:07904694393">اتصال بدل الإرسال</a>
+          </div>
         </div>
-    </footer>
+        <p class="foot">معلوماتك تستخدم فقط للتواصل بخصوص طلبك.</p>
+      </div>
+    </div>
 
-    <!-- JavaScript التفاعلي -->
-    <script>
-        // المنتجات الأساسية الافتراضية لتبدأ بها إذا لم تكن هناك منتجات مخزنة سابقاً
-        const defaultProducts = [
-            {
-                id: '1',
-                title: 'باب رئيسي ألمنيوم فخم لون رمادي داكن',
-                type: 'door',
-                desc: 'باب خارجي بتصميم تركي مميز، مقاوم للرطوبة وعوامل الطقس، مزود بنقوش زجاجية عازلة ومقابض برونزية مقاومة للصدأ.',
-                image: 'https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&w=600&q=80',
-                video: ''
-            },
-            {
-                id: '2',
-                title: 'شباك سحاب ألمنيوم دبل جلاس عازل',
-                type: 'window',
-                desc: 'شباك سحاب ألمنيوم دبل جلاس (طبقتين زجاج) مع حشوة عازلة ومقاومة للأتربة لراحة وأمان منزلك ضد الضوضاء الخارجية.',
-                image: 'https://images.unsplash.com/photo-1600566752355-35792bedcfea?auto=format&fit=crop&w=600&q=80',
-                video: ''
-            },
-            {
-                id: '3',
-                title: 'باب داخلي ألمنيوم مودرن مقاوم للمياه',
-                type: 'door',
-                desc: 'مثالي للحمامات والغرف الداخلية، خفيف الوزن وعالي المتانة مع حواف مطاطية تمنع تسرب المياه نهائياً وبألوان متعددة تناسب الديكور.',
-                image: 'https://images.unsplash.com/photo-1505691938895-1758d7feb511?auto=format&fit=crop&w=600&q=80',
-                video: ''
-            }
-        ];
+    <!-- تواصل -->
+    <div class="view" id="v-contact">
+      <section class="sec"><div class="sechead"><h2>تواصل معنا</h2></div></section>
+      <div class="brandcard"><img src="data:image/jpeg;base64,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" alt="حيدر حميد للألمنيوم الحديث"></div>
+      <div class="info">
+        <div class="item"><div class="ic">☏</div><div><b>الهاتف</b><span class="mono">0790 469 4393</span></div></div>
+        <div class="item"><div class="ic">⌖</div><div><b>الموقع</b><span>بلد — شارع المحيط — معمل الزهور</span></div></div>
+        <div class="item"><div class="ic">◷</div><div><b>الدوام</b><span>السبت – الخميس، ٩ صباحاً – ٦ مساءً</span></div></div>
+        <div class="item"><div class="ic">◈</div><div><b>الخدمات</b><span>أبواب • شبابيك • واجهات وكلادينج • قواطع • شغل خاص</span></div></div>
+      </div>
+      <div class="pair">
+        <a class="btn btn-p" href="tel:07904694393">اتصال</a>
+        <a class="btn btn-wa" id="wa-plain" href="#">واتساب</a>
+        <button class="btn btn-o" id="copy-num">نسخ الرقم</button>
+        <a class="btn btn-o" id="map-link" href="#" target="_blank" rel="noopener">الخريطة</a>
+      </div>
+      <p class="foot">حيدر حميد للألمنيوم الحديث</p>
+    </div>
+  </main>
 
-        // تهيئة وحفظ الحالة الأساسية بشكل ذكي
-        // جلب المنتجات المخزنة في localStorage، وفي حال لم توجد نستخدم المنتجات الافتراضية
-        let products = JSON.parse(localStorage.getItem('al_zuhour_products')) || defaultProducts;
-        
-        // إذا كانت الذاكرة خالية تماماً، نقوم بحفظ المنتجات الافتراضية فيها مباشرة كبداية
-        if (!localStorage.getItem('al_zuhour_products')) {
-            localStorage.setItem('al_zuhour_products', JSON.stringify(defaultProducts));
-        }
+  <nav class="tabbar" role="tablist">
+    <button class="tab" role="tab" aria-selected="true" data-go="home">
+      <svg viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 10v10h14V10"/></svg>الرئيسية</button>
+    <button class="tab" role="tab" aria-selected="false" data-go="shop">
+      <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7.5" height="7.5" rx="1.6"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="1.6"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="1.6"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1.6"/></svg>المنتجات</button>
+    <button class="tab" role="tab" aria-selected="false" data-go="cart">
+      <svg viewBox="0 0 24 24"><path d="M4 5h2l2.4 10.2a2 2 0 0 0 2 1.6h6.5a2 2 0 0 0 2-1.5L21 8H7"/><circle cx="10" cy="20" r="1.3"/><circle cx="18" cy="20" r="1.3"/></svg>السلة
+      <span class="cb" id="tab-badge">0</span></button>
+    <button class="tab" role="tab" aria-selected="false" data-go="contact">
+      <svg viewBox="0 0 24 24"><path d="M4 6c0 8 6 14 14 14l2-3-4-2-2 2c-2-1-5-4-6-6l2-2-2-4z"/></svg>تواصل</button>
+  </nav>
+</div>
 
-        let isAdminLoggedIn = JSON.parse(sessionStorage.getItem('al_zuhour_admin')) || false;
-        let currentFilter = 'all';
-        let currentAuthTab = 'customer';
-        let uploadedImageBase64 = '';
+<div class="scrim" id="scrim"></div>
+<div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-label="تفاصيل المنتج">
+  <div class="handle"></div><div id="sheet-body"></div>
+</div>
+<div class="toast" id="toast"></div>
 
-        // استدعاء دالة التحميل عند بدء التشغيل
-        window.onload = function() {
-            renderProducts();
-            checkAdminStatus();
-        };
+<script>
+/* ===== تدرّج الألوان التدريجي ===== */
+const PALETTES=[
+ {b:"#1B72E8",b2:"#4285F4",b3:"#7BA7FF",soft:"#E9F0FE",ink:"#0B3B8F"},
+ {b:"#4B57E6",b2:"#7A5CF5",b3:"#A48BFA",soft:"#EDEBFE",ink:"#33279B"},
+ {b:"#8B44E0",b2:"#B45CEE",b3:"#D79BF4",soft:"#F5EBFE",ink:"#5A2190"},
+ {b:"#D6488C",b2:"#F0699B",b3:"#F8A3BE",soft:"#FEECF3",ink:"#8C1F52"},
+ {b:"#E0713C",b2:"#F59356",b3:"#FBBE8E",soft:"#FEF0E6",ink:"#8A3D14"},
+ {b:"#159A8E",b2:"#2FC0AF",b3:"#7FDCD0",soft:"#E4F7F4",ink:"#0A5A53"}
+];
+let pi=0;
+function applyPalette(p){
+  const s=document.documentElement.style;
+  s.setProperty('--brand',p.b); s.setProperty('--brand-2',p.b2); s.setProperty('--brand-3',p.b3);
+  s.setProperty('--brand-soft',p.soft); s.setProperty('--brand-ink',p.ink);
+  document.querySelector('meta[name=theme-color]').setAttribute('content',p.b);
+}
+applyPalette(PALETTES[0]);
+if(!matchMedia('(prefers-reduced-motion: reduce)').matches){
+  setInterval(()=>{pi=(pi+1)%PALETTES.length;applyPalette(PALETTES[pi])},7000);
+}
 
-        // دالة لعرض المنتجات في الشبكة
-        function renderProducts() {
-            const grid = document.getElementById('productsGrid');
-            const noMsg = document.getElementById('noProductsMsg');
-            
-            // تصفية المنتجات حسب الفلتر المختار
-            const filteredProducts = products.filter(p => currentFilter === 'all' || p.type === currentFilter);
-            
-            grid.innerHTML = '';
-            
-            if (filteredProducts.length === 0) {
-                noMsg.classList.remove('hidden');
-                grid.classList.add('hidden');
-                return;
-            } else {
-                noMsg.classList.add('hidden');
-                grid.classList.remove('hidden');
-            }
+const PHONE="07904694393", WA="9647904694393";
+document.getElementById('wa-plain').href="https://wa.me/"+WA;
+document.getElementById('map-link').href="https://www.google.com/maps/search/?api=1&query="+encodeURIComponent("بلد شارع المحيط معمل الزهور");
 
-            filteredProducts.forEach(product => {
-                const card = document.createElement('div');
-                card.className = 'bg-slate-900 rounded-2xl overflow-hidden border border-slate-800/80 hover:border-slate-700 hover:shadow-xl hover:shadow-yellow-500/5 transition-all duration-300 flex flex-col group';
-                
-                // زر الحذف (يظهر فقط للمالك)
-                const deleteBtnHtml = isAdminLoggedIn 
-                    ? `<button onclick="deleteProduct('${product.id}')" class="absolute top-3 left-3 bg-rose-600/95 hover:bg-rose-700 text-white w-8 h-8 rounded-full flex items-center justify-center transition-all shadow-lg z-10" title="حذف هذا المنتج">
-                        <i class="fa-solid fa-trash-can text-sm"></i>
-                       </button>` 
-                    : '';
+/* ===== البيانات ===== */
+const MODELS=[
+ {id:"d1",cat:"أبواب",name:"باب سحب زجاجي",sub:"مقطعين سحب",w:2,h:2.6,cols:2,solid:0,slide:1,hot:1,
+  desc:"باب سحب بمقطعين زجاج للصالات والمداخل الداخلية. يفتح بنعومة وياخذ مساحة أقل من الباب المفصلي.",
+  tags:["زجاج سيكوريت","سكك ألمنيوم","قفل بمفتاح","لون حسب الطلب"]},
+ {id:"d2",cat:"أبواب",name:"باب مفصلي كلادينج",sub:"وجه كامل",w:1,h:2.6,cols:1,solid:3,slide:0,
+  desc:"باب مفصلي بوجه كلادينج كامل، متين للأبواب الخارجية والمخازن، بألوان وخطوط متعددة.",
+  tags:["كلادينج","عزل جيد","مفصلات ثقيلة"]},
+ {id:"d3",cat:"أبواب",name:"باب رئيسي بزجاج",sub:"إطار + زجاج علوي",w:1.2,h:2.6,cols:1,solid:1,slide:0,glassTop:1,newy:1,
+  desc:"باب مدخل رئيسي بإطار ألمنيوم قوي وزجاج علوي يدخّل ضوء طبيعي، مع مقبض فخم.",
+  tags:["مدخل رئيسي","زجاج علوي","مقبض ستيل"]},
+ {id:"w1",cat:"شبابيك",name:"شباك سحب مقطعين",sub:"الأكثر طلباً",w:1.5,h:1.2,cols:2,solid:0,slide:1,hot:1,
+  desc:"الشباك القياسي للغرف: مقطعين سحب، سهل التنظيف ولا ياخذ مساحة عند الفتح.",
+  tags:["سحب أفقي","سكة مزدوجة","زجاج عادي أو دبل"]},
+ {id:"w2",cat:"شبابيك",name:"شباك سحب أربع مقاطع",sub:"للفتحات الواسعة",w:2.4,h:1.2,cols:4,solid:0,slide:1,newy:1,
+  desc:"للفتحات العريضة بالصالات: أربع مقاطع تنسحب، مع إمكانية زجاج عازل.",
+  tags:["فتحات واسعة","زجاج دبل","سكك مقواة"]},
+ {id:"w3",cat:"شبابيك",name:"شباك مع شبك",sub:"ضد الحشرات",w:1.5,h:1.2,cols:2,solid:0,slide:1,mesh:1,hot:1,
+  desc:"شباك سحب مع مقطع شبك فايبر يمنع الحشرات ويخلي الشباك مفتوح براحة.",
+  tags:["شبك فايبر","سحب مستقل","سهل الفك"]},
+ {id:"f1",cat:"واجهات",name:"واجهة كلادينج",sub:"للمحلات والمكاتب",w:3,h:2,cols:3,solid:2,slide:0,hot:1,
+  desc:"واجهة كلادينج بخطوط نظيفة تعطي المحل مظهر حديث، مع إمكانية دمج إضاءة أو لوحة الاسم.",
+  tags:["ألواح كلادينج","مقاوم للجو","تركيب سريع"]},
+ {id:"f2",cat:"واجهات",name:"واجهة زجاج كاملة",sub:"كيرتن وول",w:3,h:2.4,cols:3,solid:0,slide:0,newy:1,
+  desc:"واجهة زجاجية بإطار ألمنيوم نحيف تعطي إضاءة كاملة ومظهر فخم للمعارض.",
+  tags:["زجاج سيكوريت","إطار نحيف","باب مدمج"]},
+ {id:"p1",cat:"قواطع",name:"قاطع مكتبي زجاجي",sub:"تقسيم داخلي",w:2.4,h:2.4,cols:3,solid:0,slide:0,
+  desc:"قاطع ألمنيوم وزجاج لتقسيم المكاتب والعيادات — يعزل الصوت نسبياً ويحافظ على الإضاءة.",
+  tags:["زجاج شفاف أو مموّه","باب مدمج"]},
+ {id:"p2",cat:"قواطع",name:"قاطع حمام / دش",sub:"زجاج مقوى",w:1,h:2,cols:1,solid:0,slide:0,newy:1,
+  desc:"قاطع دش بزجاج مقوى وإطار ألمنيوم مقاوم للرطوبة، بقياس الحمام تماماً.",
+  tags:["زجاج مقوى","مقاوم للرطوبة"]}
+];
+const CATS=[{n:"أبواب",p:"M6 3h12v18H6z M14 12h1.6"},{n:"شبابيك",p:"M3 5h18v14H3z M12 5v14 M3 12h18"},
+ {n:"واجهات",p:"M3 20V8l9-4 9 4v12 M9 20v-6h6v6"},{n:"قواطع",p:"M4 4h7v16H4z M13 4h7v16h-7z"}];
 
-                // أيقونة الباب أو الشباك كبادرة تمييز
-                const iconHtml = product.type === 'door' 
-                    ? `<span class="bg-yellow-500 text-slate-950 text-xs font-bold px-2.5 py-1 rounded-full flex items-center gap-1">
-                        <i class="fa-solid fa-door-closed"></i> باب ألمنيوم
-                       </span>`
-                    : `<span class="bg-blue-500 text-white text-xs font-bold px-2.5 py-1 rounded-full flex items-center gap-1">
-                        <i class="fa-solid fa-window-restore"></i> شباك ألمنيوم
-                       </span>`;
+/* ===== الرسم ===== */
+function frameSVG(m,big){
+  const W=200,H=Math.round(200*(m.h/m.w)),pad=8,iw=W-pad*2,ih=H-pad*2,cw=iw/m.cols;
+  let inner="";
+  for(let i=0;i<m.cols;i++){
+    const x=pad+i*cw,isSolid=i<m.solid;
+    inner+=`<rect x="${x+3}" y="${pad+3}" width="${cw-6}" height="${ih-6}" rx="2"
+      fill="${isSolid?'#FFFFFF':'currentColor'}" fill-opacity="${isSolid?'.85':'.16'}" stroke="#98A6BC" stroke-width="2"/>`;
+    if(m.slide&&!isSolid){const cx=x+cw/2,cy=pad+ih/2;
+      inner+=`<path d="M${cx-13} ${cy} h26 M${cx+13} ${cy} l-5 -4 M${cx+13} ${cy} l-5 4" stroke="currentColor" stroke-width="1.6" fill="none"/>`;}
+    if(m.mesh&&i===m.cols-1) inner+=`<rect x="${x+3}" y="${pad+3}" width="${cw-6}" height="${ih-6}" fill="url(#mesh)"/>`;
+  }
+  if(m.glassTop) inner+=`<rect x="${pad+6}" y="${pad+6}" width="${iw-12}" height="${ih*0.3}" rx="2" fill="currentColor" fill-opacity=".2" stroke="currentColor" stroke-width="1.6"/>`;
+  return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet" role="img" aria-label="${m.name}"
+      style="color:var(--brand);transition:color var(--T)">
+    <defs><pattern id="mesh" width="4" height="4" patternUnits="userSpaceOnUse"><path d="M0 0H4M0 0V4" stroke="#98A6BC" stroke-width=".4"/></pattern></defs>
+    <rect x="${pad}" y="${pad}" width="${iw}" height="${ih}" rx="3" fill="none" stroke="currentColor" stroke-width="${big?3.4:2.8}"/>
+    ${inner}</svg>`;
+}
+function prodHTML(m){
+  const badge=m.hot?'<span class="pill">الأكثر طلباً</span>':(m.newy?'<span class="pill">جديد</span>':'');
+  return `<button class="prod" data-model="${m.id}">
+    <span class="art">${badge}${frameSVG(m)}</span>
+    <span class="meta"><b>${m.name}</b><span class="desc">${m.sub}</span>
+      <span class="buy"><span class="price">السعر بعد القياس</span><span class="add" aria-hidden="true">+</span></span>
+    </span></button>`;
+}
 
-                card.innerHTML = `
-                    <div class="relative overflow-hidden h-60 bg-slate-950 flex items-center justify-center">
-                        ${deleteBtnHtml}
-                        <img src="${product.image || 'https://placehold.co/600x400/1e293b/ffffff?text=No+Image'}" alt="${product.title}" class="w-full h-full object-cover group-hover:scale-105 transition-all duration-500" onerror="this.src='https://placehold.co/600x400/1e293b/ffffff?text=Modern+Aluminum'">
-                        <div class="absolute bottom-3 right-3">
-                            ${iconHtml}
-                        </div>
-                    </div>
-                    
-                    <div class="p-5 flex-grow flex flex-col justify-between space-y-4">
-                        <div class="space-y-2">
-                            <h4 class="text-lg font-bold text-white group-hover:text-yellow-400 transition-colors">${product.title}</h4>
-                            <p class="text-xs text-slate-400 leading-relaxed">${product.desc}</p>
-                        </div>
-                        
-                        <div class="pt-4 border-t border-slate-800 flex flex-col space-y-3">
-                            ${product.video ? `
-                            <a href="${product.video}" target="_blank" class="w-full bg-slate-800 hover:bg-slate-750 text-slate-300 hover:text-white py-2 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2">
-                                <i class="fa-solid fa-circle-play text-red-500 text-sm animate-pulse"></i>
-                                تشغيل الفيديو الاستعراضي للتصميم
-                            </a>` : ''}
-                            
-                            <div class="flex items-center gap-2">
-                                <a href="tel:07904694393" class="flex-1 bg-yellow-500 hover:bg-yellow-600 text-slate-950 font-black py-2.5 rounded-xl text-xs text-center transition flex items-center justify-center gap-1">
-                                    <i class="fa-solid fa-phone"></i>
-                                    اطلب الآن
-                                </a>
-                                <a href="https://wa.me/9647904694393?text=${encodeURIComponent('مرحباً معمل الزهور، أرغب بالاستفسار عن تصميم: ' + product.title)}" target="_blank" class="bg-emerald-600 hover:bg-emerald-700 text-white p-2.5 rounded-xl transition flex items-center justify-center" title="استفسار عبر واتساب">
-                                    <i class="fa-brands fa-whatsapp text-lg"></i>
-                                </a>
-                            </div>
-                        </div>
-                    </div>
-                `;
-                grid.appendChild(card);
-            });
-        }
+/* ===== العرض ===== */
+document.getElementById('cats').innerHTML=CATS.map(c=>
+  `<button class="cat" data-cat="${c.n}"><span class="ci"><svg viewBox="0 0 24 24"><path d="${c.p}"/></svg></span><span>${c.n}</span></button>`).join('');
+document.getElementById('rail').innerHTML=MODELS.filter(m=>m.hot).map(prodHTML).join('');
+document.getElementById('new-grid').innerHTML=MODELS.filter(m=>m.newy).slice(0,4).map(prodHTML).join('');
+const cats=["الكل",...new Set(MODELS.map(m=>m.cat))];
+document.getElementById('chips').innerHTML=cats.map((c,i)=>`<button class="chip" aria-pressed="${i===0}" data-chip="${c}">${c}</button>`).join('');
 
-        // تصفية المنتجات في المعرض
-        function filterProducts(category) {
-            currentFilter = category;
-            
-            // تعديل شكل الأزرار النشطة
-            document.querySelectorAll('.filter-btn').forEach(btn => {
-                btn.className = "filter-btn text-slate-400 hover:text-white px-4 py-2 rounded-lg text-sm font-bold transition duration-200";
-            });
-            
-            const activeBtn = document.getElementById(`filter-${category}`);
-            if (activeBtn) {
-                activeBtn.className = "filter-btn active bg-yellow-500 text-slate-950 px-4 py-2 rounded-lg text-sm font-bold transition duration-200";
-            }
-            
-            renderProducts();
-        }
+let filter="الكل",query="";
+function renderShop(){
+  let list=MODELS.filter(m=>filter==="الكل"||m.cat===filter);
+  if(query) list=list.filter(m=>(m.name+m.sub+m.cat+m.tags.join(" ")).includes(query));
+  document.getElementById('grid').innerHTML=list.map(prodHTML).join('');
+  document.getElementById('empty').hidden=list.length>0;
+  document.getElementById('count').textContent=list.length+" منتج";
+  document.getElementById('shop-title').textContent=filter==="الكل"?"كل المنتجات":filter;
+  document.querySelectorAll('[data-chip]').forEach(c=>c.setAttribute('aria-pressed',c.dataset.chip===filter));
+}
+renderShop();
+document.getElementById('chips').addEventListener('click',e=>{const b=e.target.closest('[data-chip]');if(!b)return;filter=b.dataset.chip;renderShop()});
+document.getElementById('cats').addEventListener('click',e=>{const b=e.target.closest('[data-cat]');if(!b)return;filter=b.dataset.cat;renderShop();go('shop')});
+document.getElementById('q').addEventListener('input',e=>{query=e.target.value.trim();if(query)go('shop');renderShop()});
 
-        // فتح وإغلاق النافذة المنبثقة
-        function openAuthModal() {
-            document.getElementById('authModal').classList.remove('hidden');
-        }
-        function closeAuthModal() {
-            document.getElementById('authModal').classList.add('hidden');
-            document.getElementById('authErrorMsg').classList.add('hidden');
-        }
+/* ===== التنقل ===== */
+function go(view){
+  document.querySelectorAll('.view').forEach(v=>v.classList.toggle('on',v.id==='v-'+view));
+  document.querySelectorAll('.tab').forEach(t=>t.setAttribute('aria-selected',t.dataset.go===view));
+  if(view==='cart') renderCart();
+  window.scrollTo({top:0,behavior:'instant'});
+}
+document.addEventListener('click',e=>{const b=e.target.closest('[data-go]');if(b)go(b.dataset.go)});
 
-        // تبديل تبويبات تسجيل الدخول في النافذة المنبثقة
-        function switchAuthTab(tab) {
-            currentAuthTab = tab;
-            const custTab = document.getElementById('tab-customer');
-            const ownTab = document.getElementById('tab-owner');
-            const custForm = document.getElementById('customerFormSection');
-            const ownForm = document.getElementById('ownerFormSection');
-            
-            if (tab === 'customer') {
-                custTab.className = "flex-1 pb-3 text-center border-b-2 border-yellow-500 text-yellow-500 transition";
-                ownTab.className = "flex-1 pb-3 text-center text-slate-400 hover:text-slate-200 transition";
-                custForm.classList.remove('hidden');
-                ownForm.classList.add('hidden');
-            } else {
-                ownTab.className = "flex-1 pb-3 text-center border-b-2 border-yellow-500 text-yellow-500 transition";
-                custTab.className = "flex-1 pb-3 text-center text-slate-400 hover:text-slate-200 transition";
-                ownForm.classList.remove('hidden');
-                custForm.classList.add('hidden');
-            }
-            document.getElementById('authErrorMsg').classList.add('hidden');
-        }
+/* ===== ورقة المنتج ===== */
+const scrim=document.getElementById('scrim'),sheet=document.getElementById('sheet');
+function closeSheet(){sheet.classList.remove('on');scrim.classList.remove('on')}
+scrim.onclick=closeSheet;
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeSheet()});
+document.addEventListener('click',e=>{
+  const c=e.target.closest('[data-model]'); if(!c)return;
+  const m=MODELS.find(x=>x.id===c.dataset.model);
+  document.getElementById('sheet-body').innerHTML=`
+    <div class="hero-art">${frameSVG(m,true)}</div>
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-top:14px">
+      <div><h3 style="font-size:18px">${m.name}</h3><p class="sub" style="margin-top:2px">${m.cat} · ${m.sub}</p></div>
+      <span class="price" style="font-size:12.5px;white-space:nowrap;margin-top:6px">السعر بعد القياس</span></div>
+    <p class="sub" style="margin-top:10px">${m.desc}</p>
+    <div class="tags">${m.tags.map(t=>`<span class="tag">${t}</span>`).join('')}</div>
+    <div class="opt"><label>القياس التقريبي (سم)</label>
+      <div class="row"><input class="ctrl mono" id="o-w" type="number" inputmode="numeric" placeholder="العرض">
+      <input class="ctrl mono" id="o-h" type="number" inputmode="numeric" placeholder="الارتفاع"></div>
+      <p class="sub" style="font-size:11.5px;margin-top:6px">قياس تقريبي يكفي — النهائي ياخذه المعلّم بالموقع.</p></div>
+    <div class="row" style="margin-top:14px">
+      <div class="opt" style="margin:0"><label for="o-glass">الزجاج</label>
+        <select class="ctrl" id="o-glass"><option>عادي</option><option>دبل (عازل)</option><option>سيكوريت</option><option>مموّه / ملوّن</option><option>بدون زجاج</option></select></div>
+      <div class="opt" style="margin:0"><label for="o-color">اللون</label>
+        <select class="ctrl" id="o-color"><option>أبيض</option><option>أسود</option><option>رمادي</option><option>خشبي</option><option>شامبين</option></select></div></div>
+    <div class="opt"><label>العدد</label>
+      <div class="stepper"><button id="minus" aria-label="أقل">−</button>
+        <input id="o-qty" class="mono" value="1" inputmode="numeric"><button id="plus" aria-label="أكثر">+</button></div></div>
+    <div class="acts"><button class="btn btn-p" id="add-cart">أضف للسلة</button>
+      <a class="btn btn-o" href="tel:${PHONE}">اسأل عن السعر بالهاتف</a></div>`;
+  sheet.classList.add('on');scrim.classList.add('on');
+  const qi=document.getElementById('o-qty');
+  document.getElementById('minus').onclick=()=>qi.value=Math.max(1,(+qi.value||1)-1);
+  document.getElementById('plus').onclick=()=>qi.value=Math.min(99,(+qi.value||1)+1);
+  document.getElementById('add-cart').onclick=()=>{
+    cart.push({id:m.id,name:m.name,qty:Math.max(1,+qi.value||1),
+      w:document.getElementById('o-w').value.trim(),h:document.getElementById('o-h').value.trim(),
+      glass:document.getElementById('o-glass').value,color:document.getElementById('o-color').value});
+    closeSheet();paintBadge();toast("انضاف للسلة: "+m.name);
+  };
+});
 
-        // تسجيل الدخول كزبون
-        // حفظ بيانات الزبائن في الذاكرة لتسهيل العودة
-        function loginAsCustomer() {
-            const name = document.getElementById('custName').value.trim();
-            if (name === "") {
-                showSimpleToast("أهلاً بك يا ضيفنا الكريم في معمل الزهور!");
-            } else {
-                localStorage.setItem('al_zuhour_customer_name', name);
-                showSimpleToast(`أهلاً بك يا ${name}! سعداء بزيارتك الكريمة.`);
-            }
-            closeAuthModal();
-        }
+/* ===== السلة ===== */
+let cart=[];
+function paintBadge(){
+  const n=cart.reduce((s,i)=>s+i.qty,0);
+  ['badge','tab-badge'].forEach(id=>{const el=document.getElementById(id);el.textContent=n;el.classList.toggle('on',n>0)});
+}
+function renderCart(){
+  const box=document.getElementById('cart-lines');
+  document.getElementById('cart-empty').hidden=cart.length>0;
+  document.getElementById('checkout').hidden=cart.length===0;
+  document.getElementById('cart-count').textContent=cart.length?cart.length+" صنف":"";
+  box.innerHTML=cart.map((it,i)=>{
+    const m=MODELS.find(x=>x.id===it.id);
+    const dims=(it.w||it.h)?`${it.w||"?"} × ${it.h||"?"} سم`:"القياس بعد المعاينة";
+    return `<div class="line"><div class="thumb">${frameSVG(m)}</div>
+      <div class="body"><b>${it.name}</b><div class="spec">${dims} · ${it.glass} · ${it.color}</div>
+        <div class="foot"><span class="qty"><button data-dec="${i}">−</button><span class="mono">${it.qty}</span><button data-inc="${i}">+</button></span>
+          <button class="rm" data-rm="${i}">حذف</button></div></div></div>`;
+  }).join('');
+  document.getElementById('sum-qty').textContent=cart.reduce((s,i)=>s+i.qty,0);
+  document.getElementById('sum-items').textContent=cart.length;
+  paintBadge();
+}
+document.getElementById('cart-lines').addEventListener('click',e=>{
+  const t=e.target;
+  if(t.dataset.inc!==undefined) cart[+t.dataset.inc].qty=Math.min(99,cart[+t.dataset.inc].qty+1);
+  else if(t.dataset.dec!==undefined){const i=+t.dataset.dec;cart[i].qty--;if(cart[i].qty<1)cart.splice(i,1)}
+  else if(t.dataset.rm!==undefined){cart.splice(+t.dataset.rm,1);toast("انحذف من السلة")}
+  else return;
+  renderCart();
+});
+const dt=document.getElementById('c-date'); dt.min=new Date().toISOString().slice(0,10); dt.value=dt.min;
 
-        // تسجيل دخول المالك بالكود السري (الكود المطلوب: fenesh yr7)
-        function loginAsOwner() {
-            const enteredKey = document.getElementById('ownerSecretKey').value.trim();
-            const correctKey = "fenesh yr7";
-            
-            if (enteredKey === correctKey) {
-                isAdminLoggedIn = true;
-                sessionStorage.setItem('al_zuhour_admin', JSON.stringify(true));
-                checkAdminStatus();
-                closeAuthModal();
-                showSimpleToast("تم الدخول بنجاح كمالك للموقع! لوحة التحكم نشطة الآن.");
-            } else {
-                document.getElementById('authErrorMsg').classList.remove('hidden');
-            }
-        }
-
-        // الخروج من وضع الإدارة
-        function logoutAdmin() {
-            isAdminLoggedIn = false;
-            sessionStorage.removeItem('al_zuhour_admin');
-            checkAdminStatus();
-            showSimpleToast("تم الخروج من وضع الإدارة.");
-        }
-
-        // فحص حالة المالك وتحديث العناصر المرئية في الموقع
-        function checkAdminStatus() {
-            const controlPanel = document.getElementById('ownerControlPanel');
-            const adminNotice = document.getElementById('adminNotice');
-            const authBtnText = document.getElementById('authBtnText');
-            
-            if (isAdminLoggedIn) {
-                controlPanel.classList.remove('hidden');
-                adminNotice.classList.remove('hidden');
-                authBtnText.innerText = "لوحة التحكم نشطة";
-            } else {
-                controlPanel.classList.add('hidden');
-                adminNotice.classList.add('hidden');
-                authBtnText.innerText = "دخول (المالك / زبون)";
-            }
-            
-            // إعادة رسم المنتجات لإظهار/إخفاء زر الحذف بناءً على حالة تسجيل الدخول
-            renderProducts();
-        }
-
-        // معالجة رفع الصور من الجهاز وتحويلها إلى Base64 لتخزينها محلياً ومباشرة
-        function handleImageUpload(event) {
-            const file = event.target.files[0];
-            const reader = new FileReader();
-            
-            if (file) {
-                // حد أقصى للحجم للحفاظ على سرعة المتصفح والذاكرة المحلية
-                if (file.size > 1.5 * 1024 * 1024) {
-                    showSimpleToast("الرجاء اختيار صورة بحجم أقل من 1.5 ميغابايت لضمان تخزينها بشكل سليم.");
-                    return;
-                }
-                
-                document.getElementById('fileNameLabel').innerText = file.name;
-                
-                reader.onload = function(e) {
-                    uploadedImageBase64 = e.target.result;
-                    document.getElementById('finalImageSrc').value = uploadedImageBase64;
-                    
-                    // إظهار المعاينة
-                    const previewContainer = document.getElementById('imagePreviewContainer');
-                    const imgPreview = document.getElementById('imgPreview');
-                    imgPreview.src = uploadedImageBase64;
-                    previewContainer.classList.remove('hidden');
-                };
-                
-                reader.readAsDataURL(file);
-            }
-        }
-
-        // حفظ المنتج الجديد وإضافته للمعرض
-        function saveProduct(event) {
-            event.preventDefault();
-            
-            const title = document.getElementById('prodTitle').value.trim();
-            const type = document.getElementById('prodType').value;
-            const desc = document.getElementById('prodDesc').value.trim();
-            const video = document.getElementById('prodVideo').value.trim();
-            
-            // تفضيل الصورة المرفوعة أولاً ثم الرابط الخارجي
-            let finalImage = document.getElementById('finalImageSrc').value;
-            const fallbackLink = document.getElementById('prodImgUrl').value.trim();
-            
-            if (!finalImage && fallbackLink) {
-                finalImage = fallbackLink;
-            }
-            
-            if (!finalImage) {
-                // صورة افتراضية في حال لم يحدد صورة
-                finalImage = 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=800&q=80';
-            }
-
-            const newProduct = {
-                id: Date.now().toString(),
-                title: title,
-                type: type,
-                desc: desc,
-                image: finalImage,
-                video: video
-            };
-
-            // إضافته لمصفوفة المنتجات
-            products.unshift(newProduct);
-            
-            try {
-                // الحفظ الفعلي والكامل في localStorage لضمان عدم فقدان البيانات
-                localStorage.setItem('al_zuhour_products', JSON.stringify(products));
-                
-                // إعادة رسم المنتجات في الواجهة
-                renderProducts();
-                
-                // تصفير استمارة الإضافة بنجاح
-                document.getElementById('productForm').reset();
-                document.getElementById('imagePreviewContainer').classList.add('hidden');
-                document.getElementById('fileNameLabel').innerText = "لم يتم اختيار ملف";
-                uploadedImageBase64 = '';
-                document.getElementById('finalImageSrc').value = '';
-                
-                showSimpleToast("تم حفظ ونشر التصميم الجديد بنجاح في المعرض الرئيسي!");
-            } catch (error) {
-                // في حال امتلاء ذاكرة المتصفح بسبب حجم الصور العالي
-                console.error("Storage error:", error);
-                showSimpleToast("تنبيه: حجم الصورة المرفوعة كبير جداً، يرجى رفع صورة أصغر أو استخدام رابط صورة خارجي.");
-                // استرجاع المصفوفة السابقة لمنع التلف
-                products.shift();
-            }
-        }
-
-        // حذف منتج (متاح فقط للمالك)
-        function deleteProduct(productId) {
-            const confirmDelete = confirm("هل أنت متأكد من رغبتك بحذف هذا التصميم نهائياً من موقعك؟");
-            if (confirmDelete) {
-                products = products.filter(p => p.id !== productId);
-                // تحديث الذاكرة بعد الحذف مباشرة
-                localStorage.setItem('al_zuhour_products', JSON.stringify(products));
-                renderProducts();
-                showSimpleToast("تم حذف المنتج من قاعدة البيانات وتحديث الموقع.");
-            }
-        }
-
-        // دالة مخصصة لعرض رسالة سريعة ومميزة بدلاً من alert
-        function showSimpleToast(message) {
-            const existingToast = document.getElementById('app-toast');
-            if (existingToast) {
-                existingToast.remove();
-            }
-
-            const toast = document.createElement('div');
-            toast.id = 'app-toast';
-            toast.className = 'fixed bottom-5 right-5 z-50 bg-slate-900 border border-yellow-500/50 text-yellow-400 font-bold px-6 py-4 rounded-xl shadow-2xl flex items-center gap-3 transition-all duration-300 transform translate-y-10 opacity-0 text-sm max-w-sm';
-            toast.innerHTML = `
-                <i class="fa-solid fa-bell text-yellow-500 animate-bounce"></i>
-                <span>${message}</span>
-            `;
-            
-            document.body.appendChild(toast);
-            
-            // تأثير الظهور
-            setTimeout(() => {
-                toast.classList.remove('translate-y-10', 'opacity-0');
-            }, 100);
-            
-            // تأثير الاختفاء التلقائي بعد 4 ثواني
-            setTimeout(() => {
-                toast.classList.add('translate-y-10', 'opacity-0');
-                setTimeout(() => {
-                    toast.remove();
-                }, 300);
-            }, 4000);
-        }
-    </script>
+function v(id){return document.getElementById(id).value.trim()}
+function box(id){return document.getElementById(id).closest('.opt')}
+function validate(){
+  let ok=true;
+  box('c-name').classList.toggle('bad',!v('c-name')); if(!v('c-name'))ok=false;
+  const pok=/^07\d{9}$/.test(v('c-phone').replace(/\s/g,''));
+  box('c-phone').classList.toggle('bad',!pok); if(!pok)ok=false;
+  if(!ok)toast("كمّل الحقول المعلّمة بالأحمر");
+  return ok;
+}
+function orderText(){
+  const L=["طلب جديد — متجر حيدر حميد للألمنيوم الحديث","","الاسم: "+v('c-name'),"الهاتف: "+v('c-phone')];
+  if(v('c-area'))L.push("العنوان: "+v('c-area'));
+  L.push("موعد المعاينة: "+v('c-date')+" — "+v('c-time'),"","الطلب:");
+  cart.forEach((it,i)=>{
+    const dims=(it.w||it.h)?`${it.w||"?"}×${it.h||"?"} سم`:"القياس بعد المعاينة";
+    L.push(`${i+1}) ${it.name} — العدد ${it.qty} — ${dims} — زجاج ${it.glass} — لون ${it.color}`);
+  });
+  L.push("","مجموع القطع: "+cart.reduce((s,i)=>s+i.qty,0));
+  if(v('c-note'))L.push("ملاحظات: "+v('c-note'));
+  return L.join("\n");
+}
+document.getElementById('send').onclick=()=>{
+  if(!cart.length){toast("السلة فارغة");return}
+  if(!validate())return;
+  window.open("https://wa.me/"+WA+"?text="+encodeURIComponent(orderText()),"_blank");
+};
+document.getElementById('copy').onclick=async()=>{if(!validate())return;await copy(orderText());toast("انتسخ نص الطلب")};
+document.getElementById('copy-num').onclick=async()=>{await copy(PHONE);toast("انتسخ الرقم: "+PHONE)};
+async function copy(t){
+  try{await navigator.clipboard.writeText(t)}
+  catch{const a=document.createElement('textarea');a.value=t;document.body.appendChild(a);a.select();document.execCommand('copy');a.remove()}
+}
+let tt;function toast(m){const el=document.getElementById('toast');el.textContent=m;el.classList.add('on');clearTimeout(tt);tt=setTimeout(()=>el.classList.remove('on'),2400)}
+paintBadge();
+</script>
 </body>
-</html>
-
+    </html>
