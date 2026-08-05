@@ -634,10 +634,10 @@ document.addEventListener('click',e=>{
       <span class="price" style="font-size:12.5px;white-space:nowrap;margin-top:6px">السعر بعد القياس</span></div>
     <p class="sub" style="margin-top:10px">${m.desc}</p>
     <div class="tags">${m.tags.map(t=>`<span class="tag">${t}</span>`).join('')}</div>
-    <div class="opt"><label>القياس التقريبي (سم)</label>
-      <div class="row"><input class="ctrl mono" id="o-w" type="number" inputmode="numeric" placeholder="العرض">
-      <input class="ctrl mono" id="o-h" type="number" inputmode="numeric" placeholder="الارتفاع"></div>
-      <p class="sub" style="font-size:11.5px;margin-top:6px">قياس تقريبي يكفي — النهائي ياخذه المعلّم بالموقع.</p></div>
+    <div class="opt"><label>القياس التقريبي (متر)</label>
+      <div class="row"><input class="ctrl mono" id="o-w" type="number" step="0.01" min="0" inputmode="decimal" placeholder="العرض — 1.1">
+      <input class="ctrl mono" id="o-h" type="number" step="0.01" min="0" inputmode="decimal" placeholder="الارتفاع — 2.4"></div>
+      <p class="sub" style="font-size:11.5px;margin-top:6px">اكتب القياس بالمتر، وإذا بيه كسر اكتبه بالنقطة — مثال 1.1 أو 2.35. القياس النهائي ياخذه المعلّم بالموقع.</p></div>
     <div class="row" style="margin-top:14px">
       <div class="opt" style="margin:0"><label for="o-glass">الزجاج</label>
         <select class="ctrl" id="o-glass"><option>الزجاج الشفاف</option><option>الزجاج المضبب</option><option>الزجاج المقسى (سيكوريت)</option><option>الزجاج المزدوج (دبل كلاس)</option><option>الزجاج العاكس</option><option>الزجاج الملون</option></select></div>
@@ -695,7 +695,7 @@ document.addEventListener('click',e=>{
 });
 
 function itemText(it){
-  const dims=(it.w||it.h)?`${it.w||"?"}×${it.h||"?"} سم (عرض × ارتفاع)`:"القياس بعد المعاينة";
+  const dims=(it.w||it.h)?`${it.w||"?"} × ${it.h||"?"} متر (عرض × ارتفاع)`:"القياس بعد المعاينة";
   return ["طلب جديد — متجر حيدر حميد للألمنيوم الحديث","",
     "الاسم: "+customer.name,"الهاتف: "+customer.phone,
     customer.area?"الموقع: "+customer.area:"الموقع: (لم يُذكر)","",
@@ -716,7 +716,7 @@ function renderCart(){
   document.getElementById('cart-count').textContent=cart.length?cart.length+" صنف":"";
   box.innerHTML=cart.map((it,i)=>{
     const m=MODELS.find(x=>x.id===it.id);
-    const dims=(it.w||it.h)?`${it.w||"?"} × ${it.h||"?"} سم`:"القياس بعد المعاينة";
+    const dims=(it.w||it.h)?`${it.w||"?"} × ${it.h||"?"} م`:"القياس بعد المعاينة";
     return `<div class="line"><div class="thumb">${art(m)}</div>
       <div class="body"><b>${it.name}</b><div class="spec">${dims} · ${it.glass} · ${it.color}</div>
         <div class="foot"><span class="qty"><button data-dec="${i}">−</button><span class="mono">${it.qty}</span><button data-inc="${i}">+</button></span>
@@ -751,7 +751,7 @@ function orderText(){
   if(v('c-area'))L.push("العنوان: "+v('c-area'));
   L.push("موعد المعاينة: "+v('c-date')+" — "+v('c-time'),"","الطلب:");
   cart.forEach((it,i)=>{
-    const dims=(it.w||it.h)?`${it.w||"?"}×${it.h||"?"} سم`:"القياس بعد المعاينة";
+    const dims=(it.w||it.h)?`${it.w||"?"} × ${it.h||"?"} متر`:"القياس بعد المعاينة";
     L.push(`${i+1}) ${it.name} — العدد ${it.qty} — ${dims} — زجاج ${it.glass} — لون ${it.color}`);
   });
   L.push("","مجموع القطع: "+cart.reduce((s,i)=>s+i.qty,0));
