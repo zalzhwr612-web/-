@@ -107,6 +107,9 @@ main{padding-bottom:calc(var(--tabh) + 30px);position:relative;z-index:1}
 .prod:active{transform:scale(.985)}
 .prod .art{background:var(--brand-soft);padding:14px 14px 6px;position:relative;transition:background-color var(--T)}
 .prod .art svg{display:block;width:100%;height:98px}
+.prod .art .photo{display:block;width:100%;height:104px;object-fit:cover;border-radius:9px}
+.hero-art .photo{width:100%;max-height:230px;object-fit:cover;border-radius:12px;display:block}
+.line .thumb .photo{width:100%;height:100%;object-fit:cover;border-radius:9px}
 .pill{position:absolute;top:9px;inset-inline-start:9px;background:#fff;color:var(--brand);font-size:10.5px;
   font-weight:700;padding:3px 9px;border-radius:9px;box-shadow:var(--shadow);transition:color var(--T)}
 .prod .meta{padding:10px 12px 12px}
@@ -134,6 +137,7 @@ main{padding-bottom:calc(var(--tabh) + 30px);position:relative;z-index:1}
 .handle{width:42px;height:4px;border-radius:99px;background:var(--line);margin:6px auto 12px}
 .hero-art{background:var(--brand-soft);border-radius:16px;padding:16px;transition:background-color var(--T)}
 .hero-art svg{display:block;width:100%;height:auto;max-height:190px}
+.divider{height:1px;background:var(--line);margin:18px 0 14px}
 .tags{display:flex;flex-wrap:wrap;gap:7px;margin-top:12px}
 .tag{background:var(--wash);border:1px solid var(--line);border-radius:9px;padding:5px 10px;font-size:11.5px;color:var(--muted)}
 .opt{margin-top:16px}
@@ -207,6 +211,8 @@ textarea.ctrl{min-height:80px;resize:vertical}
   background:var(--ink);color:#fff;border-radius:12px;padding:11px 16px;font-size:13px;z-index:70;opacity:0;
   transform:translateY(8px);pointer-events:none;transition:opacity .25s,transform .25s;box-shadow:var(--shadow-lg)}
 .toast.on{opacity:1;transform:none}
+.reportlink{border:0;background:0;color:var(--brand);font-family:inherit;font-size:11.5px;cursor:pointer;
+  text-decoration:underline;padding:6px 0;transition:color var(--T)}
 .foot{text-align:center;color:#9AA5B4;font-size:11.5px;padding:24px var(--pad) 12px}
 :focus-visible{outline:2px solid var(--brand);outline-offset:2px}
 @media (prefers-reduced-motion:reduce){.blob{animation:none}*{transition-duration:.2s!important}}
@@ -258,7 +264,7 @@ textarea.ctrl{min-height:80px;resize:vertical}
           <div class="step"><i>4</i><div><b>تصنيع وتركيب</b><span>نصنع على القياس النهائي ونركّب ونسلّم.</span></div></div>
         </div>
       </section>
-      <p class="foot">حيدر حميد للألمنيوم الحديث — أبواب • شبابيك • واجهات</p>
+      <p class="foot">حيدر حميد للألمنيوم الحديث — أبواب • شبابيك • واجهات<br><button class="reportlink">لاحظت خطأ بالتطبيق؟ بلّغنا</button></p>
     </div>
 
     <!-- المنتجات -->
@@ -267,7 +273,7 @@ textarea.ctrl{min-height:80px;resize:vertical}
       <div class="chips" id="chips"></div>
       <div class="grid" id="grid"></div>
       <div class="empty" id="empty" hidden><b>ما لگينا نتيجة</b>جرّب كلمة ثانية أو اختر قسم من فوق.</div>
-      <p class="foot">الأسعار تحدد بعد المعاينة حسب القياس ونوع الزجاج والمقطع.</p>
+      <p class="foot">الأسعار تحدد بعد المعاينة حسب القياس ونوع الزجاج والمقطع.<br><button class="reportlink">لاحظت خطأ بالتطبيق؟ بلّغنا</button></p>
     </div>
 
     <!-- السلة -->
@@ -325,6 +331,13 @@ textarea.ctrl{min-height:80px;resize:vertical}
         <button class="btn btn-o" id="copy-num">نسخ الرقم</button>
         <a class="btn btn-o" id="map-link" href="#" target="_blank" rel="noopener">الخريطة</a>
       </div>
+      <section class="sec"><div class="sechead"><h2>لاحظت خطأ؟</h2></div></section>
+      <div style="padding:0 var(--pad)">
+        <p class="sub" style="font-size:13px;margin:-6px 0 10px">إذا صار خطأ بالتطبيق أو معلومة غلط أو زر ما يشتغل — اكتبها هنا وتوصلنا مباشرة، وتساعدنا نصلحها بسرعة.</p>
+        <div class="opt" style="margin-top:0"><label for="bug">وصف المشكلة</label>
+          <textarea class="ctrl" id="bug" placeholder="مثال: زر (أضف للسلة) ما يشتغل بصفحة الشبابيك"></textarea></div>
+        <div class="acts"><button class="btn btn-wa" id="send-bug">أرسل الملاحظة على واتساب</button></div>
+      </div>
       <p class="foot">حيدر حميد للألمنيوم الحديث</p>
     </div>
   </main>
@@ -375,64 +388,199 @@ document.getElementById('wa-plain').href="https://wa.me/"+WA;
 document.getElementById('map-link').href="https://www.google.com/maps/search/?api=1&query="+encodeURIComponent("بلد شارع المحيط معمل الزهور");
 
 /* ===== البيانات ===== */
+/* ======================================================
+   الكتالوج — لإضافة صورة حقيقية لأي منتج:
+   1) سوّي مجلد اسمه images بجنب index.html
+   2) حط الصورة داخله (مثال: door-slide2.jpg)
+   3) ضيف للمنتج الحقل:  img:"images/door-slide2.jpg"
+   إذا ما موجودة صورة، يظهر الرسم التوضيحي تلقائياً.
+   ====================================================== */
 const MODELS=[
- {id:"d1",cat:"أبواب",name:"باب سحب زجاجي",sub:"مقطعين سحب",w:2,h:2.6,cols:2,solid:0,slide:1,hot:1,
+/* ===== الأبواب ===== */
+ {id:"d1",cat:"أبواب",name:"باب سحب زجاجي",sub:"مقطعين سحب",w:2,h:2.6,cols:2,slide:1,hot:1,
   desc:"باب سحب بمقطعين زجاج للصالات والمداخل الداخلية. يفتح بنعومة وياخذ مساحة أقل من الباب المفصلي.",
-  tags:["زجاج سيكوريت","سكك ألمنيوم","قفل بمفتاح","لون حسب الطلب"]},
- {id:"d2",cat:"أبواب",name:"باب مفصلي كلادينج",sub:"وجه كامل",w:1,h:2.6,cols:1,solid:3,slide:0,
+  tags:["سحب أفقي","سكك ألمنيوم","قفل بمفتاح","مقبض ستيل"]},
+ {id:"d2",cat:"أبواب",name:"باب سحب أربع مقاطع",sub:"للفتحات الواسعة",w:3,h:2.6,cols:4,slide:1,
+  desc:"للمداخل العريضة والصالات الكبيرة: أربع مقاطع تنسحب وتفتح أغلب الفتحة.",
+  tags:["سكك مقواة","فتحة واسعة","زجاج عازل اختياري"]},
+ {id:"d3",cat:"أبواب",name:"باب مفصلي زجاجي",sub:"ضلفة وحدة",w:1.1,h:2.6,cols:1,hinge:"r",
+  desc:"باب مفصلي بإطار ألمنيوم وزجاج، مناسب للمكاتب والمحلات والمداخل الداخلية.",
+  tags:["مفصلات ثقيلة","زجاج مقسى","مقبض طولي"]},
+ {id:"d4",cat:"أبواب",name:"باب مفصلي ضلفتين",sub:"مدخل واسع",w:2,h:2.6,cols:2,hinge:"both",hot:1,
+  desc:"ضلفتين مفصليتين تفتح من الوسط — مظهر فخم للمداخل الرئيسية والصالات.",
+  tags:["ضلفتين","مفصلات ثقيلة","إغلاق محكم"]},
+ {id:"d5",cat:"أبواب",name:"باب مفصلي كلادينج",sub:"وجه كامل",w:1,h:2.6,cols:1,solid:1,hinge:"r",
   desc:"باب مفصلي بوجه كلادينج كامل، متين للأبواب الخارجية والمخازن، بألوان وخطوط متعددة.",
-  tags:["كلادينج","عزل جيد","مفصلات ثقيلة"]},
- {id:"d3",cat:"أبواب",name:"باب رئيسي بزجاج",sub:"إطار + زجاج علوي",w:1.2,h:2.6,cols:1,solid:1,slide:0,glassTop:1,newy:1,
-  desc:"باب مدخل رئيسي بإطار ألمنيوم قوي وزجاج علوي يدخّل ضوء طبيعي، مع مقبض فخم.",
-  tags:["مدخل رئيسي","زجاج علوي","مقبض ستيل"]},
- {id:"w1",cat:"شبابيك",name:"شباك سحب مقطعين",sub:"الأكثر طلباً",w:1.5,h:1.2,cols:2,solid:0,slide:1,hot:1,
+  tags:["كلادينج","عزل جيد","مقاوم للجو"]},
+ {id:"d6",cat:"أبواب",name:"باب رئيسي بزجاج علوي",sub:"مدخل البيت",w:1.2,h:2.8,cols:1,solid:1,hinge:"r",glassTop:1,newy:1,
+  desc:"باب مدخل رئيسي بإطار قوي وزجاج علوي يدخّل ضوء طبيعي، مع مقبض فخم.",
+  tags:["مدخل رئيسي","زجاج علوي","قفل أمان"]},
+ {id:"d7",cat:"أبواب",name:"باب غرفة داخلي",sub:"لوح ألمنيوم",w:.95,h:2.4,cols:1,solid:1,hinge:"r",
+  desc:"باب غرف داخلي خفيف الوزن بوجه أملس، خيار عملي وسعر مناسب للغرف.",
+  tags:["خفيف","صيانة قليلة","ألوان متعددة"]},
+ {id:"d8",cat:"أبواب",name:"باب حمام زجاج مضبب",sub:"مقاوم للرطوبة",w:.9,h:2.3,cols:1,hinge:"r",frosted:1,
+  desc:"باب حمام بزجاج مضبب يحافظ على الخصوصية ويدخّل ضوء، وإطار مقاوم للرطوبة.",
+  tags:["زجاج مضبب","مقاوم للرطوبة","خصوصية"]},
+ {id:"d9",cat:"أبواب",name:"باب شبك (فلاي سكرين)",sub:"ضد الحشرات",w:1,h:2.5,cols:1,mesh:1,hinge:"r",
+  desc:"باب شبك يتركب مع الباب الأصلي — يخليك تفتح الباب للهوا وتمنع الحشرات.",
+  tags:["شبك فايبر","سهل الفك","مع أو بدون مفصلات"]},
+ {id:"d10",cat:"أبواب",name:"باب مطبخ سحب",sub:"موفّر للمساحة",w:1.6,h:2.4,cols:2,slide:1,frosted:1,
+  desc:"باب سحب بزجاج مضبب لفصل المطبخ عن الصالة، ما ياخذ مساحة عند الفتح ويمنع الروائح.",
+  tags:["زجاج مضبب","سحب هادئ","سهل التنظيف"]},
+ {id:"d11",cat:"أبواب",name:"باب فولدنغ (أكورديون)",sub:"يتطوّى على الجنب",w:2,h:2.5,cols:4,fold:1,newy:1,
+  desc:"باب يتطوّى مقاطع على الجنب ويفتح الفتحة كاملة — مثالي للبلكونات والقواطع.",
+  tags:["يفتح كامل","مقاطع متعددة","سكة علوية"]},
+ {id:"d12",cat:"أبواب",name:"باب أوتوماتيك بالسنسور",sub:"للمحلات والعيادات",w:2.4,h:2.6,cols:2,auto:1,newy:1,
+  desc:"باب زجاجي ينفتح لوحده بالسنسور — مظهر احترافي للمحلات والعيادات والمكاتب.",
+  tags:["سنسور حركة","زجاج مقسى","محرّك ياباني/صيني حسب الطلب"]},
+ {id:"d13",cat:"أبواب",name:"باب مخزن / گراج",sub:"كلادينج مقوّى",w:2.6,h:2.4,cols:3,solid:3,
+  desc:"باب واسع بوجه كلادينج ومقاطع مقواة للمخازن والگراجات والورش.",
+  tags:["مقاطع ثقيلة","قفل خارجي","قياس حسب الفتحة"]},
+
+/* ===== الشبابيك ===== */
+ {id:"w1",cat:"شبابيك",name:"شباك سحب مقطعين",sub:"الأكثر طلباً",w:1.5,h:1.2,cols:2,slide:1,hot:1,
   desc:"الشباك القياسي للغرف: مقطعين سحب، سهل التنظيف ولا ياخذ مساحة عند الفتح.",
   tags:["سحب أفقي","سكة مزدوجة","زجاج عادي أو دبل"]},
- {id:"w2",cat:"شبابيك",name:"شباك سحب أربع مقاطع",sub:"للفتحات الواسعة",w:2.4,h:1.2,cols:4,solid:0,slide:1,newy:1,
+ {id:"w2",cat:"شبابيك",name:"شباك سحب ثلاث مقاطع",sub:"فتحة متوسطة",w:2,h:1.2,cols:3,slide:1,
+  desc:"ثلاث مقاطع سحب تعطي تهوية أوسع وتوزيع إضاءة أفضل بالغرف الكبيرة.",
+  tags:["تهوية أوسع","سكة ثلاثية"]},
+ {id:"w3",cat:"شبابيك",name:"شباك سحب أربع مقاطع",sub:"للفتحات الواسعة",w:2.6,h:1.2,cols:4,slide:1,
   desc:"للفتحات العريضة بالصالات: أربع مقاطع تنسحب، مع إمكانية زجاج عازل.",
   tags:["فتحات واسعة","زجاج دبل","سكك مقواة"]},
- {id:"w3",cat:"شبابيك",name:"شباك مع شبك",sub:"ضد الحشرات",w:1.5,h:1.2,cols:2,solid:0,slide:1,mesh:1,hot:1,
+ {id:"w4",cat:"شبابيك",name:"شباك سحب مع شبك",sub:"ضد الحشرات",w:1.5,h:1.2,cols:3,slide:1,mesh:1,hot:1,
   desc:"شباك سحب مع مقطع شبك فايبر يمنع الحشرات ويخلي الشباك مفتوح براحة.",
   tags:["شبك فايبر","سحب مستقل","سهل الفك"]},
- {id:"f1",cat:"واجهات",name:"واجهة كلادينج",sub:"للمحلات والمكاتب",w:3,h:2,cols:3,solid:2,slide:0,hot:1,
+ {id:"w5",cat:"شبابيك",name:"شباك مفصلي",sub:"يفتح للخارج",w:1,h:1.3,cols:1,hinge:"r",
+  desc:"شباك مفصلي ينفتح للخارج ويعطي فتحة كاملة للهوا، مع إغلاق محكم على الجوانب.",
+  tags:["فتح كامل","إغلاق محكم","عزل صوت أفضل"]},
+ {id:"w6",cat:"شبابيك",name:"شباك ثابت",sub:"للإضاءة فقط",w:1.4,h:1.2,cols:1,fixed:1,
+  desc:"شباك ثابت ما ينفتح — أرخص خيار للإضاءة، ويعطي عزل ممتاز لأنه محكم بالكامل.",
+  tags:["إضاءة","عزل ممتاز","سعر أوفر"]},
+ {id:"w7",cat:"شبابيك",name:"شباك علوي للتهوية",sub:"حمام ومطبخ",w:1.2,h:.6,cols:2,slide:1,frosted:1,
+  desc:"شباك صغير يتركب بأعلى الجدار للتهوية مع خصوصية كاملة — للحمامات والمطابخ.",
+  tags:["زجاج مضبب","تهوية","قياس صغير"]},
+ {id:"w8",cat:"شبابيك",name:"شباك دبل كلاس عازل",sub:"عزل حرارة وصوت",w:1.6,h:1.3,cols:2,slide:1,newy:1,
+  desc:"زجاج مزدوج بفراغ عازل — يخفّف حرارة الصيف وضجيج الشارع بشكل واضح.",
+  tags:["زجاج مزدوج","عزل حراري","تخفيف ضجيج"]},
+ {id:"w9",cat:"شبابيك",name:"شباك بروجيكت (توب هنغ)",sub:"يفتح من الأعلى",w:1.2,h:1,cols:1,project:1,
+  desc:"يفتح من الأعلى للخارج — يدخّل هوا حتى وقت المطر ويحافظ على الخصوصية.",
+  tags:["فتح علوي","مناسب للمطر","مفصلات مقصية"]},
+ {id:"w10",cat:"شبابيك",name:"شباك قوس / تصميم خاص",sub:"حسب الطلب",w:1.4,h:1.4,cols:2,slide:1,arch:1,
+  desc:"شباك بقوس علوي أو شكل خاص ينفذ حسب فتحة البناء والتصميم المطلوب.",
+  tags:["تصميم حسب الطلب","قوس علوي","تنفيذ دقيق"]},
+ {id:"w11",cat:"شبابيك",name:"شباك سحب بمقطع ثابت",sub:"نص متحرك",w:1.8,h:1.2,cols:2,slide:1,solid:0,halffixed:1,
+  desc:"مقطع ينسحب ومقطع ثابت — خيار اقتصادي يوازن بين الإضاءة والتهوية.",
+  tags:["اقتصادي","إضاءة أوسع","صيانة أقل"]},
+ {id:"w12",cat:"شبابيك",name:"شباك مع حماية داخلية",sub:"أمان إضافي",w:1.5,h:1.2,cols:2,slide:1,guard:1,
+  desc:"شباك سحب مع إطار حماية داخلي — أمان أكثر للأدوار الأرضية وغرف الأطفال.",
+  tags:["حماية داخلية","أمان","تركيب مخفي"]},
+
+/* ===== الواجهات ===== */
+ {id:"f1",cat:"واجهات",name:"واجهة كلادينج",sub:"للمحلات والمكاتب",w:3,h:2,cols:3,solid:3,hot:1,
   desc:"واجهة كلادينج بخطوط نظيفة تعطي المحل مظهر حديث، مع إمكانية دمج إضاءة أو لوحة الاسم.",
   tags:["ألواح كلادينج","مقاوم للجو","تركيب سريع"]},
- {id:"f2",cat:"واجهات",name:"واجهة زجاج كاملة",sub:"كيرتن وول",w:3,h:2.4,cols:3,solid:0,slide:0,newy:1,
+ {id:"f2",cat:"واجهات",name:"واجهة زجاج كاملة",sub:"كيرتن وول",w:3,h:2.4,cols:3,fixed:1,newy:1,
   desc:"واجهة زجاجية بإطار ألمنيوم نحيف تعطي إضاءة كاملة ومظهر فخم للمعارض.",
-  tags:["زجاج سيكوريت","إطار نحيف","باب مدمج"]},
- {id:"p1",cat:"قواطع",name:"قاطع مكتبي زجاجي",sub:"تقسيم داخلي",w:2.4,h:2.4,cols:3,solid:0,slide:0,
+  tags:["زجاج مقسى","إطار نحيف","سيليكون معتمد"]},
+ {id:"f3",cat:"واجهات",name:"واجهة محل بباب سحب",sub:"زجاج + مدخل",w:3.2,h:2.5,cols:4,slide:1,
+  desc:"واجهة عرض زجاجية مع باب سحب مدمج — الحل الكامل لواجهة محل جديدة.",
+  tags:["واجهة عرض","باب مدمج","قفل مركزي"]},
+ {id:"f4",cat:"واجهات",name:"مظلة كلادينج",sub:"فوق المدخل",w:3,h:1,cols:4,solid:4,
+  desc:"مظلة ألمنيوم فوق مدخل المحل أو البيت — حماية من الشمس والمطر بمظهر أنيق.",
+  tags:["هيكل مقوّى","تصريف مطر","حسب العرض"]},
+ {id:"f5",cat:"واجهات",name:"لوحة اسم بإطار ألمنيوم",sub:"برواز محل",w:3,h:.8,cols:1,solid:1,
+  desc:"برواز ألمنيوم للوحة اسم المحل، مع إمكانية إضاءة خلفية أو أمامية.",
+  tags:["إضاءة اختيارية","إطار متين","خط حسب الطلب"]},
+
+/* ===== القواطع ===== */
+ {id:"p1",cat:"قواطع",name:"قاطع مكتبي زجاجي",sub:"تقسيم داخلي",w:2.4,h:2.4,cols:3,fixed:1,
   desc:"قاطع ألمنيوم وزجاج لتقسيم المكاتب والعيادات — يعزل الصوت نسبياً ويحافظ على الإضاءة.",
-  tags:["زجاج شفاف أو مموّه","باب مدمج"]},
- {id:"p2",cat:"قواطع",name:"قاطع حمام / دش",sub:"زجاج مقوى",w:1,h:2,cols:1,solid:0,slide:0,newy:1,
-  desc:"قاطع دش بزجاج مقوى وإطار ألمنيوم مقاوم للرطوبة، بقياس الحمام تماماً.",
-  tags:["زجاج مقوى","مقاوم للرطوبة"]}
+  tags:["زجاج شفاف أو مضبب","باب مدمج اختياري"]},
+ {id:"p2",cat:"قواطع",name:"قاطع حمام / دش",sub:"زجاج مقسى",w:1,h:2,cols:1,hinge:"r",hot:1,
+  desc:"قاطع دش بزجاج مقسى وإطار ألمنيوم مقاوم للرطوبة، بقياس الحمام تماماً.",
+  tags:["زجاج مقسى","مقاوم للرطوبة","مفصلات ستيل"]},
+ {id:"p3",cat:"قواطع",name:"قاطع غرفة بزجاج مضبب",sub:"خصوصية وإضاءة",w:2.2,h:2.4,cols:3,fixed:1,frosted:1,
+  desc:"قاطع بزجاج مضبب يفصل المساحة ويحافظ على الخصوصية بدون ما يظلم الغرفة.",
+  tags:["زجاج مضبب","تقسيم خفيف","تركيب نظيف"]},
+ {id:"p4",cat:"قواطع",name:"تغليف بلكونة",sub:"سحب زجاجي",w:2.8,h:2.2,cols:4,slide:1,newy:1,
+  desc:"تحويل البلكونة لغرفة بزجاج سحب — تستفيد من المساحة صيفاً وشتاءً.",
+  tags:["سحب كامل","حماية من الغبار","إمكانية شبك"]}
 ];
 const CATS=[{n:"أبواب",p:"M6 3h12v18H6z M14 12h1.6"},{n:"شبابيك",p:"M3 5h18v14H3z M12 5v14 M3 12h18"},
  {n:"واجهات",p:"M3 20V8l9-4 9 4v12 M9 20v-6h6v6"},{n:"قواطع",p:"M4 4h7v16H4z M13 4h7v16h-7z"}];
-
 /* ===== الرسم ===== */
+let _uid=0;
 function frameSVG(m,big){
-  const W=200,H=Math.round(200*(m.h/m.w)),pad=8,iw=W-pad*2,ih=H-pad*2,cw=iw/m.cols;
-  let inner="";
-  for(let i=0;i<m.cols;i++){
-    const x=pad+i*cw,isSolid=i<m.solid;
-    inner+=`<rect x="${x+3}" y="${pad+3}" width="${cw-6}" height="${ih-6}" rx="2"
-      fill="${isSolid?'#FFFFFF':'currentColor'}" fill-opacity="${isSolid?'.85':'.16'}" stroke="#98A6BC" stroke-width="2"/>`;
-    if(m.slide&&!isSolid){const cx=x+cw/2,cy=pad+ih/2;
-      inner+=`<path d="M${cx-13} ${cy} h26 M${cx+13} ${cy} l-5 -4 M${cx+13} ${cy} l-5 4" stroke="currentColor" stroke-width="1.6" fill="none"/>`;}
-    if(m.mesh&&i===m.cols-1) inner+=`<rect x="${x+3}" y="${pad+3}" width="${cw-6}" height="${ih-6}" fill="url(#mesh)"/>`;
+  const u="u"+(++_uid);
+  const W=200,H=Math.max(70,Math.round(200*(m.h/m.w))),pad=8;
+  const iw=W-pad*2, ih=H-pad*2;
+  const arch=m.arch?Math.min(34,iw*0.22):0;
+  const topH=m.glassTop?ih*0.24:0;
+  const bY=pad+topH+arch, bH=ih-topH-arch;
+  const cols=m.cols||1, cw=iw/cols;
+  const glass=m.frosted?`url(#fr${u})`:`url(#gl${u})`;
+  let g="";
+
+  const panel=(x,y,w,h,type)=>{
+    let o=`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="1.5" fill="${type==='solid'?`url(#al${u})`:glass}" stroke="#8A97A9" stroke-width="1.3"/>`;
+    if(type==='glass'||type==='frost')
+      o+=`<path d="M${x+w*.10} ${y+h} L${x+w*.52} ${y} L${x+w*.74} ${y} L${x+w*.32} ${y+h} Z" fill="#fff" opacity=".30"/>
+          <path d="M${x+w*.62} ${y+h} L${x+w*.92} ${y} L${x+w*.99} ${y} L${x+w*.69} ${y+h} Z" fill="#fff" opacity=".16"/>`;
+    if(type==='solid') for(let k=1;k<4;k++) o+=`<path d="M${x} ${y+h*k/4} h${w}" stroke="#9DA9B9" stroke-width="1" opacity=".8"/>`;
+    if(type==='mesh') o+=`<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="url(#ms${u})"/>`;
+    return o;
+  };
+  const handleV=(x,y,h)=>`<rect x="${x-1.6}" y="${y+h*.42}" width="3.2" height="${Math.min(28,h*.18)}" rx="1.6" fill="#6E7A8C"/>`;
+  const hinges=(x,y,h)=>[.18,.5,.82].map(t=>`<rect x="${x-2}" y="${y+h*t-4}" width="4" height="8" rx="1.5" fill="#78soon"/>`.replace('#78soon','#7A8698')).join("");
+  const arrow=(cx,cy,dir)=>`<path d="M${cx-11*dir} ${cy} h${22*dir} M${cx+11*dir} ${cy} l${-5*dir} -4 M${cx+11*dir} ${cy} l${-5*dir} 4" stroke="currentColor" stroke-width="1.7" fill="none" stroke-linecap="round"/>`;
+
+  for(let i=0;i<cols;i++){
+    const x=pad+i*cw+3, y=bY+3, w=cw-6, h=bH-6;
+    const isSolid=i<(m.solid||0);
+    const isMesh=m.mesh&&i===cols-1;
+    const type=isSolid?'solid':(isMesh?'mesh':(m.frosted?'frost':'glass'));
+    g+=panel(x,y,w,h,type);
+    const cx=x+w/2, cy=y+h/2;
+    if(m.slide&&!isSolid&&!isMesh&&!(m.halffixed&&i===0)) g+=arrow(cx,cy,1);
+    if(m.auto) g+=arrow(cx,cy,i===0?-1:1);
+    if(m.fold) g+=`<path d="M${x+w*.5} ${y} v${h}" stroke="#9DA9B9" stroke-width="1" stroke-dasharray="3 3"/>`;
+    if(m.project&&i===0) g+=`<path d="M${x+4} ${y+h-6} L${cx} ${y+6} L${x+w-4} ${y+h-6}" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/>`;
+    if(m.hinge==='both'){ if(i===0){g+=handleV(x+w-4,y,h);g+=hinges(x+1,y,h)} else {g+=handleV(x+4,y,h);g+=hinges(x+w-1,y,h)} }
+    else if(m.hinge&&i===cols-1){ g+=handleV(x+6,y,h); g+=hinges(x+w-1,y,h) }
+    if(m.guard) for(let k=1;k<5;k++) g+=`<path d="M${x+w*k/5} ${y} v${h}" stroke="#9DA9B9" stroke-width="1.2" opacity=".9"/>`;
+    if(m.halffixed&&i===0) g+=`<circle cx="${cx}" cy="${cy}" r="2.4" fill="#9DA9B9"/>`;
   }
-  if(m.glassTop) inner+=`<rect x="${pad+6}" y="${pad+6}" width="${iw-12}" height="${ih*0.3}" rx="2" fill="currentColor" fill-opacity=".2" stroke="currentColor" stroke-width="1.6"/>`;
+  if(m.glassTop) g+=panel(pad+3,pad+arch+3,iw-6,topH-6,'glass');
+  if(m.auto) g+=`<rect x="${pad+iw/2-9}" y="${pad-5}" width="18" height="4" rx="2" fill="currentColor"/>`;
+
+  const outer=arch
+    ? `<path d="M${pad} ${H-pad} V${pad+arch} A${iw/2} ${arch} 0 0 1 ${W-pad} ${pad+arch} V${H-pad} Z" fill="url(#al${u})" stroke="#7F8C9E" stroke-width="2"/>`
+    : `<rect x="${pad}" y="${pad}" width="${iw}" height="${ih}" rx="3" fill="url(#al${u})" stroke="#7F8C9E" stroke-width="2"/>`;
+
   return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet" role="img" aria-label="${m.name}"
-      style="color:var(--brand);transition:color var(--T)">
-    <defs><pattern id="mesh" width="4" height="4" patternUnits="userSpaceOnUse"><path d="M0 0H4M0 0V4" stroke="#98A6BC" stroke-width=".4"/></pattern></defs>
-    <rect x="${pad}" y="${pad}" width="${iw}" height="${ih}" rx="3" fill="none" stroke="currentColor" stroke-width="${big?3.4:2.8}"/>
-    ${inner}</svg>`;
+      style="color:var(--brand);transition:color var(--T);overflow:visible">
+    <defs>
+      <linearGradient id="al${u}" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#F4F7FA"/><stop offset=".45" stop-color="#D2DAE4"/>
+        <stop offset=".55" stop-color="#C2CBD8"/><stop offset="1" stop-color="#A7B2C1"/></linearGradient>
+      <linearGradient id="gl${u}" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#DCEAF4"/><stop offset=".5" stop-color="#C6DCEC"/><stop offset="1" stop-color="#B3D0E3"/></linearGradient>
+      <linearGradient id="fr${u}" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#E4EDF3"/><stop offset="1" stop-color="#CFDDE6"/></linearGradient>
+      <pattern id="ms${u}" width="3.5" height="3.5" patternUnits="userSpaceOnUse">
+        <path d="M0 0H3.5M0 0V3.5" stroke="#7F8C9E" stroke-width=".5" opacity=".75"/></pattern>
+    </defs>
+    ${outer}${g}
+    <rect x="${pad+2}" y="${pad+2}" width="${iw-4}" height="${ih-4}" rx="2" fill="none" stroke="#fff" stroke-width="1" opacity=".45"/>
+  </svg>`;
+}
+function art(m,big){
+  return m.img?`<img src="${m.img}" alt="${m.name}" loading="lazy" class="photo${big?' big':''}">`:frameSVG(m,big);
 }
 function prodHTML(m){
   const badge=m.hot?'<span class="pill">الأكثر طلباً</span>':(m.newy?'<span class="pill">جديد</span>':'');
   return `<button class="prod" data-model="${m.id}">
-    <span class="art">${badge}${frameSVG(m)}</span>
+    <span class="art">${badge}${art(m)}</span>
     <span class="meta"><b>${m.name}</b><span class="desc">${m.sub}</span>
       <span class="buy"><span class="price">السعر بعد القياس</span><span class="add" aria-hidden="true">+</span></span>
     </span></button>`;
@@ -470,6 +618,7 @@ function go(view){
 }
 document.addEventListener('click',e=>{const b=e.target.closest('[data-go]');if(b)go(b.dataset.go)});
 
+let customer={name:"",phone:"",area:""};
 /* ===== ورقة المنتج ===== */
 const scrim=document.getElementById('scrim'),sheet=document.getElementById('sheet');
 function closeSheet(){sheet.classList.remove('on');scrim.classList.remove('on')}
@@ -479,7 +628,7 @@ document.addEventListener('click',e=>{
   const c=e.target.closest('[data-model]'); if(!c)return;
   const m=MODELS.find(x=>x.id===c.dataset.model);
   document.getElementById('sheet-body').innerHTML=`
-    <div class="hero-art">${frameSVG(m,true)}</div>
+    <div class="hero-art">${art(m,true)}</div>
     <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-top:14px">
       <div><h3 style="font-size:18px">${m.name}</h3><p class="sub" style="margin-top:2px">${m.cat} · ${m.sub}</p></div>
       <span class="price" style="font-size:12.5px;white-space:nowrap;margin-top:6px">السعر بعد القياس</span></div>
@@ -491,25 +640,68 @@ document.addEventListener('click',e=>{
       <p class="sub" style="font-size:11.5px;margin-top:6px">قياس تقريبي يكفي — النهائي ياخذه المعلّم بالموقع.</p></div>
     <div class="row" style="margin-top:14px">
       <div class="opt" style="margin:0"><label for="o-glass">الزجاج</label>
-        <select class="ctrl" id="o-glass"><option>عادي</option><option>دبل (عازل)</option><option>سيكوريت</option><option>مموّه / ملوّن</option><option>بدون زجاج</option></select></div>
+        <select class="ctrl" id="o-glass"><option>الزجاج الشفاف</option><option>الزجاج المضبب</option><option>الزجاج المقسى (سيكوريت)</option><option>الزجاج المزدوج (دبل كلاس)</option><option>الزجاج العاكس</option><option>الزجاج الملون</option></select></div>
       <div class="opt" style="margin:0"><label for="o-color">اللون</label>
-        <select class="ctrl" id="o-color"><option>أبيض</option><option>أسود</option><option>رمادي</option><option>خشبي</option><option>شامبين</option></select></div></div>
+        <select class="ctrl" id="o-color"><option>الأسود المطفي</option><option>الشمباني</option><option>الأبيض</option><option>البرونزي</option><option>الرمادي الغامق</option><option>لون الخشب</option></select></div></div>
     <div class="opt"><label>العدد</label>
       <div class="stepper"><button id="minus" aria-label="أقل">−</button>
         <input id="o-qty" class="mono" value="1" inputmode="numeric"><button id="plus" aria-label="أكثر">+</button></div></div>
-    <div class="acts"><button class="btn btn-p" id="add-cart">أضف للسلة</button>
+    <div class="divider"></div>
+    <p class="sub" style="font-size:12.5px;margin-bottom:-4px">معلوماتك حتى نتواصل وياك ونحدد الموعد</p>
+    <div class="opt"><label for="o-name">الاسم</label>
+      <input class="ctrl" id="o-name" placeholder="اسمك الكامل" autocomplete="name" value="${customer.name}">
+      <p class="err">اكتب اسمك.</p></div>
+    <div class="opt"><label for="o-phone">رقم الهاتف</label>
+      <input class="ctrl mono" id="o-phone" type="tel" inputmode="numeric" placeholder="07XXXXXXXXX" autocomplete="tel" value="${customer.phone}">
+      <p class="err">اكتب رقم يبدأ بـ 07 ويتكوّن من 11 رقم.</p></div>
+    <div class="opt"><label for="o-area">الموقع / العنوان</label>
+      <input class="ctrl" id="o-area" placeholder="المنطقة وأقرب نقطة دالة" value="${customer.area}"></div>
+    <div class="acts"><button class="btn btn-p" id="add-cart">أضف للسلة وأرسل على واتساب</button>
+      <button class="btn btn-o" id="add-only">أضف للسلة وكمّل التسوّق</button>
       <a class="btn btn-o" href="tel:${PHONE}">اسأل عن السعر بالهاتف</a></div>`;
   sheet.classList.add('on');scrim.classList.add('on');
   const qi=document.getElementById('o-qty');
   document.getElementById('minus').onclick=()=>qi.value=Math.max(1,(+qi.value||1)-1);
   document.getElementById('plus').onclick=()=>qi.value=Math.min(99,(+qi.value||1)+1);
-  document.getElementById('add-cart').onclick=()=>{
-    cart.push({id:m.id,name:m.name,qty:Math.max(1,+qi.value||1),
+  const readItem=()=>({id:m.id,name:m.name,qty:Math.max(1,+qi.value||1),
       w:document.getElementById('o-w').value.trim(),h:document.getElementById('o-h').value.trim(),
       glass:document.getElementById('o-glass').value,color:document.getElementById('o-color').value});
-    closeSheet();paintBadge();toast("انضاف للسلة: "+m.name);
+  const saveCustomer=()=>{
+    customer.name=document.getElementById('o-name').value.trim();
+    customer.phone=document.getElementById('o-phone').value.trim();
+    customer.area=document.getElementById('o-area').value.trim();
+    ['c-name','c-phone','c-area'].forEach((id,i)=>{const el=document.getElementById(id);
+      if(el&&!el.value.trim()) el.value=[customer.name,customer.phone,customer.area][i]});
+  };
+  const checkCustomer=()=>{
+    let ok=true;
+    const n=document.getElementById('o-name'), ph=document.getElementById('o-phone');
+    n.closest('.opt').classList.toggle('bad',!n.value.trim()); if(!n.value.trim())ok=false;
+    const pok=/^07\d{9}$/.test(ph.value.replace(/\s/g,''));
+    ph.closest('.opt').classList.toggle('bad',!pok); if(!pok)ok=false;
+    if(!ok){toast("كمّل الاسم ورقم الهاتف");n.closest('.opt').scrollIntoView({behavior:'smooth',block:'center'})}
+    return ok;
+  };
+  document.getElementById('add-only').onclick=()=>{
+    saveCustomer(); cart.push(readItem()); closeSheet(); paintBadge(); toast("انضاف للسلة: "+m.name);
+  };
+  document.getElementById('add-cart').onclick=()=>{
+    if(!checkCustomer())return;
+    saveCustomer();
+    const it=readItem(); cart.push(it); paintBadge();
+    window.open("https://wa.me/"+WA+"?text="+encodeURIComponent(itemText(it)),"_blank");
+    closeSheet(); toast("انرسل الطلب على واتساب");
   };
 });
+
+function itemText(it){
+  const dims=(it.w||it.h)?`${it.w||"?"}×${it.h||"?"} سم (عرض × ارتفاع)`:"القياس بعد المعاينة";
+  return ["طلب جديد — متجر حيدر حميد للألمنيوم الحديث","",
+    "الاسم: "+customer.name,"الهاتف: "+customer.phone,
+    customer.area?"الموقع: "+customer.area:"الموقع: (لم يُذكر)","",
+    "المنتج: "+it.name,"العدد: "+it.qty,"القياس: "+dims,
+    "الزجاج: "+it.glass,"اللون: "+it.color].join("\n");
+}
 
 /* ===== السلة ===== */
 let cart=[];
@@ -525,7 +717,7 @@ function renderCart(){
   box.innerHTML=cart.map((it,i)=>{
     const m=MODELS.find(x=>x.id===it.id);
     const dims=(it.w||it.h)?`${it.w||"?"} × ${it.h||"?"} سم`:"القياس بعد المعاينة";
-    return `<div class="line"><div class="thumb">${frameSVG(m)}</div>
+    return `<div class="line"><div class="thumb">${art(m)}</div>
       <div class="body"><b>${it.name}</b><div class="spec">${dims} · ${it.glass} · ${it.color}</div>
         <div class="foot"><span class="qty"><button data-dec="${i}">−</button><span class="mono">${it.qty}</span><button data-inc="${i}">+</button></span>
           <button class="rm" data-rm="${i}">حذف</button></div></div></div>`;
@@ -577,8 +769,20 @@ async function copy(t){
   try{await navigator.clipboard.writeText(t)}
   catch{const a=document.createElement('textarea');a.value=t;document.body.appendChild(a);a.select();document.execCommand('copy');a.remove()}
 }
+document.getElementById('send-bug').onclick=()=>{
+  const t=document.getElementById('bug').value.trim();
+  if(!t){toast("اكتب وصف المشكلة أول");document.getElementById('bug').focus();return}
+  const info="\n\n---\nمعلومات فنية: "+screen.width+"x"+screen.height+" · "+navigator.userAgent.slice(0,80);
+  window.open("https://wa.me/"+WA+"?text="+encodeURIComponent("بلاغ خطأ — تطبيق حيدر حميد للألمنيوم الحديث\n\n"+t+info),"_blank");
+  toast("شكراً — انرسلت الملاحظة");
+};
+document.addEventListener('click',e=>{
+  if(!e.target.closest('.reportlink'))return;
+  go('contact');
+  setTimeout(()=>{const b=document.getElementById('bug');b.scrollIntoView({behavior:'smooth',block:'center'});b.focus()},260);
+});
 let tt;function toast(m){const el=document.getElementById('toast');el.textContent=m;el.classList.add('on');clearTimeout(tt);tt=setTimeout(()=>el.classList.remove('on'),2400)}
 paintBadge();
 </script>
 </body>
-    </html>
+</html>
