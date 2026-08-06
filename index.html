@@ -194,6 +194,82 @@ body.dark .info .ic{background:rgba(255,255,255,.08);color:var(--brand-3)}
 .info b{display:block;font-weight:700;font-size:13.5px}
 .info span{font-size:12.5px;color:var(--muted)}
 .pair{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:12px var(--pad) 0}
+
+/* بطاقة إنستغرام */
+.ig{display:flex;align-items:center;gap:12px;margin:16px var(--pad) 0;padding:14px;border-radius:20px;color:#fff;
+  position:relative;overflow:hidden;transition:transform .15s;
+  box-shadow:0 10px 26px rgba(214,36,159,.30);
+  background:radial-gradient(circle at 22% 118%,#FDD85D 0%,#FD8C3D 22%,#FA4E6B 45%,#D6249F 66%,#5B51D8 92%)}
+.ig::after{content:"";position:absolute;inset:-45% -12%;pointer-events:none;
+  background:radial-gradient(circle,rgba(255,255,255,.26),transparent 62%);animation:igGlow 8s ease-in-out infinite}
+@keyframes igGlow{0%,100%{transform:translate(-18%,10%)}50%{transform:translate(20%,-12%)}}
+.ig:active{transform:scale(.99)}
+.ig .igi{width:46px;height:46px;flex:none;border-radius:15px;display:grid;place-items:center;position:relative;z-index:2;
+  background:rgba(255,255,255,.22);border:1px solid rgba(255,255,255,.45)}
+.ig .igi svg{width:26px;height:26px;stroke:#fff;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.ig .igt{flex:1;min-width:0;position:relative;z-index:2}
+.ig .igt b{display:block;font-size:14.5px;font-weight:700;line-height:1.5}
+.ig .igt .handle{display:block;font-family:"IBM Plex Mono",monospace;direction:ltr;unicode-bidi:isolate;
+  font-size:13px;opacity:.95;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ig .go{width:20px;height:20px;flex:none;position:relative;z-index:2;opacity:.92}
+[dir="rtl"] .ig .go{transform:rotate(180deg)}
+@media (prefers-reduced-motion:reduce){.ig::after{animation:none}}
+
+/* ===== مساعد الذكاء الاصطناعي ===== */
+.aifab{position:fixed;bottom:calc(var(--tabh) + 16px);inset-inline-end:max(16px,calc(50% - 244px));z-index:55;
+  width:54px;height:54px;border:0;border-radius:18px;cursor:pointer;display:grid;place-items:center;color:#fff;
+  background:linear-gradient(135deg,var(--brand-2),var(--brand));transition:transform .18s,background var(--T);
+  box-shadow:0 10px 26px color-mix(in srgb,var(--brand) 45%,transparent),0 0 0 1px rgba(255,255,255,.16) inset}
+.aifab:active{transform:scale(.94)}
+.aifab svg{width:25px;height:25px;stroke:#fff;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.aifab i{position:absolute;inset:0;border-radius:18px;border:2px solid var(--brand-2);opacity:0;animation:aiPulse 3.4s ease-out infinite}
+@keyframes aiPulse{0%{opacity:.55;transform:scale(1)}70%,100%{opacity:0;transform:scale(1.45)}}
+
+.aiwrap{position:fixed;inset:0;z-index:70;display:none}
+.aiwrap.on{display:block}
+.aiwrap .back{position:absolute;inset:0;background:rgba(6,10,20,.45);backdrop-filter:blur(3px)}
+.aipanel{position:absolute;inset-inline:0;bottom:0;top:0;max-width:520px;margin:0 auto;background:var(--wash);
+  display:flex;flex-direction:column;animation:aiUp .28s cubic-bezier(.4,0,.2,1) both}
+@keyframes aiUp{from{transform:translateY(16px);opacity:0}to{transform:none;opacity:1}}
+.aihead{background:var(--brand);color:#fff;padding:14px var(--pad);display:flex;align-items:center;gap:11px;
+  border-radius:0 0 20px 20px;transition:background-color var(--T);flex:none}
+.aihead .av{width:40px;height:40px;flex:none;border-radius:13px;display:grid;place-items:center;
+  background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.35)}
+.aihead .av svg{width:21px;height:21px;stroke:#fff;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.aihead .tx{flex:1;min-width:0}
+.aihead b{display:block;font-size:15px}
+.aihead span{display:block;font-size:11.5px;opacity:.85;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.aihead button{width:36px;height:36px;flex:none;border:0;border-radius:11px;background:rgba(255,255,255,.2);color:#fff;
+  cursor:pointer;display:grid;place-items:center;font-size:17px}
+.aibody{flex:1;overflow-y:auto;padding:16px var(--pad) 6px;display:flex;flex-direction:column;gap:10px;
+  -webkit-overflow-scrolling:touch}
+.msg{max-width:86%;padding:11px 14px;border-radius:17px;font-size:14px;line-height:1.8;white-space:pre-wrap;
+  word-break:break-word;animation:rise .22s ease both;box-shadow:var(--shadow)}
+.msg.bot{align-self:flex-start;background:var(--card);border:1px solid var(--line);border-start-start-radius:6px}
+.msg.me{align-self:flex-end;background:var(--brand);color:#fff;border-end-end-radius:6px;transition:background-color var(--T)}
+.msg.err{align-self:flex-start;background:#FEF0E6;border:1px solid #F5A524;color:#8A3D14;border-start-start-radius:6px}
+body.dark .msg.err{background:rgba(245,165,36,.13);color:#F5C27A}
+.dots{align-self:flex-start;display:flex;gap:5px;padding:14px 16px;background:var(--card);border:1px solid var(--line);
+  border-radius:17px;border-start-start-radius:6px}
+.dots i{width:7px;height:7px;border-radius:50%;background:var(--muted);animation:aiDot 1.3s ease-in-out infinite}
+.dots i:nth-child(2){animation-delay:.18s}.dots i:nth-child(3){animation-delay:.36s}
+@keyframes aiDot{0%,60%,100%{opacity:.28;transform:translateY(0)}30%{opacity:1;transform:translateY(-4px)}}
+.aichips{display:flex;gap:8px;overflow-x:auto;padding:8px var(--pad);flex:none;scrollbar-width:none}
+.aichips::-webkit-scrollbar{display:none}
+.aichips button{flex:none;border:1px solid var(--line);background:var(--card);color:var(--brand);border-radius:999px;
+  padding:8px 14px;font-size:12.5px;font-weight:600;cursor:pointer;transition:color var(--T)}
+.aifoot{flex:none;padding:8px var(--pad) calc(10px + env(safe-area-inset-bottom));background:var(--cardb);
+  border-top:1px solid var(--line)}
+.airow{display:flex;align-items:flex-end;gap:9px}
+.airow textarea{flex:1;border:1px solid var(--line);background:var(--card);border-radius:15px;padding:11px 13px;
+  font-size:14px;resize:none;max-height:110px;outline:0;line-height:1.6}
+.airow textarea:focus{border-color:var(--brand)}
+.airow button{width:44px;height:44px;flex:none;border:0;border-radius:14px;background:var(--brand);color:#fff;
+  cursor:pointer;display:grid;place-items:center;transition:background-color var(--T),opacity .2s}
+.airow button:disabled{opacity:.45}
+.airow button svg{width:20px;height:20px;stroke:#fff;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+[dir="rtl"] .airow button svg{transform:scaleX(-1)}
+.aidisc{text-align:center;font-size:10.5px;color:var(--muted);margin:7px 0 0}
 .steps{margin:0 var(--pad);background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:14px;
   box-shadow:var(--shadow);backdrop-filter:blur(8px)}
 .step{display:flex;gap:11px;padding:7px 0}
@@ -291,6 +367,11 @@ body.dark .credit{background:linear-gradient(170deg,#141A28,#0D121C);border-colo
         <div class="sechead"><h2 id="t-howT"></h2></div>
         <div class="steps" id="steps"></div>
       </section>
+      <a class="ig" href="https://www.instagram.com/aluminum_.iq/" target="_blank" rel="noopener">
+        <span class="igi"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="5.5"/><circle cx="12" cy="12" r="4.2"/><circle cx="17.3" cy="6.7" r="1.15" fill="#fff" stroke="none"/></svg></span>
+        <span class="igt"><b id="t-ig1"></b><span class="handle">@aluminum_.iq</span></span>
+        <svg class="go" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg>
+      </a>
       <p class="foot"><span id="t-foot1"></span><br>
         <button class="reportlink report" id="t-report1"></button>
         <span class="devline" id="t-dev1"></span></p>
@@ -353,6 +434,11 @@ body.dark .credit{background:linear-gradient(170deg,#141A28,#0D121C);border-colo
         <button class="btn btn-o" id="copy-num"></button>
         <a class="btn btn-o" id="map-link" href="#" target="_blank" rel="noopener"></a>
       </div>
+      <a class="ig" href="https://www.instagram.com/aluminum_.iq/" target="_blank" rel="noopener">
+        <span class="igi"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="5.5"/><circle cx="12" cy="12" r="4.2"/><circle cx="17.3" cy="6.7" r="1.15" fill="#fff" stroke="none"/></svg></span>
+        <span class="igt"><b id="t-ig2"></b><span class="handle">@aluminum_.iq</span></span>
+        <svg class="go" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg>
+      </a>
       <section class="sec"><div class="sechead"><h2 id="t-bugT"></h2></div></section>
       <div style="padding:0 var(--pad)">
         <p class="sub" style="font-size:13px;margin:-6px 0 10px" id="t-bugD"></p>
@@ -384,6 +470,31 @@ body.dark .credit{background:linear-gradient(170deg,#141A28,#0D121C);border-colo
     <button class="tab" role="tab" aria-selected="false" data-go="contact">
       <svg viewBox="0 0 24 24"><path d="M4 6c0 8 6 14 14 14l2-3-4-2-2 2c-2-1-5-4-6-6l2-2-2-4z"/></svg><span id="t-tab4"></span></button>
   </nav>
+</div>
+
+<button class="aifab" id="ai-fab" aria-label="AI">
+  <i></i><svg viewBox="0 0 24 24"><path d="M12 3l1.9 4.6L18.5 9.5l-4.6 1.9L12 16l-1.9-4.6L5.5 9.5l4.6-1.9z"/><path d="M18 15.5l.9 2.1 2.1.9-2.1.9-.9 2.1-.9-2.1-2.1-.9 2.1-.9z"/></svg>
+</button>
+
+<div class="aiwrap" id="ai-wrap">
+  <div class="back" id="ai-back"></div>
+  <div class="aipanel">
+    <div class="aihead">
+      <span class="av"><svg viewBox="0 0 24 24"><path d="M12 3l1.9 4.6L18.5 9.5l-4.6 1.9L12 16l-1.9-4.6L5.5 9.5l4.6-1.9z"/></svg></span>
+      <span class="tx"><b id="t-aiT"></b><span id="t-aiSub"></span></span>
+      <button id="ai-new" title="new">⟳</button>
+      <button id="ai-close">✕</button>
+    </div>
+    <div class="aibody" id="ai-body"></div>
+    <div class="aichips" id="ai-chips"></div>
+    <div class="aifoot">
+      <div class="airow">
+        <textarea id="ai-input" rows="1"></textarea>
+        <button id="ai-send"><svg viewBox="0 0 24 24"><path d="M4 12l16-8-6 8 6 8z"/></svg></button>
+      </div>
+      <p class="aidisc" id="t-aiDisc"></p>
+    </div>
+  </div>
 </div>
 
 <div class="scrim" id="scrim"></div>
@@ -450,7 +561,15 @@ ar:{dir:"rtl",label:"العربية",
  contactT:"تواصل معنا",iPhone:"الهاتف",iLoc:"الموقع",iLocV:"بلد — شارع المحيط — معمل الزهور",
  iHours:"الدوام",iHoursV:"السبت – الخميس، ٩ صباحاً – ٦ مساءً",
  iServ:"الخدمات",iServV:"أبواب • شبابيك • واجهات وكلادينج • قواطع • شغل خاص",
- call:"اتصال",wa:"واتساب",copyNum:"نسخ الرقم",map:"الخريطة",
+ aiT:"مساعد الألمنيوم",aiSub:"يجاوب على أسئلة الأبواب والشبابيك والواجهات",aiPh:"اكتب سؤالك…",
+ aiHi:"هلا بيك 👋 آني المساعد الذكي لمعرض حيدر حميد للألمنيوم الحديث.\nاسألني عن الأبواب، الشبابيك، الواجهات، أنواع الزجاج، الألوان، أو شلون تاخذ القياس.",
+ aiChips:["شنو أفضل زجاج للشبابيك؟","شلون أقيس الباب صح؟","شنو الفرق بين السحب والمفصلي؟"],
+ aiErr:"ما كدرت أوصل للمساعد الآن. جرّب بعد شوية أو راسلنا واتساب.",
+ aiLocal:"ما وصل الطلب للخادم.\nالسبب الغالب: الملف مفتوح محلياً (file://). ارفعه على استضافة https وجرّب من هناك.\nإذا كان مرفوعاً أصلاً وما زال يفشل، فعّل وسيط Worker.",
+ aiBadKey:"المفتاح مرفوض — إمّا ملغى أو مقيّد بدومين ثاني. جدّده من Google AI Studio.",
+ aiQuota:"تجاوزت الحصة المجانية لهذا اليوم. جرّب باچر أو راسلنا واتساب.",
+ aiNoKey:"المساعد غير مفعّل بعد. المطلوب ضبط الإعدادات في أعلى ملف الموقع.",
+ aiDisc:"الأسعار تُحدَّد بعد المعاينة — للتأكيد اتصل بالمعرض.", igT:"تابعنا على إنستغرام", call:"اتصال",wa:"واتساب",copyNum:"نسخ الرقم",map:"الخريطة",
  bugT:"لاحظت خطأ؟",bugD:"إذا صار خطأ بالتطبيق أو معلومة غلط أو زر ما يشتغل — اكتبها هنا وتوصلنا مباشرة.",
  bugL:"وصف المشكلة",bugPh:"مثال: زر (أضف للسلة) ما يشتغل بصفحة الشبابيك",bugSend:"أرسل الملاحظة على واتساب",
  devKicker:"تصميم وتطوير",devName:"غي لإنشاء المواقع والتطبيقات بالذكاء الاصطناعي",
@@ -498,7 +617,15 @@ en:{dir:"ltr",label:"English",
  contactT:"Contact us",iPhone:"Phone",iLoc:"Location",iLocV:"Balad — Al-Muheet St. — Al-Zuhoor Factory",
  iHours:"Working hours",iHoursV:"Saturday – Thursday, 9 AM – 6 PM",
  iServ:"Services",iServV:"Doors • Windows • Facades & cladding • Partitions • Custom work",
- call:"Call",wa:"WhatsApp",copyNum:"Copy number",map:"Map",
+ aiT:"Aluminum assistant",aiSub:"Answers about doors, windows and facades",aiPh:"Type your question…",
+ aiHi:"Hi 👋 I am the assistant of Haidar Hameed Modern Aluminum.\nAsk me about doors, windows, facades, glass types, colors, or how to measure.",
+ aiChips:["Best glass for windows?","How do I measure a door?","Sliding vs hinged?"],
+ aiErr:"I could not reach the assistant right now. Try again later or message us on WhatsApp.",
+ aiLocal:"The request never reached the server.\nMost likely the file is opened locally (file://). Upload it to https hosting and try there.\nIf it is already hosted, enable the Worker proxy.",
+ aiBadKey:"The API key was rejected — revoked or restricted to another domain. Create a new one in Google AI Studio.",
+ aiQuota:"Daily free quota exceeded. Try tomorrow or message us on WhatsApp.",
+ aiNoKey:"The assistant is not configured yet. Set the options at the top of the site file.",
+ aiDisc:"Prices are set after inspection — call the shop to confirm.", igT:"Follow us on Instagram", call:"Call",wa:"WhatsApp",copyNum:"Copy number",map:"Map",
  bugT:"Found a problem?",bugD:"If something is broken, wrong, or a button does not work — write it here and it reaches us directly.",
  bugL:"Describe the problem",bugPh:"e.g. the Add to cart button does not work on windows",bugSend:"Send note on WhatsApp",
  devKicker:"DESIGN & DEVELOPMENT",devName:"Ghi — AI-powered websites and apps",
@@ -546,7 +673,15 @@ ku:{dir:"rtl",label:"کوردی",
  contactT:"پەیوەندیمان پێوە بکە",iPhone:"تەلەفۆن",iLoc:"شوێن",iLocV:"بەلەد — شەقامی موحیت — کارگەی زوهوور",
  iHours:"کاتی کارکردن",iHoursV:"شەممە – پێنجشەممە، ٩ بەیانی – ٦ ئێوارە",
  iServ:"خزمەتگوزاریەکان",iServV:"دەرگا • پەنجەرە • ڕووکار و کلادینگ • دابەشکەر • کاری تایبەت",
- call:"پەیوەندی",wa:"واتساب",copyNum:"کۆپیکردنی ژمارە",map:"نەخشە",
+ aiT:"یاریدەدەری ئەلەمنیۆم",aiSub:"وەڵامی پرسیاری دەرگا و پەنجەرە و ڕووکار دەداتەوە",aiPh:"پرسیارەکەت بنووسە…",
+ aiHi:"بەخێربێیت 👋 من یاریدەدەری زیرەکی گەلەریی حەیدەر حەمید بۆ ئەلەمنیۆمی مۆدێرنم.\nپرسیارم لێبکە دەربارەی دەرگا، پەنجەرە، ڕووکار، جۆری شووشە، ڕەنگ، یان چۆنیەتی پێوان.",
+ aiChips:["باشترین شووشە بۆ پەنجەرە؟","چۆن دەرگا بپێوم؟","جیاوازیی سلاید و مەفسەلی؟"],
+ aiErr:"نەمتوانی پەیوەندی بە یاریدەدەرەوە بکەم. دواتر هەوڵبدەوە یان لە واتساب پەیوەندیمان پێوە بکە.",
+ aiLocal:"داواکارییەکە نەگەیشتە ڕاژە.\nبەزۆری فایلەکە بە شێوەی ناوخۆیی کراوەتەوە (file://). بیخە سەر هۆستی https و لەوێ تاقی بکەرەوە.",
+ aiBadKey:"کلیلەکە ڕەتکرایەوە — یان هەڵوەشێنراوە یان بۆ دۆمەینێکی تر بەربەستکراوە.",
+ aiQuota:"سنووری بەخۆڕایی ئەمڕۆ تەواو بوو. سبەینێ تاقی بکەرەوە.",
+ aiNoKey:"یاریدەدەر هێشتا چالاک نەکراوە. ڕێکخستنەکانی سەرەوەی فایلی ماڵپەڕ دابنێ.",
+ aiDisc:"نرخ دوای سەردان دیاری دەکرێت — بۆ دڵنیایی پەیوەندی بکە.", igT:"لە ئینستاگرام بمانپەیوە", call:"پەیوەندی",wa:"واتساب",copyNum:"کۆپیکردنی ژمارە",map:"نەخشە",
  bugT:"هەڵەیەکت بینی؟",bugD:"ئەگەر هەڵەیەک ڕوویدا یان دوگمەیەک کار ناکات — لێرە بینووسە و ڕاستەوخۆ دەگاتە ئێمە.",
  bugL:"باسی کێشەکە",bugPh:"نموونە: دوگمەی (زیادکردن بۆ سەبەتە) کار ناکات",bugSend:"تێبینی بنێرە بۆ واتساب",
  devKicker:"دیزاین و گەشەپێدان",devName:"غی بۆ دروستکردنی ماڵپەڕ و ئەپ بە زیرەکی دەستکرد",
@@ -901,6 +1036,11 @@ function fillUI(){
   setTxt('t-contactT',x.contactT); setTxt('t-iPhone',x.iPhone); setTxt('t-iLoc',x.iLoc); setTxt('t-iLocV',x.iLocV);
   setTxt('t-iHours',x.iHours); setTxt('t-iHoursV',x.iHoursV); setTxt('t-iServ',x.iServ); setTxt('t-iServV',x.iServV);
   setTxt('t-call',x.call); setTxt('wa-plain',x.wa); setTxt('copy-num',x.copyNum); setTxt('map-link',x.map);
+  setTxt('t-ig1',x.igT); setTxt('t-ig2',x.igT);
+  setTxt('t-aiT',x.aiT); setTxt('t-aiSub',x.aiSub); setTxt('t-aiDisc',x.aiDisc);
+  document.getElementById('ai-input').placeholder=x.aiPh;
+  document.getElementById('ai-fab').setAttribute('aria-label',x.aiT);
+  aiReset();
   setTxt('t-bugT',x.bugT); setTxt('t-bugD',x.bugD); setTxt('t-bugL',x.bugL); setTxt('send-bug',x.bugSend);
   document.getElementById('bug').placeholder=x.bugPh;
   setTxt('t-devKicker',x.devKicker); setTxt('t-devName',x.devName); setTxt('t-devGold',x.devGold);
@@ -925,6 +1065,8 @@ const scrim=document.getElementById('scrim'),sheet=document.getElementById('shee
 function closeSheet(){sheet.classList.remove('on');scrim.classList.remove('on')}
 scrim.onclick=closeSheet;
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeSheet()});
+/* تهريب أي نص يدخله المستخدم قبل حقنه في HTML — حماية من XSS */
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function openSheet(html){document.getElementById('sheet-body').innerHTML=html;sheet.classList.add('on');scrim.classList.add('on')}
 
 /* الإعدادات */
@@ -972,11 +1114,11 @@ document.addEventListener('click',e=>{
     <div class="divider"></div>
     <p class="sub" style="font-size:12.5px;margin-bottom:-4px">${x.custInfo}</p>
     <div class="opt"><label for="o-name">${x.lname}</label>
-      <input class="ctrl" id="o-name" placeholder="${x.namePh}" autocomplete="name" value="${customer.name}"><p class="err">${x.errN}</p></div>
+      <input class="ctrl" id="o-name" placeholder="${x.namePh}" autocomplete="name" value="${esc(customer.name)}"><p class="err">${x.errN}</p></div>
     <div class="opt"><label for="o-phone">${x.lphone}</label>
-      <input class="ctrl mono" id="o-phone" type="tel" inputmode="numeric" placeholder="07XXXXXXXXX" value="${customer.phone}"><p class="err">${x.errP}</p></div>
+      <input class="ctrl mono" id="o-phone" type="tel" inputmode="numeric" placeholder="07XXXXXXXXX" value="${esc(customer.phone)}"><p class="err">${x.errP}</p></div>
     <div class="opt"><label for="o-area">${x.larea}</label>
-      <input class="ctrl" id="o-area" placeholder="${x.areaPh}" value="${customer.area}"></div>
+      <input class="ctrl" id="o-area" placeholder="${x.areaPh}" value="${esc(customer.area)}"></div>
     <div class="acts"><button class="btn btn-p" id="add-cart">${x.addSend}</button>
       <button class="btn btn-o" id="add-only">${x.addOnly}</button>
       <a class="btn btn-o" href="tel:${PHONE}">${x.callPrice}</a></div>`);
@@ -1045,7 +1187,7 @@ function renderCart(){
   document.getElementById('cart-lines').innerHTML=cart.map((it,k)=>{
     const m=MODELS.find(z=>z.id===it.id);
     return `<div class="line"><div class="thumb">${art(m)}</div>
-      <div class="body"><b>${m.n[i]}</b><div class="spec">${dimsOf(it)} · ${it.glass} · ${it.color}</div>
+      <div class="body"><b>${m.n[i]}</b><div class="spec">${esc(dimsOf(it))} · ${esc(it.glass)} · ${esc(it.color)}</div>
         <div class="ft"><span class="qty"><button data-dec="${k}">−</button><span class="mono">${it.qty}</span><button data-inc="${k}">+</button></span>
           <button class="rm" data-rm="${k}">✕</button></div></div></div>`;
   }).join('');
@@ -1095,6 +1237,104 @@ async function copy(txt){
   catch{const a=document.createElement('textarea');a.value=txt;document.body.appendChild(a);a.select();document.execCommand('copy');a.remove()}
 }
 let tt;function toast(m){const el=document.getElementById('toast');el.textContent=m;el.classList.add('on');clearTimeout(tt);tt=setTimeout(()=>el.classList.remove('on'),2500)}
+
+/* ===== المساعد الذكي (Gemini) ===== */
+/* ┌───────────────────────────────────────────────────────────────────────┐
+   │  الوضع (أ) الآمن والمنصوح به: ضع رابط الوسيط (Worker) في PROXY واترك │
+   │      KEY فارغاً — المفتاح يبقى مخفياً في الخادم ولا يراه أحد.        │
+   │  الوضع (ب) للتجربة السريعة فقط: ضع المفتاح في KEY واترك PROXY فارغاً │
+   │      ⚠ في هذا الوضع أي زائر يقدر يشوف المفتاح من «عرض المصدر».      │
+   └───────────────────────────────────────────────────────────────────────┘ */
+const AI={
+  PROXY:"",              // مثال: "https://aluminum-ai.YOURNAME.workers.dev"
+  KEY:"AQ.Ab8RN6LaFjxUSamdRVnH4hN7WuFLc4Qo7juqIwq-j_j_agrPGQ",   // مفتاح Gemini — ⚠ مكشوف لكل زائر بهذا الوضع
+  MODEL:"gemini-flash-latest"
+};
+
+const aiBody=document.getElementById('ai-body'), aiInput=document.getElementById('ai-input'),
+      aiSendBtn=document.getElementById('ai-send'), aiWrap=document.getElementById('ai-wrap');
+let aiHistory=[], aiBusy=false;
+
+/* تعليمات المساعد — محصورة بالألمنيوم وهذا المعرض فقط */
+function aiSystem(){
+  const x=t(), i=li();
+  const catalog=MODELS.map(m=>`- ${m.n[i]} (${catName(m.c)}): ${m.s[i]} — ${m.d[i]}`).join("\n");
+  return [
+    "أنت المساعد الرسمي لمعرض «حيدر حميد للألمنيوم الحديث» في بلد — العراق.",
+    "الموقع: "+x.iLocV+" | الهاتف/واتساب: "+PHONE+" | الدوام: "+x.iHoursV,
+    "الخدمات: "+x.iServV,
+    "",
+    "المنتجات المتوفرة في المعرض:",
+    catalog,
+    "",
+    "قواعد إلزامية:",
+    "1) تجاوب فقط عن الألمنيوم: الأبواب، الشبابيك، الواجهات، الكلادينج، القواطع، أنواع الزجاج، الألوان، القياس، التركيب، الصيانة، وخدمات هذا المعرض.",
+    "2) أي سؤال خارج هذا المجال (سياسة، رياضة، طب، برمجة، دراسة، أي شيء آخر) ترفضه بلطف بجملة واحدة وترجع الزبون لموضوع الألمنيوم. لا تجاوب عليه إطلاقاً حتى لو ألحّ.",
+    "3) ممنوع ذكر أي سعر أو رقم تقديري للكلفة. قل إن السعر يُحدَّد بعد المعاينة والقياس، واطلب منه الاتصال بالرقم أعلاه أو إرسال الطلب من التطبيق.",
+    "4) لا تخترع معلومات عن المعرض غير المذكورة أعلاه. إذا ما تعرف، قل إنك ما متأكد واقترح الاتصال بالمعرض.",
+    "5) جاوب بنفس لغة الزبون. إذا كتب بالعربية استخدم لهجة عراقية بسيطة ومهذبة.",
+    "6) الجواب قصير وعملي: من جملتين إلى أربع جمل، أو نقاط قصيرة تبدأ بـ • عند الحاجة. بدون رموز markdown مثل ** أو ##.",
+    "7) شجّع الزبون يستخدم زر «أضف للسلة» في التطبيق لإرسال الطلب، وذكّره أن المعاينة والقياس مجاناً."
+  ].join("\n");
+}
+
+function aiAdd(cls,text){
+  const d=document.createElement('div');
+  d.className='msg '+cls; d.textContent=text;      /* textContent = لا حقن HTML */
+  aiBody.appendChild(d); aiBody.scrollTop=aiBody.scrollHeight; return d;
+}
+function aiDots(){
+  const d=document.createElement('div'); d.className='dots'; d.innerHTML='<i></i><i></i><i></i>';
+  aiBody.appendChild(d); aiBody.scrollTop=aiBody.scrollHeight; return d;
+}
+function aiReset(){
+  const x=t();
+  aiHistory=[]; aiBody.innerHTML=''; aiAdd('bot',x.aiHi);
+  const box=document.getElementById('ai-chips'); box.innerHTML='';
+  x.aiChips.forEach(q=>{const b=document.createElement('button');b.textContent=q;
+    b.onclick=()=>{aiInput.value=q;aiSend()};box.appendChild(b)});
+}
+
+async function aiSend(){
+  const x=t(), msg=aiInput.value.trim();
+  if(!msg||aiBusy) return;
+  if(!AI.PROXY&&!AI.KEY){aiAdd('err',x.aiNoKey);return}
+  aiInput.value=''; aiInput.style.height='auto';
+  aiAdd('me',msg); aiHistory.push({role:"user",parts:[{text:msg}]});
+  aiBusy=true; aiSendBtn.disabled=true;
+  const dots=aiDots();
+  try{
+    /* المفتاح كـ query param بدل الترويسة — أبسط لطلبات المتصفح */
+    const url=AI.PROXY||`https://generativelanguage.googleapis.com/v1beta/models/${AI.MODEL}:generateContent?key=${encodeURIComponent(AI.KEY)}`;
+    const r=await fetch(url,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({
+      system_instruction:{parts:[{text:aiSystem()}]},
+      contents:aiHistory.slice(-12),
+      generationConfig:{temperature:0.4,maxOutputTokens:600}
+    })});
+    if(!r.ok){const b=await r.text().catch(()=>""); throw new Error("HTTP "+r.status+" "+b.slice(0,200))}
+    const data=await r.json();
+    const out=(data?.candidates?.[0]?.content?.parts||[]).map(z=>z.text||"").join("").trim();
+    dots.remove();
+    if(!out) throw new Error("empty");
+    aiAdd('bot',out); aiHistory.push({role:"model",parts:[{text:out}]});
+  }catch(err){
+    dots.remove(); aiHistory.pop(); console.error(err);
+    const m=String(err&&err.message||err);
+    let why=x.aiErr;
+    if(m.includes("Failed to fetch")||err instanceof TypeError) why=x.aiLocal;   /* file:// أو الشبكة */
+    else if(m.includes("403")||m.includes("400")) why=x.aiBadKey;                /* مفتاح ملغى/مقيّد */
+    else if(m.includes("429")) why=x.aiQuota;                                    /* تجاوز الحصة */
+    aiAdd('err',why);
+  }finally{ aiBusy=false; aiSendBtn.disabled=false; aiBody.scrollTop=aiBody.scrollHeight; }
+}
+
+document.getElementById('ai-fab').onclick=()=>{aiWrap.classList.add('on');setTimeout(()=>aiInput.focus(),260)};
+document.getElementById('ai-close').onclick=()=>aiWrap.classList.remove('on');
+document.getElementById('ai-back').onclick=()=>aiWrap.classList.remove('on');
+document.getElementById('ai-new').onclick=()=>aiReset();
+aiSendBtn.onclick=aiSend;
+aiInput.addEventListener('input',()=>{aiInput.style.height='auto';aiInput.style.height=Math.min(110,aiInput.scrollHeight)+'px'});
+aiInput.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();aiSend()}});
 
 /* ===== الإقلاع ===== */
 document.getElementById('wa-plain').href="https://wa.me/"+WA;
