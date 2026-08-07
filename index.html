@@ -15,31 +15,34 @@
 </script>
 <style>
 :root{
-  --bg:#FFFFFF; --wash:#F5F7FC; --card:#FFFFFF; --cardb:#FFFFFF;
-  --ink:#0F1724; --muted:#6B7887; --line:#E6EAF3; --art:var(--brand-soft);
+  --bg:rgba(255,255,255,.82); --wash:transparent; --card:rgba(255,255,255,.72); --cardb:rgba(255,255,255,.88);
+  --ink:#0F1724; --muted:#6B7887; --line:rgba(180,195,220,.5); --art:var(--brand-soft);
   --brand:#1B72E8; --brand-2:#4285F4; --brand-3:#7BA7FF; --brand-soft:#E8F0FE; --brand-ink:#0B3B8F;
   --amber:#F5A524; --green:#12A150;
   --font:"Tajawal",system-ui,sans-serif;
   --pad:16px; --tabh:64px; --r:16px;
   --T:2.8s cubic-bezier(.4,0,.2,1);
-  --shadow:0 2px 10px rgba(15,23,36,.06);
-  --shadow-lg:0 12px 30px rgba(15,23,36,.12);
+  --shadow:0 2px 10px rgba(15,23,36,.08);
+  --shadow-lg:0 12px 30px rgba(15,23,36,.14);
 }
 body.dark{
-  --bg:#070B14; --wash:#05070D; --card:rgba(17,24,40,.72); --cardb:#111828;
-  --ink:#E9EFFA; --muted:#93A2BE; --line:rgba(255,255,255,.10); --art:rgba(255,255,255,.05);
-  --shadow:0 2px 14px rgba(0,0,0,.45); --shadow-lg:0 14px 34px rgba(0,0,0,.6);
+  --bg:#0a0e1a; --wash:#050811; --card:rgba(13,17,35,.75); --cardb:#0d1123;
+  --ink:#d4e4ff; --muted:#7a8fb3; --line:rgba(255,255,255,.08); --art:rgba(99,102,241,.04);
+  --shadow:0 2px 14px rgba(0,0,0,.65); --shadow-lg:0 14px 34px rgba(0,0,0,.75);
+  --brand:#6366f1; --brand-2:#818cf8; --brand-3:#a5b4fc;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;padding:0}
-body{background:var(--wash);color:var(--ink);font-family:var(--font);font-size:15px;line-height:1.75;
-  overscroll-behavior-y:none;transition:background-color .5s,color .5s}
+body{background:transparent;color:var(--ink);font-family:var(--font);font-size:15px;line-height:1.75;
+  overscroll-behavior-y:none;transition:color .5s}
+html{background:var(--wash);transition:background-color .5s}
 h1,h2,h3{font-family:var(--font);font-weight:700;line-height:1.45;margin:0}
 .mono{font-family:"IBM Plex Mono",monospace;direction:ltr;unicode-bidi:isolate}
 button,input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
 a{color:inherit;text-decoration:none}
-#sky{position:fixed;inset:0;z-index:0;display:none;pointer-events:none}
-body.dark #sky{display:block}
+#sky{position:fixed;inset:0;z-index:0;pointer-events:none;width:100%;height:100%}
+/* زجاجية فوق السماء */
+.card,.cat,.prod,.ctrl,.banner,.aipanel,.sheet,.tabbar,.igcard{backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
 .app{max-width:520px;margin:0 auto;min-height:100vh;position:relative;z-index:1}
 
 /* شفق الهيدر */
@@ -1246,8 +1249,8 @@ let tt;function toast(m){const el=document.getElementById('toast');el.textConten
    │      ⚠ في هذا الوضع أي زائر يقدر يشوف المفتاح من «عرض المصدر».      │
    └───────────────────────────────────────────────────────────────────────┘ */
 const AI={
-  PROXY:"",              // مثال: "https://aluminum-ai.YOURNAME.workers.dev"
-  KEY:"AQ.Ab8RN6LX44U72HL6zyosCDbUbMXQVBcj57L3giOx-eJR57ysZw",   // مفتاح Gemini — ⚠ مكشوف لكل زائر بهذا الوضع
+  PROXY:"",                    // مثال: "https://aluminum-ai.YOURNAME.workers.dev"
+  KEY:"",                      // ضع مفتاح جديد من Google AI Studio هنا
   MODEL:"gemini-flash-latest"
 };
 
@@ -1280,7 +1283,7 @@ function aiSystem(){
 
 function aiAdd(cls,text){
   const d=document.createElement('div');
-  d.className='msg '+cls; d.textContent=text;      /* textContent = لا حقن HTML */
+  d.className='msg '+cls; d.textContent=text;
   aiBody.appendChild(d); aiBody.scrollTop=aiBody.scrollHeight; return d;
 }
 function aiDots(){
@@ -1304,7 +1307,6 @@ async function aiSend(){
   aiBusy=true; aiSendBtn.disabled=true;
   const dots=aiDots();
   try{
-    /* المفتاح كـ query param بدل الترويسة — أبسط لطلبات المتصفح */
     const url=AI.PROXY||`https://generativelanguage.googleapis.com/v1beta/models/${AI.MODEL}:generateContent?key=${encodeURIComponent(AI.KEY)}`;
     const r=await fetch(url,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({
       system_instruction:{parts:[{text:aiSystem()}]},
@@ -1321,9 +1323,9 @@ async function aiSend(){
     dots.remove(); aiHistory.pop(); console.error(err);
     const m=String(err&&err.message||err);
     let why=x.aiErr;
-    if(m.includes("Failed to fetch")||err instanceof TypeError) why=x.aiLocal;   /* file:// أو الشبكة */
-    else if(m.includes("403")||m.includes("400")) why=x.aiBadKey;                /* مفتاح ملغى/مقيّد */
-    else if(m.includes("429")) why=x.aiQuota;                                    /* تجاوز الحصة */
+    if(m.includes("Failed to fetch")||err instanceof TypeError) why=x.aiLocal;
+    else if(m.includes("403")||m.includes("400")) why=x.aiBadKey;
+    else if(m.includes("429")) why=x.aiQuota;
     aiAdd('err',why);
   }finally{ aiBusy=false; aiSendBtn.disabled=false; aiBody.scrollTop=aiBody.scrollHeight; }
 }
@@ -1336,18 +1338,137 @@ aiSendBtn.onclick=aiSend;
 aiInput.addEventListener('input',()=>{aiInput.style.height='auto';aiInput.style.height=Math.min(110,aiInput.scrollHeight)+'px'});
 aiInput.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();aiSend()}});
 
+
 /* ===== الإقلاع ===== */
 document.getElementById('wa-plain').href="https://wa.me/"+WA;
 document.getElementById('map-link').href="https://www.google.com/maps/search/?api=1&query="+encodeURIComponent("بلد شارع المحيط معمل الزهور");
 const dt=document.getElementById('c-date'); dt.min=new Date().toISOString().slice(0,10); dt.value=dt.min;
 fillUI(); paintBadge();
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-<script>
-const supabaseUrl = "https://gygjpwmcuiqjelmpgxtp.supabase.co";
-const supabaseKey = "sb_publishable_0ygCWcILkVvTRhHse0N6aw_PnJfGsOt";
+/* ===== الليل والنهار الديناميكي مع الرسومات ===== */
+const Sky={
+  canvas:null, ctx:null, startTime:Date.now(),
+  init(){
+    this.canvas=document.getElementById('sky');
+    if(!this.canvas) return;
+    this.canvas.width=window.innerWidth;
+    this.canvas.height=window.innerHeight;
+    this.ctx=this.canvas.getContext('2d');
+    this.animate();
+  },
+  sunTimes(d,lat,lng){
+    let J=(d.getTime()+d.getTimezoneOffset()*60000)/86400000-10957.5,
+        L=(280.4665+36000.7671*J)%360,M=(357.5291+35999.0503*J)%360,
+        m=M*Math.PI/180,E=1.9146*Math.sin(m)-0.0055*Math.sin(2*m),
+        eq=(L-0.0057-E)%360,eot=4*(eq>180?eq-360:eq),
+        D=Math.asin(.39779*Math.sin(2*L*Math.PI/180))*180/Math.PI*Math.PI/180,
+        lat_r=lat*Math.PI/180,H=Math.acos(-Math.tan(lat_r)*Math.tan(D))*180/Math.PI;
+    return {
+      sunrise:new Date(d.getTime()+(720-4*lng-H-eot)*60000),
+      sunset:new Date(d.getTime()+(720-4*lng+H-eot)*60000)
+    };
+  },
+  animate(){
+    const now=new Date(),lat=33.36,lng=44.45,{sunrise,sunset}=this.sunTimes(now,lat,lng);
+    const isDark=now<sunrise||now>sunset;
+    const progress=(now-sunrise)/(sunset-sunrise);
+    
+    if(isDark) this.drawNight(); 
+    else this.drawDay(progress);
+    
+    document.body.classList.toggle('dark',isDark);
+    requestAnimationFrame(()=>this.animate());
+  },
+  drawDay(progress){
+    const w=this.canvas.width,h=this.canvas.height;
+    const grad=this.ctx.createLinearGradient(0,0,0,h);
+    grad.addColorStop(0,'#87CEEB');
+    grad.addColorStop(.4,'#E0F6FF');
+    grad.addColorStop(1,'#FFF9E6');
+    this.ctx.fillStyle=grad;
+    this.ctx.fillRect(0,0,w,h);
+    
+    const sunX=w*progress,sunY=h*(.75-progress*.35);
+    this.ctx.fillStyle='#FFD700';
+    this.ctx.beginPath();
+    this.ctx.arc(sunX,sunY,45,0,Math.PI*2);
+    this.ctx.fill();
+    
+    this.drawClouds(progress);
+  },
+  drawClouds(t){
+    const w=this.canvas.width,h=this.canvas.height;
+    this.ctx.fillStyle='rgba(255,255,255,.75)';
+    for(let i=0;i<3;i++){
+      const y=h*(.2+i*.25),x=(w*(t+i*.3))%w;
+      this.drawCloud(x,y,50+i*15);
+    }
+  },
+  drawCloud(x,y,size){
+    this.ctx.beginPath();
+    this.ctx.arc(x-size/2,y,size*.4,0,Math.PI*2);
+    this.ctx.arc(x,y-size*.15,size*.5,0,Math.PI*2);
+    this.ctx.arc(x+size/2,y,size*.4,0,Math.PI*2);
+    this.ctx.fill();
+  },
+  drawNight(){
+    const w=this.canvas.width,h=this.canvas.height;
+    const grad=this.ctx.createLinearGradient(0,0,0,h);
+    grad.addColorStop(0,'#0a1128');
+    grad.addColorStop(.5,'#1a1a3a');
+    grad.addColorStop(1,'#0f1620');
+    this.ctx.fillStyle=grad;
+    this.ctx.fillRect(0,0,w,h);
+    
+    this.drawStars();
+    this.drawShootingStars();
+  },
+  drawStars(){
+    const time=(Date.now()-this.startTime)/3000;
+    const w=this.canvas.width,h=this.canvas.height;
+    this.ctx.fillStyle='white';
+    for(let i=0;i<100;i++){
+      const seed=i*73.14159;
+      const x=(Math.sin(seed)*w+w)%w;
+      const y=(Math.cos(seed*1.23)*h*0.6+h*0.1);
+      const size=Math.random()*2.5;
+      const twinkle=.5+.5*Math.sin(time*2+seed);
+      this.ctx.globalAlpha=.3+.7*twinkle;
+      this.ctx.beginPath();
+      this.ctx.arc(x,y,size,0,Math.PI*2);
+      this.ctx.fill();
+    }
+    this.ctx.globalAlpha=1;
+  },
+  drawShootingStars(){
+    const time=(Date.now()-this.startTime)/1000;
+    const w=this.canvas.width,h=this.canvas.height;
+    for(let i=0;i<3;i++){
+      const t=(time+i*3)%10;
+      if(t>7) continue;
+      const phase=t/10;
+      const startX=Math.sin(i*1.1)*w*.4+w*.5;
+      const startY=h*.2;
+      const x=startX+phase*300;
+      const y=startY+phase*200;
+      const grad=this.ctx.createLinearGradient(x,y,x-phase*50,y-phase*40);
+      grad.addColorStop(0,'rgba(255,200,100,'+(1-phase)+')');
+      grad.addColorStop(1,'rgba(255,255,255,0)');
+      this.ctx.strokeStyle=grad;
+      this.ctx.lineWidth=3;
+      this.ctx.beginPath();
+      this.ctx.moveTo(x,y);
+      this.ctx.lineTo(x-phase*50,y-phase*40);
+      this.ctx.stroke();
+    }
+  }
+};
 
-const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+Sky.init();
+window.addEventListener('resize',()=>{
+  Sky.canvas.width=window.innerWidth;
+  Sky.canvas.height=window.innerHeight;
+});
 </script>
 </body>
 </html>
