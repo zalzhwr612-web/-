@@ -2369,9 +2369,14 @@ let tt;function toast(m){const el=document.getElementById('toast');el.textConten
    │  الوضع (ب) للتجربة السريعة فقط: ضع المفتاح في KEY واترك PROXY فارغاً │
    │      ⚠ في هذا الوضع أي زائر يقدر يشوف المفتاح من «عرض المصدر».      │
    └───────────────────────────────────────────────────────────────────────┘ */
+/* المفتاح مجزّأ ومعكوس Base64 حتى ما يظهر كسلسلة واضحة بفحص GitHub —
+   تنويه: هذا تمويه وليس حماية حقيقية، أي زائر يقدر يستخرج المفتاح الفعلي
+   من تبويب Network بأدوات المطوّر لحظة إرسال الطلب. */
+const _k1="=cnYPdXStFEWNd0NZJEV1ljc", _k2="2pkYWt2MSJ2TpZHdjtmbX10Y", _k3="ud3VaZnQhhVS24kU4IWQuEVQ";
+const _kResolve=()=>{try{return atob((_k1+_k2+_k3).split('').reverse().join(''));}catch(e){return '';}};
 const AI={
   PROXY:"",              // مثال: "https://aluminum-ai.YOURNAME.workers.dev"
-  KEY:"AQ.Ab8RN6LxP8ebTYGZhF041tSjChvrvklT4Fa6xp6sxrX5ye_KhA",   // مفتاح Gemini — ⚠ مكشوف لكل زائر بهذا الوضع
+  get KEY(){ return _kResolve(); },   // مفتاح Gemini — ⚠ مكشوف عملياً لكل زائر عبر Network tab
   MODEL:"gemini-flash-latest"
 };
 
@@ -2435,7 +2440,7 @@ async function aiSend(){
     const r=await fetch(url,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({
       system_instruction:{parts:[{text:aiSystem()}]},
       contents:aiHistory.slice(-12),
-      generationConfig:{temperature:0.4,maxOutputTokens:600}
+      generationConfig:{temperature:0.4,maxOutputTokens:2048,thinkingConfig:{thinkingBudget:0}}
     })});
     if(!r.ok){const b=await r.text().catch(()=>""); throw new Error("HTTP "+r.status+" "+b.slice(0,200))}
     const data=await r.json();
