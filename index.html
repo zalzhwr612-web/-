@@ -410,9 +410,10 @@ body.dark .credit{background:linear-gradient(170deg,#141A28,#0D121C);border-colo
         <div class="in"><h2 id="t-bannerT"></h2><p id="t-bannerP"></p><button data-go="shop" id="t-bannerB"></button></div>
       </div>
       <div class="cats" id="cats"></div>
-      <section class="sec"><div class="sechead"><h2 id="t-hot"></h2><button class="link" data-go="shop" id="t-all1"></button></div></section>
+      <div class="empty" id="home-empty" hidden><b id="t-hemptyT"></b><span id="t-hemptyD"></span></div>
+      <section class="sec" id="sec-hot"><div class="sechead"><h2 id="t-hot"></h2><button class="link" data-go="shop" id="t-all1"></button></div></section>
       <div class="rail" id="rail"></div>
-      <section class="sec">
+      <section class="sec" id="sec-new">
         <div class="sechead"><h2 id="t-new"></h2><button class="link" data-go="shop" id="t-all2"></button></div>
         <div class="grid" id="new-grid"></div>
       </section>
@@ -786,6 +787,7 @@ ar:{dir:"rtl",label:"العربية",
  foot3:"حيدر حميد للألمنيوم الحديث",foot4:"حيدر حميد للألمنيوم الحديث",
  report:"لاحظت خطأ بالتطبيق؟ بلّغنا",dev1:"تطوير <b>غي</b> — للمواقع والتطبيقات بالذكاء الاصطناعي",
  emptyT:"ما لگينا نتيجة",emptyD:"جرّب كلمة ثانية أو اختر قسم من فوق.",
+ hemptyT:"المعرض قيد التحديث",hemptyD:"المنتجات راح تظهر هنا أول ما تنضاف. تكدر تتواصل ويانا مباشرة لأي طلب أو قياس.",
  priceAfter:"السعر بعد القياس",badgeHot:"الأكثر طلباً",badgeNew:"جديد",
  sizeL:"القياس التقريبي (متر)",wPh:"العرض — 1.1",hPh:"الارتفاع — 2.4",
  sizeHint:"اكتب القياس بالمتر، وإذا بيه كسر اكتبه بالنقطة — مثال 1.1 أو 2.35. القياس النهائي ياخذه المعلّم بالموقع.",
@@ -877,6 +879,7 @@ en:{dir:"ltr",label:"English",
  foot3:"Haidar Hameed Modern Aluminum",foot4:"Haidar Hameed Modern Aluminum",
  report:"Found a problem? Tell us",dev1:"Built by <b>Ghi</b> — AI websites & apps",
  emptyT:"No results",emptyD:"Try another word or pick a category above.",
+ hemptyT:"Showroom is being updated",hemptyD:"Products will appear here once added. Contact us directly for any order or measurement.",
  priceAfter:"Price after measuring",badgeHot:"Top seller",badgeNew:"New",
  sizeL:"Approximate size (meters)",wPh:"Width — 1.1",hPh:"Height — 2.4",
  sizeHint:"Use meters, decimals with a dot — e.g. 1.1 or 2.35. Final measuring is done on site.",
@@ -968,6 +971,7 @@ ku:{dir:"rtl",label:"کوردی",
  foot3:"حەیدەر حەمید بۆ ئەلەمنیۆمی مۆدێرن",foot4:"حەیدەر حەمید بۆ ئەلەمنیۆمی مۆدێرن",
  report:"هەڵەیەکت بینی؟ ئاگادارمان بکە",dev1:"دروستکراوە لەلایەن <b>غی</b> — ماڵپەڕ و ئەپ بە زیرەکی دەستکرد",
  emptyT:"هیچ ئەنجامێک نەدۆزرایەوە",emptyD:"وشەیەکی تر تاقی بکەرەوە یان بەشێک هەڵبژێرە.",
+ hemptyT:"پێشانگا نوێ دەکرێتەوە",hemptyD:"بەرهەمەکان لێرە دەردەکەون کاتێک زیاد دەکرێن. بۆ هەر داواکارییەک پەیوەندیمان پێوە بکە.",
  priceAfter:"نرخ دوای پێوان",badgeHot:"زۆرترین داوا",badgeNew:"نوێ",
  sizeL:"پێوانەی نزیکەیی (مەتر)",wPh:"پانی — 1.1",hPh:"بەرزی — 2.4",
  sizeHint:"بە مەتر بنووسە، بۆ کەسر خاڵ بەکاربهێنە — نموونە 1.1 یان 2.35. پێوانەی کۆتایی لە شوێنەکە دەکرێت.",
@@ -1054,148 +1058,10 @@ const CATS=[
  {k:"facades",n:["واجهات","Facades","ڕووکار"],p:"M3 20V8l9-4 9 4v12 M9 20v-6h6v6"},
  {k:"partitions",n:["قواطع","Partitions","دابەشکەر"],p:"M4 4h7v16H4z M13 4h7v16h-7z"}
 ];
-/* لإضافة صورة حقيقية: سوّي مجلد images بجنب index.html وضيف للمنتج  img:"images/d1.jpg" */
-const MODELS=[
-{id:"d1",c:"doors",w:2,h:2.6,cols:2,slide:1,hot:1,
- n:["باب سحب زجاجي","Sliding glass door","دەرگای سلاید شووشەیی"],s:["مقطعين سحب","Two sliding panels","دوو پەڕەی سلاید"],
- d:["باب سحب بمقطعين زجاج للصالات والمداخل — يفتح بنعومة وياخذ مساحة أقل.","Two-panel sliding door for halls and inner entrances — smooth and space saving.","دەرگای سلاید بە دوو پەڕەی شووشە بۆ هۆڵ و دەروازە — بە نەرمی دەکرێتەوە و شوێن ناگرێت."],
- t:[["سحب أفقي","سكك ألمنيوم","مقبض ستيل"],["Horizontal sliding","Aluminum tracks","Steel handle"],["سلایدی ئاسۆیی","ڕێڕەوی ئەلەمنیۆم","دەسکی ستیل"]]},
-{id:"d2",c:"doors",w:3,h:2.6,cols:4,slide:1,
- n:["باب سحب أربع مقاطع","Four-panel sliding door","دەرگای سلاید چوار پەڕە"],s:["للفتحات الواسعة","For wide openings","بۆ کردنەوەی فراوان"],
- d:["للمداخل العريضة والصالات الكبيرة: أربع مقاطع تنسحب وتفتح أغلب الفتحة.","For wide entrances: four panels slide open across most of the opening.","بۆ دەروازەی فراوان: چوار پەڕە دەخلیسکێن و زۆربەی کردنەوەکە دەکەنەوە."],
- t:[["سكك مقواة","فتحة واسعة","زجاج عازل اختياري"],["Reinforced tracks","Wide opening","Optional insulated glass"],["ڕێڕەوی بەهێز","کردنەوەی فراوان","شووشەی دووقاتی هەڵبژاردەیی"]]},
-{id:"d3",c:"doors",w:1.1,h:2.6,cols:1,hinge:"r",
- n:["باب مفصلي زجاجي","Hinged glass door","دەرگای مەفسەڵی شووشەیی"],s:["ضلفة وحدة","Single leaf","یەک پەڕە"],
- d:["باب مفصلي بإطار ألمنيوم وزجاج للمكاتب والمحلات والمداخل الداخلية.","Hinged aluminum-framed glass door for offices, shops and inner entrances.","دەرگای مەفسەڵ بە چوارچێوەی ئەلەمنیۆم بۆ ئۆفیس و دوکان."],
- t:[["مفصلات ثقيلة","زجاج مقسى","مقبض طولي"],["Heavy hinges","Tempered glass","Long handle"],["مەفسەڵی قورس","شووشەی توندکراو","دەسکی درێژ"]]},
-{id:"d4",c:"doors",w:2,h:2.6,cols:2,hinge:"both",hot:1,
- n:["باب مفصلي ضلفتين","Double hinged door","دەرگای دوو پەڕەیی"],s:["مدخل واسع","Wide entrance","دەروازەی فراوان"],
- d:["ضلفتين تفتح من الوسط — مظهر فخم للمداخل الرئيسية والصالات.","Two leaves opening from the middle — a grand look for main entrances.","دوو پەڕە لە ناوەڕاستەوە دەکرێتەوە — دیمەنێکی جوان بۆ دەروازەی سەرەکی."],
- t:[["ضلفتين","مفصلات ثقيلة","إغلاق محكم"],["Two leaves","Heavy hinges","Tight closing"],["دوو پەڕە","مەفسەڵی قورس","داخستنی توند"]]},
-{id:"d5",c:"doors",w:1,h:2.6,cols:1,solid:1,hinge:"r",
- n:["باب مفصلي كلادينج","Cladding hinged door","دەرگای کلادینگ"],s:["وجه كامل","Full face","ڕووی تەواو"],
- d:["باب بوجه كلادينج كامل، متين للأبواب الخارجية والمخازن، بألوان متعددة.","Full cladding face, tough for outer doors and stores, in many colors.","بە ڕووی کلادینگی تەواو، بەهێز بۆ دەرگای دەرەوە و کۆگا."],
- t:[["كلادينج","عزل جيد","مقاوم للجو"],["Cladding","Good insulation","Weather resistant"],["کلادینگ","دابڕانی باش","بەرگری کەشوهەوا"]]},
-{id:"d6",c:"doors",w:1.2,h:2.8,cols:1,solid:1,hinge:"r",glassTop:1,newy:1,
- n:["باب رئيسي بزجاج علوي","Main door with top glass","دەرگای سەرەکی بە شووشەی سەرەوە"],s:["مدخل البيت","House entrance","دەروازەی ماڵ"],
- d:["باب مدخل بإطار قوي وزجاج علوي يدخّل ضوء طبيعي، مع مقبض فخم.","Entrance door with strong frame and a top light panel, plus a premium handle.","دەرگای دەروازە بە چوارچێوەی بەهێز و شووشەی سەرەوە بۆ ڕووناکی."],
- t:[["مدخل رئيسي","زجاج علوي","قفل أمان"],["Main entrance","Top glass","Security lock"],["دەروازەی سەرەکی","شووشەی سەرەوە","قوفڵی ئاسایش"]]},
-{id:"d7",c:"doors",w:.95,h:2.4,cols:1,solid:1,hinge:"r",
- n:["باب غرفة داخلي","Interior room door","دەرگای ژووری ناوەوە"],s:["لوح ألمنيوم","Aluminum panel","پەڕەی ئەلەمنیۆم"],
- d:["باب غرف داخلي خفيف بوجه أملس — خيار عملي وسعر مناسب.","Light interior door with a smooth face — practical and affordable.","دەرگای ناوەوەی سووک بە ڕووی هەموار — کرداری و نرخ گونجاو."],
- t:[["خفيف","صيانة قليلة","ألوان متعددة"],["Lightweight","Low maintenance","Many colors"],["سووک","چاککردنەوەی کەم","ڕەنگی جۆراوجۆر"]]},
-{id:"d8",c:"doors",w:.9,h:2.3,cols:1,hinge:"r",frosted:1,
- n:["باب حمام زجاج مضبب","Bathroom frosted door","دەرگای حەمام بە شووشەی ماتە"],s:["مقاوم للرطوبة","Moisture resistant","بەرگری شێداری"],
- d:["زجاج مضبب يحافظ على الخصوصية ويدخّل ضوء، وإطار مقاوم للرطوبة.","Frosted glass keeps privacy while letting light in, with a moisture-proof frame.","شووشەی ماتە تایبەتمەندی دەپارێزێت و ڕووناکی تێدەپەڕێنێت."],
- t:[["زجاج مضبب","مقاوم للرطوبة","خصوصية"],["Frosted glass","Moisture proof","Privacy"],["شووشەی ماتە","بەرگری شێ","تایبەتمەندی"]]},
-{id:"d9",c:"doors",w:1,h:2.5,cols:1,mesh:1,hinge:"r",
- n:["باب شبك (فلاي سكرين)","Insect screen door","دەرگای تۆڕ"],s:["ضد الحشرات","Against insects","دژی مێش"],
- d:["باب شبك يتركب مع الباب الأصلي — تفتح الباب للهوا وتمنع الحشرات.","Screen door fitted with the main door — keep it open for air, insects out.","دەرگای تۆڕ لەگەڵ دەرگای سەرەکی — بۆ هەوا کراوە دەبێت و مێش ناهێڵێت."],
- t:[["شبك فايبر","سهل الفك","مع أو بدون مفصلات"],["Fiber mesh","Easy to remove","With or without hinges"],["تۆڕی فایبەر","بە ئاسانی هەڵدەگیرێت","بە یان بێ مەفسەڵ"]]},
-{id:"d10",c:"doors",w:1.6,h:2.4,cols:2,slide:1,frosted:1,
- n:["باب مطبخ سحب","Kitchen sliding door","دەرگای چێشتخانە سلاید"],s:["موفّر للمساحة","Space saving","شوێن دەپارێزێت"],
- d:["باب سحب بزجاج مضبب يفصل المطبخ عن الصالة ويمنع الروائح.","Frosted sliding door separating kitchen from hall and blocking smells."," دەرگای سلاید بە شووشەی ماتە چێشتخانە جیا دەکاتەوە."],
- t:[["زجاج مضبب","سحب هادئ","سهل التنظيف"],["Frosted glass","Quiet sliding","Easy to clean"],["شووشەی ماتە","سلایدی بێدەنگ","پاککردنەوەی ئاسان"]]},
-{id:"d11",c:"doors",w:2,h:2.5,cols:4,fold:1,newy:1,
- n:["باب فولدنغ (أكورديون)","Folding (accordion) door","دەرگای فۆڵدینگ"],s:["يتطوّى على الجنب","Folds aside","بەلاداەکەوێت"],
- d:["يتطوّى مقاطع على الجنب ويفتح الفتحة كاملة — مثالي للبلكونات.","Panels fold aside opening the full width — ideal for balconies.","پەڕەکان دەنووشتێنەوە و هەموو کردنەوەکە دەکاتەوە — باش بۆ بەلکۆن."],
- t:[["يفتح كامل","مقاطع متعددة","سكة علوية"],["Full opening","Multi panel","Top track"],["کردنەوەی تەواو","چەند پەڕە","ڕێڕەوی سەرەوە"]]},
-{id:"d12",c:"doors",w:2.4,h:2.6,cols:2,auto:1,newy:1,
- n:["باب أوتوماتيك بالسنسور","Automatic sensor door","دەرگای ئۆتۆماتیک"],s:["للمحلات والعيادات","Shops and clinics","بۆ دوکان و نەخۆشخانە"],
- d:["باب زجاجي ينفتح لوحده بالسنسور — مظهر احترافي للمحلات والعيادات.","Glass door that opens by sensor — a professional look for shops and clinics.","دەرگای شووشەیی بە سێنسەر دەکرێتەوە — دیمەنێکی پیشەیی."],
- t:[["سنسور حركة","زجاج مقسى","محرّك حسب الطلب"],["Motion sensor","Tempered glass","Motor on request"],["سێنسەری جووڵە","شووشەی توندکراو","مۆتۆر بەپێی داواکاری"]]},
-{id:"d13",c:"doors",w:2.6,h:2.4,cols:3,solid:3,
- n:["باب مخزن / گراج","Store / garage door","دەرگای کۆگا / گەراج"],s:["كلادينج مقوّى","Reinforced cladding","کلادینگی بەهێز"],
- d:["باب واسع بوجه كلادينج ومقاطع مقواة للمخازن والگراجات والورش.","Wide cladding door with reinforced profiles for stores, garages and workshops.","دەرگای فراوان بە کلادینگ و پرۆفایلی بەهێز بۆ کۆگا و گەراج."],
- t:[["مقاطع ثقيلة","قفل خارجي","قياس حسب الفتحة"],["Heavy profiles","External lock","Made to opening"],["پرۆفایلی قورس","قوفڵی دەرەوە","بەپێی کردنەوە"]]},
-
-{id:"w1",c:"windows",w:1.5,h:1.2,cols:2,slide:1,hot:1,
- n:["شباك سحب مقطعين","Two-panel sliding window","پەنجەرەی سلاید دوو پەڕە"],s:["الأكثر طلباً","Most requested","زۆرترین داواکراو"],
- d:["الشباك القياسي للغرف: مقطعين سحب، سهل التنظيف ولا ياخذ مساحة.","The standard room window: two sliding panels, easy to clean, space saving.","پەنجەرەی ستاندارد بۆ ژوور: دوو پەڕەی سلاید، پاککردنەوەی ئاسان."],
- t:[["سحب أفقي","سكة مزدوجة","زجاج عادي أو دبل"],["Horizontal sliding","Double track","Single or double glass"],["سلایدی ئاسۆیی","ڕێڕەوی دووانە","شووشەی ئاسایی یان دووقات"]]},
-{id:"w2",c:"windows",w:2,h:1.2,cols:3,slide:1,
- n:["شباك سحب ثلاث مقاطع","Three-panel sliding window","پەنجەرەی سێ پەڕە"],s:["فتحة متوسطة","Medium opening","کردنەوەی مامناوەند"],
- d:["ثلاث مقاطع سحب تعطي تهوية أوسع وإضاءة أفضل بالغرف الكبيرة.","Three sliding panels give wider airflow and better light in big rooms.","سێ پەڕەی سلاید هەوای زیاتر و ڕووناکی باشتر دەدات."],
- t:[["تهوية أوسع","سكة ثلاثية"],["More airflow","Triple track"],["هەوای زیاتر","ڕێڕەوی سێانە"]]},
-{id:"w3",c:"windows",w:2.6,h:1.2,cols:4,slide:1,
- n:["شباك سحب أربع مقاطع","Four-panel sliding window","پەنجەرەی چوار پەڕە"],s:["للفتحات الواسعة","For wide openings","بۆ کردنەوەی فراوان"],
- d:["للفتحات العريضة بالصالات: أربع مقاطع تنسحب مع إمكانية زجاج عازل.","For wide hall openings: four sliding panels with optional insulated glass.","بۆ کردنەوەی فراوان: چوار پەڕەی سلاید لەگەڵ شووشەی دووقات."],
- t:[["فتحات واسعة","زجاج دبل","سكك مقواة"],["Wide openings","Double glazing","Strong tracks"],["کردنەوەی فراوان","شووشەی دووقات","ڕێڕەوی بەهێز"]]},
-{id:"w4",c:"windows",w:1.5,h:1.2,cols:3,slide:1,mesh:1,hot:1,
- n:["شباك سحب مع شبك","Sliding window with screen","پەنجەرەی سلاید بە تۆڕ"],s:["ضد الحشرات","Against insects","دژی مێش"],
- d:["شباك سحب مع مقطع شبك فايبر يمنع الحشرات ويخلي الشباك مفتوح براحة.","Sliding window with a fiber screen panel to keep insects out.","پەنجەرەی سلاید لەگەڵ پەڕەی تۆڕ بۆ ڕێگرتن لە مێش."],
- t:[["شبك فايبر","سحب مستقل","سهل الفك"],["Fiber mesh","Separate slide","Easy to remove"],["تۆڕی فایبەر","سلایدی جیا","هەڵگرتنی ئاسان"]]},
-{id:"w5",c:"windows",w:1,h:1.3,cols:1,hinge:"r",
- n:["شباك مفصلي","Hinged window","پەنجەرەی مەفسەڵ"],s:["يفتح للخارج","Opens outward","بۆ دەرەوە دەکرێتەوە"],
- d:["ينفتح للخارج ويعطي فتحة كاملة للهوا مع إغلاق محكم على الجوانب.","Opens outward for full airflow with tight side sealing.","بۆ دەرەوە دەکرێتەوە و هەوای تەواو دەدات بە داخستنی توند."],
- t:[["فتح كامل","إغلاق محكم","عزل صوت أفضل"],["Full opening","Tight seal","Better sound insulation"],["کردنەوەی تەواو","داخستنی توند","دابڕانی دەنگ"]]},
-{id:"w6",c:"windows",w:1.4,h:1.2,cols:1,fixed:1,
- n:["شباك ثابت","Fixed window","پەنجەرەی جێگیر"],s:["للإضاءة فقط","Light only","تەنها بۆ ڕووناکی"],
- d:["ما ينفتح — أرخص خيار للإضاءة ويعطي عزل ممتاز لأنه محكم بالكامل.","Does not open — the cheapest light option with excellent sealing.","ناکرێتەوە — هەرزانترین بژاردە بۆ ڕووناکی و دابڕانی نایاب."],
- t:[["إضاءة","عزل ممتاز","سعر أوفر"],["Daylight","Great insulation","Lower cost"],["ڕووناکی","دابڕانی باش","نرخی کەمتر"]]},
-{id:"w7",c:"windows",w:1.2,h:.6,cols:2,slide:1,frosted:1,
- n:["شباك علوي للتهوية","Top vent window","پەنجەرەی سەرەوە بۆ هەوا"],s:["حمام ومطبخ","Bathroom & kitchen","حەمام و چێشتخانە"],
- d:["شباك صغير بأعلى الجدار للتهوية مع خصوصية كاملة.","A small high window for ventilation with full privacy.","پەنجەرەی بچووکی سەرەوە بۆ هەوا بە تایبەتمەندی تەواو."],
- t:[["زجاج مضبب","تهوية","قياس صغير"],["Frosted glass","Ventilation","Small size"],["شووشەی ماتە","هەوا","قەبارەی بچووک"]]},
-{id:"w8",c:"windows",w:1.6,h:1.3,cols:2,slide:1,newy:1,
- n:["شباك دبل كلاس عازل","Double glazed window","پەنجەرەی شووشەی دووقات"],s:["عزل حرارة وصوت","Heat & sound insulation","دابڕانی گەرما و دەنگ"],
- d:["زجاج مزدوج بفراغ عازل — يخفّف حرارة الصيف وضجيج الشارع.","Double glass with an insulating gap — cuts summer heat and street noise.","شووشەی دووقات — گەرمای هاوین و دەنگی شەقام کەم دەکاتەوە."],
- t:[["زجاج مزدوج","عزل حراري","تخفيف ضجيج"],["Double glass","Thermal insulation","Noise cut"],["شووشەی دووقات","دابڕانی گەرما","کەمکردنی دەنگ"]]},
-{id:"w9",c:"windows",w:1.2,h:1,cols:1,project:1,
- n:["شباك بروجيكت (توب هنغ)","Top-hung window","پەنجەرەی سەرەوە هەڵواسراو"],s:["يفتح من الأعلى","Opens from the top","لە سەرەوە دەکرێتەوە"],
- d:["يفتح من الأعلى للخارج — يدخّل هوا حتى وقت المطر ويحافظ على الخصوصية.","Opens outward from the top — airflow even in rain, with privacy.","لە سەرەوە دەکرێتەوە — تەنانەت لە بارانیشدا هەوا دەدات."],
- t:[["فتح علوي","مناسب للمطر","مفصلات مقصية"],["Top opening","Rain friendly","Scissor hinges"],["کردنەوەی سەرەوە","گونجاو بۆ باران","مەفسەڵی مەقەست"]]},
-{id:"w10",c:"windows",w:1.4,h:1.4,cols:2,slide:1,arch:1,
- n:["شباك قوس / تصميم خاص","Arched / custom window","پەنجەرەی کەوانە / تایبەت"],s:["حسب الطلب","Made to order","بەپێی داواکاری"],
- d:["شباك بقوس علوي أو شكل خاص ينفذ حسب فتحة البناء والتصميم المطلوب.","Arched or custom-shaped window made to the building opening.","پەنجەرەی کەوانە یان شێوەی تایبەت بەپێی کردنەوەی بینا."],
- t:[["تصميم حسب الطلب","قوس علوي","تنفيذ دقيق"],["Custom design","Top arch","Precise work"],["دیزاینی تایبەت","کەوانەی سەرەوە","کاری ورد"]]},
-{id:"w11",c:"windows",w:1.8,h:1.2,cols:2,slide:1,halffixed:1,
- n:["شباك سحب بمقطع ثابت","Half-fixed sliding window","پەنجەرەی سلاید بە پەڕەی جێگیر"],s:["نص متحرك","Half opening","نیوەی دەکرێتەوە"],
- d:["مقطع ينسحب ومقطع ثابت — خيار اقتصادي يوازن بين الإضاءة والتهوية.","One sliding panel and one fixed — an economical balance of light and air.","یەک پەڕە دەخلیسکێت و یەکێک جێگیرە — بژاردەیەکی ئابووری."],
- t:[["اقتصادي","إضاءة أوسع","صيانة أقل"],["Economical","More light","Less maintenance"],["ئابووری","ڕووناکی زیاتر","چاککردنەوەی کەمتر"]]},
-{id:"w12",c:"windows",w:1.5,h:1.2,cols:2,slide:1,guard:1,
- n:["شباك مع حماية داخلية","Window with inner guard","پەنجەرە بە پارێزەری ناوەوە"],s:["أمان إضافي","Extra safety","ئاسایشی زیاتر"],
- d:["شباك سحب مع إطار حماية داخلي — أمان أكثر للأدوار الأرضية وغرف الأطفال.","Sliding window with an inner guard frame — safer for ground floors and kids' rooms.","پەنجەرەی سلاید بە چوارچێوەی پارێزەر — ئاسایشتر بۆ منداڵان."],
- t:[["حماية داخلية","أمان","تركيب مخفي"],["Inner guard","Safety","Hidden fixing"],["پارێزەری ناوەوە","ئاسایش","دانانی شاراوە"]]},
-
-{id:"f1",c:"facades",w:3,h:2,cols:3,solid:3,hot:1,
- n:["واجهة كلادينج","Cladding facade","ڕووکاری کلادینگ"],s:["للمحلات والمكاتب","Shops and offices","بۆ دوکان و ئۆفیس"],
- d:["واجهة بخطوط نظيفة تعطي المحل مظهر حديث مع إمكانية دمج إضاءة أو لوحة الاسم.","Clean-lined facade giving a modern look, with optional lighting or signage.","ڕووکارێکی مۆدێرن لەگەڵ ئەگەری ڕووناکی و تابلۆی ناو."],
- t:[["ألواح كلادينج","مقاوم للجو","تركيب سريع"],["Cladding panels","Weatherproof","Fast install"],["پەڕەی کلادینگ","بەرگری کەشوهەوا","دانانی خێرا"]]},
-{id:"f2",c:"facades",w:3,h:2.4,cols:3,fixed:1,newy:1,
- n:["واجهة زجاج كاملة","Full glass facade","ڕووکاری شووشەی تەواو"],s:["كيرتن وول","Curtain wall","کێرتن وۆڵ"],
- d:["واجهة زجاجية بإطار نحيف تعطي إضاءة كاملة ومظهر فخم للمعارض.","Glass facade with slim frames — full daylight and a premium look.","ڕووکاری شووشەیی بە چوارچێوەی باریک — ڕووناکی تەواو."],
- t:[["زجاج مقسى","إطار نحيف","سيليكون معتمد"],["Tempered glass","Slim frame","Certified silicone"],["شووشەی توندکراو","چوارچێوەی باریک","سیلیکۆنی پەسەندکراو"]]},
-{id:"f3",c:"facades",w:3.2,h:2.5,cols:4,slide:1,
- n:["واجهة محل بباب سحب","Shopfront with sliding door","ڕووکاری دوکان بە دەرگای سلاید"],s:["زجاج + مدخل","Glass + entrance","شووشە + دەروازە"],
- d:["واجهة عرض زجاجية مع باب سحب مدمج — الحل الكامل لواجهة محل جديدة.","Glass display front with a built-in sliding door — a complete shopfront.","ڕووکاری پیشاندانی شووشەیی لەگەڵ دەرگای سلایدی ناوەوە."],
- t:[["واجهة عرض","باب مدمج","قفل مركزي"],["Display front","Built-in door","Central lock"],["ڕووکاری پیشاندان","دەرگای ناوەوە","قوفڵی ناوەندی"]]},
-{id:"f4",c:"facades",w:3,h:1,cols:4,solid:4,
- n:["مظلة كلادينج","Cladding canopy","سێبەری کلادینگ"],s:["فوق المدخل","Above the entrance","لەسەر دەروازە"],
- d:["مظلة ألمنيوم فوق مدخل المحل أو البيت — حماية من الشمس والمطر.","Aluminum canopy over a shop or house entrance — sun and rain protection.","سێبەری ئەلەمنیۆم لەسەر دەروازە — پارێزگاری لە خۆر و باران."],
- t:[["هيكل مقوّى","تصريف مطر","حسب العرض"],["Strong frame","Rain drainage","Made to width"],["چوارچێوەی بەهێز","دەرچوونی باران","بەپێی پانی"]]},
-{id:"f5",c:"facades",w:3,h:.8,cols:1,solid:1,
- n:["لوحة اسم بإطار ألمنيوم","Aluminum sign frame","تابلۆی ناو بە چوارچێوەی ئەلەمنیۆم"],s:["برواز محل","Shop sign","تابلۆی دوکان"],
- d:["برواز ألمنيوم للوحة اسم المحل مع إمكانية إضاءة خلفية أو أمامية.","Aluminum frame for a shop sign with optional back or front lighting.","چوارچێوەی ئەلەمنیۆم بۆ تابلۆی دوکان لەگەڵ ڕووناکی."],
- t:[["إضاءة اختيارية","إطار متين","خط حسب الطلب"],["Optional lighting","Sturdy frame","Custom lettering"],["ڕووناکی هەڵبژاردەیی","چوارچێوەی بەهێز","نووسینی تایبەت"]]},
-
-{id:"p1",c:"partitions",w:2.4,h:2.4,cols:3,fixed:1,
- n:["قاطع مكتبي زجاجي","Office glass partition","دابەشکەری شووشەیی ئۆفیس"],s:["تقسيم داخلي","Interior division","دابەشکردنی ناوەوە"],
- d:["قاطع ألمنيوم وزجاج لتقسيم المكاتب والعيادات — يعزل الصوت نسبياً ويحافظ على الإضاءة.","Aluminum and glass partition for offices and clinics — some sound insulation, full light.","دابەشکەری ئەلەمنیۆم و شووشە بۆ ئۆفیس و نەخۆشخانە."],
- t:[["زجاج شفاف أو مضبب","باب مدمج اختياري"],["Clear or frosted glass","Optional built-in door"],["شووشەی ڕوون یان ماتە","دەرگای ناوەوەی هەڵبژاردەیی"]]},
-{id:"p2",c:"partitions",w:1,h:2,cols:1,hinge:"r",hot:1,
- n:["قاطع حمام / دش","Shower partition","دابەشکەری دووش"],s:["زجاج مقسى","Tempered glass","شووشەی توندکراو"],
- d:["قاطع دش بزجاج مقسى وإطار مقاوم للرطوبة، بقياس الحمام تماماً.","Shower screen in tempered glass with a moisture-proof frame, made to size.","دابەشکەری دووش بە شووشەی توندکراو و چوارچێوەی بەرگری شێ."],
- t:[["زجاج مقسى","مقاوم للرطوبة","مفصلات ستيل"],["Tempered glass","Moisture proof","Steel hinges"],["شووشەی توندکراو","بەرگری شێ","مەفسەڵی ستیل"]]},
-{id:"p3",c:"partitions",w:2.2,h:2.4,cols:3,fixed:1,frosted:1,
- n:["قاطع غرفة بزجاج مضبب","Frosted room partition","دابەشکەری ژوور بە شووشەی ماتە"],s:["خصوصية وإضاءة","Privacy with light","تایبەتمەندی و ڕووناکی"],
- d:["قاطع بزجاج مضبب يفصل المساحة ويحافظ على الخصوصية بدون ما يظلم الغرفة.","Frosted partition that divides space and keeps privacy without darkening the room.","دابەشکەری ماتە کە شوێن جیا دەکاتەوە بەبێ تاریککردنی ژوور."],
- t:[["زجاج مضبب","تقسيم خفيف","تركيب نظيف"],["Frosted glass","Light division","Clean fitting"],["شووشەی ماتە","دابەشکردنی سووک","دانانی پاک"]]},
-{id:"p4",c:"partitions",w:2.8,h:2.2,cols:4,slide:1,newy:1,
- n:["تغليف بلكونة","Balcony enclosure","داپۆشینی بەلکۆن"],s:["سحب زجاجي","Sliding glass","شووشەی سلاید"],
- d:["تحويل البلكونة لغرفة بزجاج سحب — تستفيد من المساحة صيفاً وشتاءً.","Turn a balcony into a room with sliding glass — usable summer and winter.","بەلکۆن بکە بە ژوور بە شووشەی سلاید — بەکارهێنان لە هاوین و زستان."],
- t:[["سحب كامل","حماية من الغبار","إمكانية شبك"],["Full sliding","Dust protection","Screen option"],["سلایدی تەواو","پارێزگاری لە تۆز","ئەگەری تۆڕ"]]}
-];
+/* ===== المنتجات =====
+   القائمة فاضية عمداً: ما بيها أي منتج تجريبي.
+   المنتجات تظهر فقط من لوحة المالك (نشر محلي + قاعدة Supabase). */
+const MODELS=[];
 
 /* ===== الحالة ===== */
 let lang="ar", fontIdx=0, dark=false, cart=[], customer={name:"",phone:"",area:""}, filter="all", query="";
@@ -1350,8 +1216,14 @@ function renderAll(){
   const i=li();
   document.getElementById('cats').innerHTML=CATS.map(c=>
     `<button class="cat" data-cat="${c.k}"><span class="ci"><svg viewBox="0 0 24 24"><path d="${c.p}"/></svg></span><span>${c.n[i]}</span></button>`).join('');
-  document.getElementById('rail').innerHTML=MODELS.filter(m=>m.hot).map(prodHTML).join('');
-  document.getElementById('new-grid').innerHTML=MODELS.filter(m=>m.newy).slice(0,4).map(prodHTML).join('');
+  const hotL=MODELS.filter(m=>m.hot), newL=MODELS.filter(m=>m.newy).slice(0,4);
+  document.getElementById('rail').innerHTML=hotL.map(prodHTML).join('');
+  document.getElementById('new-grid').innerHTML=newL.map(prodHTML).join('');
+  /* إذا ما بيها منتجات: نخفي الأقسام الفاضية ونبيّن ملاحظة بدالها */
+  const hid=(id,v)=>{const el=document.getElementById(id); if(el) el.hidden=v};
+  hid('sec-hot',!hotL.length); hid('rail',!hotL.length);
+  hid('sec-new',!newL.length);
+  hid('home-empty',MODELS.length>0);
   document.getElementById('chips').innerHTML=[{k:"all",n:t().all}].concat(CATS.map(c=>({k:c.k,n:c.n[i]})))
     .map(c=>`<button class="chip" aria-pressed="${c.k===filter}" data-chip="${c.k}">${c.n}</button>`).join('');
   document.getElementById('steps').innerHTML=t().steps.map((s,k)=>
@@ -1374,6 +1246,7 @@ function fillUI(){
   setTxt('t-report1',x.report); setTxt('t-report2',x.report);
   document.getElementById('t-dev1').innerHTML=x.dev1;
   setTxt('t-emptyT',x.emptyT); setTxt('t-emptyD',x.emptyD);
+  setTxt('t-hemptyT',x.hemptyT); setTxt('t-hemptyD',x.hemptyD);
   setTxt('t-cartT',x.cartT); setTxt('t-ecT',x.ecT); setTxt('t-ecD',x.ecD); setTxt('t-browse',x.browse);
   setTxt('t-sumQ',x.sumQ); setTxt('t-sumI',x.sumI); setTxt('t-sumP',x.sumP); setTxt('t-sumPV',x.sumPV);
   setTxt('t-note',x.note); setTxt('t-delivery',x.delivery);
@@ -2509,7 +2382,9 @@ let aiHistory=[], aiBusy=false;
 /* تعليمات المساعد — محصورة بالألمنيوم وهذا المعرض فقط */
 function aiSystem(){
   const x=t(), i=li();
-  const catalog=MODELS.map(m=>`- ${m.n[i]} (${catName(m.c)}): ${m.s[i]} — ${m.d[i]}`).join("\n");
+  const catalog=MODELS.length
+    ? MODELS.map(m=>`- ${m.n[i]} (${catName(m.c)}): ${m.s[i]} — ${m.d[i]}`).join("\n")
+    : "(ما بيها منتجات منشورة حالياً — لا تذكر أي منتج باسمه، وحوّل الزبون للتواصل المباشر مع المعرض.)";
   return [
     "أنت المساعد الرسمي لمعرض «حيدر حميد للألمنيوم الحديث» في بلد — العراق.",
     "الموقع: "+x.iLocV+" | الهاتف/واتساب: "+PHONE+" | الدوام: "+x.iHoursV,
