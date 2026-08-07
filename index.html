@@ -290,6 +290,20 @@ body.dark .step i{background:rgba(255,255,255,.08);color:var(--brand-3)}
 .setopt[aria-pressed="true"] .dot{border-color:var(--brand);background:var(--brand);box-shadow:inset 0 0 0 3px var(--cardb)}
 .setlabel{font-size:11.5px;letter-spacing:1.4px;color:var(--muted);margin:18px 0 2px;font-weight:600}
 
+/* لوحة المالك — تبويب مخفي ما يبيّن إلا بعد الدخول */
+#tab-admin{display:none}
+body.owner #tab-admin{display:flex}
+body.owner .tabbar{grid-template-columns:repeat(5,1fr)}
+.adshot{width:100%;height:158px;border-radius:14px;background:var(--art);border:1px dashed var(--line);
+  display:grid;place-items:center;overflow:hidden}
+.adshot img{width:100%;height:100%;object-fit:cover;display:block}
+.adbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:8px}
+.adtag{font-size:11px;font-weight:700;border-radius:8px;padding:3px 8px;background:var(--brand-soft);color:var(--brand-ink)}
+body.dark .adtag{background:rgba(255,255,255,.08);color:var(--brand-3)}
+.adtag.warn{background:#FDF1DC;color:#7A4E06}
+body.dark .adtag.warn{background:rgba(245,165,36,.16);color:var(--amber)}
+.adtag.off{background:var(--wash);color:var(--muted)}
+
 .tabbar{position:fixed;bottom:0;inset-inline:0;z-index:50;max-width:520px;margin:0 auto;height:var(--tabh);
   padding-bottom:env(safe-area-inset-bottom);display:grid;grid-template-columns:repeat(4,1fr);
   background:color-mix(in srgb,var(--cardb) 92%,transparent);backdrop-filter:blur(14px);border-top:1px solid var(--line)}
@@ -498,6 +512,10 @@ body.dark .credit{background:linear-gradient(170deg,#141A28,#0D121C);border-colo
       </div>
       <p class="foot" style="padding-top:14px">© <span id="t-foot4"></span></p>
     </div>
+    <div class="view" id="v-admin">
+      <section class="sec"><div class="sechead"><h2>لوحة المالك</h2><span class="sub" id="ad-status"></span></div></section>
+      <div id="ad-body"></div>
+    </div>
   </main>
 
   <nav class="tabbar" role="tablist">
@@ -510,6 +528,8 @@ body.dark .credit{background:linear-gradient(170deg,#141A28,#0D121C);border-colo
       <span class="cb" id="tab-badge">0</span></button>
     <button class="tab" role="tab" aria-selected="false" data-go="contact">
       <svg viewBox="0 0 24 24"><path d="M4 6c0 8 6 14 14 14l2-3-4-2-2 2c-2-1-5-4-6-6l2-2-2-4z"/></svg><span id="t-tab4"></span></button>
+    <button class="tab" id="tab-admin" role="tab" aria-selected="false" data-go="admin">
+      <svg viewBox="0 0 24 24"><path d="M12 3l7 3v6c0 4.3-2.9 8-7 9-4.1-1-7-4.7-7-9V6z"/><path d="M9.4 12.2l1.9 1.9 3.4-3.6"/></svg><span>المالك</span></button>
   </nav>
 </div>
 
@@ -644,10 +664,53 @@ const SUPABASE={
   LOG_VISITS:true,      /* سجّل كل زيارة بجدول visits */
   TIMEOUT:9000
 };
-/* ═══ نقاط الولاء — بدّل الأرقام من هنا ═══
-   ملاحظة: نقاط الشراء محسوبة بالقاعدة أيضاً (trigger award_points)،
-   فإذا بدّلت PER_ITEM لازم تبدله بالـ SQL بعد.                       */
-const POINTS={ SIGNUP:100, PER_ITEM:754, GIFT:1000000 };
+/* ══════════════════════ حساب المالك ══════════════════════
+   الرمز مو مكتوب بالملف — مخزون كبصمة SHA-256 فقط، وما ينكشف
+   حتى لو فتح أحد كود الصفحة. الدخول مخفي تماماً عن الزبائن:
+   خمس نقرات متتالية على شعار المعرض بأعلى الصفحة، أو ضغطة طويلة.
+
+   ── لتظهر منتجاتك عند كل الزبائن، شغّل هذا SQL مرّة وحدة
+      بلوحة Supabase ← SQL Editor ← New query ──
+
+   create or replace function public.admin_ok(p_pass text)
+   returns boolean language sql immutable as $$
+     select encode(sha256(convert_to(
+              lower(btrim(regexp_replace(coalesce(p_pass,''),'\s+',' ','g'))),'UTF8')),'hex')
+          = '219239067c076904644a3516bb93e603201abfb78b1ac57e9c03524d1a9e0d3b'
+   $$;
+
+   create or replace function public.admin_save_product(p_pass text, p_row jsonb)
+   returns void language plpgsql security definer set search_path = public as $$
+   begin
+     if not admin_ok(p_pass) then raise exception 'bad_pass'; end if;
+     insert into products (id,cat,sort,active,name_ar,sub_ar,desc_ar,img,w,h,cols,hot,is_new)
+     select x.id,x.cat,coalesce(x.sort,10),coalesce(x.active,true),x.name_ar,x.sub_ar,x.desc_ar,
+            x.img,x.w,x.h,x.cols,coalesce(x.hot,false),coalesce(x.is_new,false)
+     from jsonb_to_record(p_row) as x(id text,cat text,sort int,active boolean,name_ar text,
+          sub_ar text,desc_ar text,img text,w numeric,h numeric,cols int,hot boolean,is_new boolean)
+     on conflict (id) do update set
+       cat=excluded.cat, sort=excluded.sort, active=excluded.active, name_ar=excluded.name_ar,
+       sub_ar=excluded.sub_ar, desc_ar=excluded.desc_ar, img=excluded.img, w=excluded.w,
+       h=excluded.h, cols=excluded.cols, hot=excluded.hot, is_new=excluded.is_new;
+   end $$;
+
+   create or replace function public.admin_delete_product(p_pass text, p_id text)
+   returns void language plpgsql security definer set search_path = public as $$
+   begin
+     if not admin_ok(p_pass) then raise exception 'bad_pass'; end if;
+     delete from products where id = p_id;
+   end $$;
+
+   revoke all on function public.admin_ok(text) from public;
+   grant execute on function public.admin_save_product(text,jsonb)  to anon, authenticated;
+   grant execute on function public.admin_delete_product(text,text) to anon, authenticated;
+   ──────────────────────────────────────────────────────────── */
+const OWNER={
+  H:"219239067c076904644a3516bb93e603201abfb78b1ac57e9c03524d1a9e0d3b",
+  F:"b0afe6214cb8eb5f",     /* بديل إذا المتصفح ما يدعم crypto.subtle */
+  DAYS:60,                  /* الجلسة تبقى بجهازك هالمدة */
+  TRIES:5, LOCK:10*60*1000  /* ٥ محاولات غلط → قفل ١٠ دقائق */
+};
 const sbOn=()=>!!(SUPABASE.URL&&SUPABASE.KEY);
 /* ينضّف الرابط: يشيل الشرطات الزايدة و/rest/v1 إذا كانت مكتوبة — فينفع الشكلين */
 const sbBase=()=>SUPABASE.URL.trim().replace(/\/+$/,"").replace(/\/rest\/v1$/,"");
@@ -726,7 +789,7 @@ ar:{dir:"rtl",label:"العربية",
  priceAfter:"السعر بعد القياس",badgeHot:"الأكثر طلباً",badgeNew:"جديد",
  sizeL:"القياس التقريبي (متر)",wPh:"العرض — 1.1",hPh:"الارتفاع — 2.4",
  sizeHint:"اكتب القياس بالمتر، وإذا بيه كسر اكتبه بالنقطة — مثال 1.1 أو 2.35. القياس النهائي ياخذه المعلّم بالموقع.",
- glassL:"الزجاج",colorL:"اللون",qtyL:"العدد",
+ glassL:"نوع الزجاج",colorL:"لون الباب / الشباك",qtyL:"العدد",
  glassOpts:["الزجاج الشفاف","الزجاج المضبب","الزجاج المقسى (سيكوريت)","الزجاج المزدوج (دبل كلاس)","الزجاج العاكس","الزجاج الملون"],
  colorOpts:["الأسود المطفي","الشمباني","الأبيض","البرونزي","الرمادي الغامق","لون الخشب"],
  custInfo:"معلوماتك حتى نتواصل وياك ونحدد الموعد",
@@ -760,13 +823,11 @@ ar:{dir:"rtl",label:"العربية",
  tAdded:"انضاف للسلة:",tSent:"انرسل الطلب على واتساب",tRemoved:"انحذف من السلة",tFillNP:"كمّل الاسم ورقم الهاتف",
  tCartEmpty:"السلة فارغة",tCopied:"انتسخ نص الطلب",tCopiedNum:"انتسخ الرقم:",tBugEmpty:"اكتب وصف المشكلة أول",
  tThanks:"شكراً — انرسلت الملاحظة",tFillRed:"كمّل الحقول المعلّمة بالأحمر",
- acctT:"حسابك ونقاطك",regT:"حساب جديد",logT:"دخول لحسابي",
- memberNote:"افتح حساب واجمع نقاط: {s} نقطة هدية أول ما تسجّل، و{n} نقطة عن كل قطعة تشتريها.",
- logNote:"اكتب رقمك والرمز السري حتى ترجع لحسابك ونقاطك.",
+ acctT:"حسابك",regT:"حساب جديد",logT:"دخول لحسابي",
+ memberNote:"افتح حساب حتى تتابع طلباتك وما تعيد كتابة معلوماتك كل مرة.",
+ logNote:"اكتب رقمك والرمز السري حتى ترجع لحسابك وطلباتك.",
  pinL:"رمز سري",pinPh:"٤ أرقام",pinHint:"اختر ٤ أرقام تتذكرها — تحتاجها كل مرة تدخل.",
  haveAcct:"عندي حساب",noAcct:"ما عندي حساب",
- pointsL:"نقطة",giftLeft:"باقي لك",giftOf:"من",giftReady:"🎁 وصلت للهدية — راجع المعرض لاستلامها",
- earnNote:"كل قطعة تشتريها تزيدك {n} نقطة.",
  errPin:"اكتب رمز من ٤ أرقام.",errExists:"هذا الرقم مسجّل من قبل — استخدم (دخول لحسابي).",
  errLogin:"الرقم أو الرمز غلط.",tRegistered:"انفتح حسابك 🎉",
  errNet:"ما وصل الاتصال بقاعدة البيانات. افتح الموقع من رابطه (https) مو من ملف بالتنزيلات، وتأكد من الإنترنت.",
@@ -819,7 +880,7 @@ en:{dir:"ltr",label:"English",
  priceAfter:"Price after measuring",badgeHot:"Top seller",badgeNew:"New",
  sizeL:"Approximate size (meters)",wPh:"Width — 1.1",hPh:"Height — 2.4",
  sizeHint:"Use meters, decimals with a dot — e.g. 1.1 or 2.35. Final measuring is done on site.",
- glassL:"Glass",colorL:"Color",qtyL:"Quantity",
+ glassL:"Glass type",colorL:"Frame color",qtyL:"Quantity",
  glassOpts:["Clear glass","Frosted glass","Tempered glass (securit)","Double glazing","Reflective glass","Tinted glass"],
  colorOpts:["Matte black","Champagne","White","Bronze","Dark grey","Wood finish"],
  custInfo:"Your details so we can reach you and set the visit",
@@ -853,13 +914,11 @@ en:{dir:"ltr",label:"English",
  tAdded:"Added to cart:",tSent:"Order sent on WhatsApp",tRemoved:"Removed from cart",tFillNP:"Please fill name and phone",
  tCartEmpty:"Cart is empty",tCopied:"Order text copied",tCopiedNum:"Number copied:",tBugEmpty:"Describe the problem first",
  tThanks:"Thank you — note sent",tFillRed:"Fill the fields marked in red",
- acctT:"Your account & points",regT:"Create account",logT:"Sign in",
- memberNote:"Open an account and collect points: {s} points when you join, and {n} points for every piece you buy.",
- logNote:"Enter your phone and PIN to get back to your account and points.",
+ acctT:"Your account",regT:"Create account",logT:"Sign in",
+ memberNote:"Create an account to follow your orders without retyping your details every time.",
+ logNote:"Enter your phone and PIN to get back to your account and orders.",
  pinL:"PIN",pinPh:"4 digits",pinHint:"Pick 4 digits you can remember — you need them every time you sign in.",
  haveAcct:"I have an account",noAcct:"I don't have an account",
- pointsL:"points",giftLeft:"You still need",giftOf:"of",giftReady:"🎁 You reached the gift — visit the shop to claim it",
- earnNote:"Every piece you buy adds {n} points.",
  errPin:"Enter a 4-digit PIN.",errExists:"This number is already registered — use Sign in.",
  errLogin:"Wrong number or PIN.",tRegistered:"Your account is ready 🎉",
  errNet:"Could not reach the database. Open the site from its https link, not from a downloaded file, and check your connection.",
@@ -912,7 +971,7 @@ ku:{dir:"rtl",label:"کوردی",
  priceAfter:"نرخ دوای پێوان",badgeHot:"زۆرترین داوا",badgeNew:"نوێ",
  sizeL:"پێوانەی نزیکەیی (مەتر)",wPh:"پانی — 1.1",hPh:"بەرزی — 2.4",
  sizeHint:"بە مەتر بنووسە، بۆ کەسر خاڵ بەکاربهێنە — نموونە 1.1 یان 2.35. پێوانەی کۆتایی لە شوێنەکە دەکرێت.",
- glassL:"شووشە",colorL:"ڕەنگ",qtyL:"ژمارە",
+ glassL:"جۆری شووشە",colorL:"ڕەنگی دەرگا / پەنجەرە",qtyL:"ژمارە",
  glassOpts:["شووشەی ڕوون","شووشەی ماتە","شووشەی توندکراو (سیکوریت)","شووشەی دووقات","شووشەی ڕەنگدانەوە","شووشەی ڕەنگاوڕەنگ"],
  colorOpts:["ڕەشی ماتە","شەمپانی","سپی","بڕۆنزی","خۆڵەمێشی تۆخ","ڕەنگی دار"],
  custInfo:"زانیاریەکانت بۆ ئەوەی پەیوەندیت پێوە بکەین",
@@ -946,13 +1005,11 @@ ku:{dir:"rtl",label:"کوردی",
  tAdded:"زیادکرا بۆ سەبەتە:",tSent:"داواکاری نێردرا بۆ واتساب",tRemoved:"سڕایەوە لە سەبەتە",tFillNP:"ناو و ژمارە پڕبکەرەوە",
  tCartEmpty:"سەبەتە بەتاڵە",tCopied:"دەقی داواکاری کۆپی کرا",tCopiedNum:"ژمارە کۆپی کرا:",tBugEmpty:"سەرەتا کێشەکە بنووسە",
  tThanks:"سوپاس — تێبینیەکە نێردرا",tFillRed:"خانە سوورەکان پڕبکەرەوە",
- acctT:"هەژمار و خاڵەکانت",regT:"هەژماری نوێ",logT:"چوونەژوورەوە",
- memberNote:"هەژمارێک بکەرەوە و خاڵ کۆبکەرەوە: {s} خاڵ لە کاتی تۆمارکردن، و {n} خاڵ بۆ هەر پارچەیەک دەیکڕیت.",
+ acctT:"هەژمارەکەت",regT:"هەژماری نوێ",logT:"چوونەژوورەوە",
+ memberNote:"هەژمارێک بکەرەوە بۆ بەدواداچوونی داواکارییەکانت بەبێ دووبارە نووسینی زانیارییەکانت.",
  logNote:"ژمارە و کۆدەکەت بنووسە بۆ گەڕانەوە بۆ هەژمارەکەت.",
  pinL:"کۆدی نهێنی",pinPh:"٤ ژمارە",pinHint:"٤ ژمارە هەڵبژێرە کە لەبیرت بێت — هەموو جارێک پێویستە.",
  haveAcct:"هەژمارم هەیە",noAcct:"هەژمارم نییە",
- pointsL:"خاڵ",giftLeft:"ماوە",giftOf:"لە",giftReady:"🎁 گەیشتیت بە دیاری — سەردانی گەلەری بکە",
- earnNote:"هەر پارچەیەک {n} خاڵت بۆ زیاد دەکات.",
  errPin:"کۆدی ٤ ژمارەیی بنووسە.",errExists:"ئەم ژمارەیە پێشتر تۆمارکراوە — چوونەژوورەوە بەکاربهێنە.",
  errLogin:"ژمارە یان کۆد هەڵەیە.",tRegistered:"هەژمارەکەت ئامادەیە 🎉",
  errNet:"پەیوەندی بە بنکەدراوە نەکرا. ماڵپەڕەکە لە بەستەری https بکەرەوە، نەک لە فایلی داگیراو.",
@@ -1346,9 +1403,11 @@ function fillUI(){
 
 /* ===== التنقل ===== */
 function go(view){
+  if(view==='admin'&&!owner) view='home';           /* الصفحة ما تنفتح إلا للمالك */
   document.querySelectorAll('.view').forEach(v=>v.classList.toggle('on',v.id==='v-'+view));
   document.querySelectorAll('.tab').forEach(tb=>tb.setAttribute('aria-selected',tb.dataset.go===view));
   if(view==='cart') renderCart();
+  if(view==='admin') renderAdmin();
   scrollTo({top:0,behavior:'instant'});
 }
 document.addEventListener('click',e=>{const b=e.target.closest('[data-go]'); if(b) go(b.dataset.go)});
@@ -1806,15 +1865,15 @@ const okPin=v=>/^\d{4,6}$/.test(String(v).trim());
 
 function memberSave(m,pin){ member=m; lsSet(LS_MEM,{phone:m.phone,pin,name:m.name}); renderAcct() }
 function memberOut(){ member=null; lsDel(LS_MEM); renderAcct(); toast(t().tLoggedOut) }
-const noteTxt=()=>t().memberNote.replace("{s}",fmt(POINTS.SIGNUP)).replace("{n}",fmt(POINTS.PER_ITEM));
+const noteTxt=()=>t().memberNote;
 function memberPin(){ const d=lsGet(LS_MEM); return d&&d.pin?d.pin:null }
 
-async function memberRefresh(){                 /* يجدّد النقاط بعد الطلب */
+async function memberRefresh(){                 /* يجدّد بيانات الحساب */
   const d=lsGet(LS_MEM); if(!d||!d.phone||!d.pin) return;
   try{
     const r=await sbRpc("customer_login",{p_phone:d.phone,p_pin:d.pin});
     if(r&&r[0]){ member=r[0]; renderAcct() }
-  }catch(e){ console.warn("[points] refresh:",e) }
+  }catch(e){ console.warn("[member] refresh:",e) }
 }
 async function memberBoot(){
   const d=lsGet(LS_MEM);
@@ -1894,24 +1953,13 @@ function openMember(mode){
 function renderAcct(){
   const x=t(), box=document.getElementById('acct-box'); if(!box) return;
   if(member){
-    const pts=+member.points||0, pct=Math.min(100,pts/POINTS.GIFT*100);
-    const left=Math.max(0,POINTS.GIFT-pts);
     box.innerHTML=`<div class="info" style="margin:0"><div class="item" id="acct-head" style="cursor:pointer;align-items:center">
         ${avHTML("avmini")}
         <div style="min-width:0;flex:1"><b>${esc(profName()||member.name||"")}</b>
           <span class="mono">${esc(member.phone)}</span>
           ${profile.email?`<span class="mono" style="font-size:11.5px;color:var(--muted);overflow-wrap:anywhere">${esc(profile.email)}</span>`:``}</div>
         <span class="link" style="flex:none;color:var(--brand);font-weight:600">${x.editProf} ›</span></div></div>
-      <div class="opt" style="margin-top:12px;text-align:center">
-        <div class="mono" style="font-size:32px;font-weight:700;color:var(--brand);line-height:1.2">${fmt(pts)}</div>
-        <div class="sub" style="font-size:12.5px">${x.pointsL}</div>
-        <div style="height:8px;border-radius:99px;background:var(--line);overflow:hidden;margin-top:12px">
-          <div style="height:100%;width:${pct}%;background:var(--brand);border-radius:99px;transition:width .6s"></div></div>
-        <p class="sub" style="font-size:12px;margin-top:8px">${ pts>=POINTS.GIFT ? x.giftReady
-          : x.giftLeft+" "+`<b class="mono">${fmt(left)}</b>`+" "+x.giftOf+" "+`<b class="mono">${fmt(POINTS.GIFT)}</b>` }</p>
-      </div>
-      <p class="sub" style="font-size:12px;margin-top:-4px">${x.earnNote.replace("{n}",fmt(POINTS.PER_ITEM))}</p>
-      <div class="pair" style="margin-top:10px">
+      <div class="pair" style="margin-top:12px">
         <button class="btn btn-p" id="acct-orders">${x.myOrders}</button>
         <button class="btn btn-o" id="acct-out">${x.logout}</button></div>`;
     document.getElementById('acct-head').onclick=openProfile;
@@ -1998,7 +2046,7 @@ async function saveOrder(row){
       const slim=Object.assign({},row); delete slim.user_id; delete slim.user_email;
       await sbInsert(SUPABASE.T.orders,slim);
     }
-    toast(t().tSaved+" "+row.code); setTimeout(memberRefresh,1200);
+    toast(t().tSaved+" "+row.code);
   }
   catch(e){ savedCodes.delete(row.code); console.warn("[supabase] order:",e); toast(t().tSaveFail) }
 }
@@ -2047,6 +2095,321 @@ async function syncProducts(){
     if(n) renderAll();
   }catch(e){ console.warn("[supabase] products:",e) }
 }
+
+
+/* ═══════════════════════ لوحة المالك ═══════════════════════
+   • الدخول مخفي: ٥ نقرات على الشعار أو ضغطة طويلة عليه.
+   • الرمز ينفحص كبصمة — ما ينحفظ ولا ينكتب صريح بالملف.
+   • المالك ينشر: صورة + اسم + وصف. الألوان وأنواع الزجاج ثابتة،
+     والقياس واللون والزجاج يختارهن الزبون وقت الطلب.            */
+const LS_AD="ha_owner_v1", LS_ADP="ha_owner_products_v1", LS_ADL="ha_owner_lock_v1";
+var owner=null;   /* var: حتى go() تكدر تفحصه قبل ما ينفذ هذا القسم */
+
+const AD={
+ logT:"دخول المالك", logD:"هذه الصفحة للمالك فقط. اكتب الرمز حتى تفتح لوحة النشر.",
+ passL:"رمز المالك", passPh:"اكتب الرمز", enter:"دخول", cancel:"إلغاء",
+ wrong:"الرمز غلط", locked:"محاولات كثيرة — انتظر {m} دقيقة",
+ welcome:"أهلاً بيك — انفتحت لوحة المالك", out:"خروج من لوحة المالك", outDone:"طلعت من لوحة المالك",
+ newT:"أضف منتج", editT:"عدّل المنتج",
+ formD:"الصورة والاسم والوصف تنشرهن انت. القياس واللون ونوع الزجاج يختارهن الزبون وقت الطلب.",
+ cat:"القسم", name:"اسم المنتج", namePh:"مثال: باب سحب زجاجي",
+ sub:"سطر مختصر", subPh:"مثال: مقطعين سحب", desc:"الوصف",
+ descPh:"اكتب وصف قصير يشرح المنتج للزبون",
+ img:"صورة المنتج", imgNone:"ماكو صورة بعد", imgPick:"اختر صورة", imgChange:"غيّر الصورة",
+ imgDel:"احذف الصورة", imgHint:"الصورة تنضغط تلقائياً قبل النشر حتى تفتح بسرعة عند الزبون.",
+ imgBad:"هذا الملف مو صورة.", imgBig:"الصورة كبيرة جداً — اختر وحدة أصغر.",
+ hot:"الأكثر طلباً", newy:"وصل حديثاً",
+ pub:"انشر للزبائن", saving:"يحفظ…",
+ pubDone:"انتشر المنتج — الزبائن يشوفونه ✓",
+ pubLocal:"انحفظ بجهازك بس — شغّل ملف SQL بـ Supabase حتى يوصل للزبائن",
+ needName:"اكتب اسم المنتج", needImg:"اختر صورة المنتج",
+ fixedT:"الخيارات الثابتة", colors:"ألوان الأبواب والشبابيك", glass:"أنواع الزجاج",
+ listT:"منتجاتك المنشورة", none:"ما نشرت منتجات لهسه — ابدأ بزر (أضف منتج).",
+ live:"منشور للكل", localOnly:"بجهازك فقط", hidden:"مخفي عن الزبائن",
+ edit:"عدّل", del:"احذف", hide:"إخفاء", show:"إظهار",
+ delSure:"أكيد؟ اضغط مرة ثانية", delDone:"انحذف المنتج", togDone:"انحدثت حالة المنتج",
+ hint:"الدخول للوحة مخفي: خمس نقرات على شعار المعرض بأعلى الصفحة.",
+ count:"منتج",
+ dims:{doors:[1.1,2.4,1],windows:[1.5,1.2,2],facades:[3,2,3],partitions:[2,2.4,2]}
+};
+
+/* ── بصمة الرمز ── */
+const adNorm=s=>String(s||"").replace(/\s+/g," ").trim().toLowerCase();
+function adFallback(s){
+  let a=0x811c9dc5,b=5381;
+  for(let i=0;i<s.length;i++){ a^=s.charCodeAt(i); a=Math.imul(a,0x01000193)>>>0;
+    b=(Math.imul(b,33)+s.charCodeAt(i))>>>0 }
+  return (a>>>0).toString(16).padStart(8,"0")+(b>>>0).toString(16).padStart(8,"0");
+}
+async function adSha(s){
+  try{
+    const buf=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(s));
+    return Array.from(new Uint8Array(buf)).map(v=>v.toString(16).padStart(2,"0")).join("");
+  }catch(e){ return null }
+}
+async function adCheck(pass){
+  const n=adNorm(pass); if(!n) return false;
+  const h=await adSha(n);
+  return h ? h===OWNER.H : adFallback(n)===OWNER.F;
+}
+
+/* ── الجلسة ── */
+function adBoot(){
+  const d=lsGet(LS_AD);
+  if(d&&d.pass&&+d.until>Date.now()){ owner=d; document.body.classList.add('owner') }
+  else { lsDel(LS_AD); owner=null; document.body.classList.remove('owner') }
+}
+function adIn(pass){
+  owner={pass:String(pass),until:Date.now()+OWNER.DAYS*864e5};
+  lsSet(LS_AD,owner); document.body.classList.add('owner');
+}
+function adOut(){
+  owner=null; lsDel(LS_AD); document.body.classList.remove('owner');
+  go('home'); toast(AD.outDone);
+}
+
+/* ── منتجات المالك: تخزين محلي + دمج بالمعرض ── */
+const adAll=()=>{ const l=lsGet(LS_ADP); return Array.isArray(l)?l:[] };
+const adPut=l=>lsSet(LS_ADP,l);
+const adCatName=k=>{ const c=CATS.find(z=>z.k===k); return c?c.n[0]:k };
+function adRow(p){
+  return {id:p.id,cat:p.cat,sort:10,active:p.active!==false,
+    name_ar:p.name||"",sub_ar:p.sub||"",desc_ar:p.desc||"",img:p.img||null,
+    w:+p.w||1,h:+p.h||1,cols:+p.cols||1,hot:!!p.hot,is_new:!!p.newy};
+}
+function adApply(){                       /* يدمج منتجاتك بقائمة المعرض */
+  adAll().forEach(p=>{
+    const r=adRow(p), k=MODELS.findIndex(z=>z.id===r.id);
+    if(!r.active){ if(k>-1) MODELS.splice(k,1); return }
+    const m=mapProduct(r); if(!m) return;
+    if(k>-1) MODELS[k]=m; else MODELS.push(m);
+  });
+}
+
+/* ── النشر للقاعدة: دالة محمية أولاً، وإذا ما تشغّل SQL فرفع مباشر ── */
+const adMissing=e=>/PGRST202|404|Could not find the function|does not exist/i.test(String(e&&e.message||e));
+const sbUpsert=(table,row)=>sbReq(table,{method:"POST",
+  headers:{Prefer:"resolution=merge-duplicates,return=minimal"},body:JSON.stringify(row)});
+
+async function adPublish(p){
+  const row=adRow(p); let where="local";
+  try{
+    try{ await sbRpc("admin_save_product",{p_pass:owner?owner.pass:"",p_row:row}); where="db" }
+    catch(e1){ if(!adMissing(e1)) throw e1; await sbUpsert(SUPABASE.T.products,row); where="db" }
+  }catch(e){ console.warn("[owner] publish:",e) }
+  const l=adAll().filter(z=>z.id!==p.id);
+  l.push(Object.assign({},p,{live:where==="db"}));
+  adPut(l);
+  return where;
+}
+async function adRemove(id){
+  try{
+    try{ await sbRpc("admin_delete_product",{p_pass:owner?owner.pass:"",p_id:id}) }
+    catch(e1){ if(!adMissing(e1)) throw e1;
+      await sbReq(SUPABASE.T.products+"?id=eq."+encodeURIComponent(id),
+        {method:"DELETE",headers:{Prefer:"return=minimal"}}) }
+  }catch(e){ console.warn("[owner] delete:",e) }
+  adPut(adAll().filter(z=>z.id!==id));
+  const k=MODELS.findIndex(z=>z.id===id); if(k>-1) MODELS.splice(k,1);
+}
+
+/* ── ضغط صورة المنتج ── */
+function adShot(file,done){
+  if(!file) return;
+  if(!/^image\//i.test(file.type||"")){ toast(AD.imgBad); return }
+  if(file.size>20*1024*1024){ toast(AD.imgBig); return }
+  const fr=new FileReader();
+  fr.onerror=()=>toast(AD.imgBad);
+  fr.onload=()=>{
+    const im=new Image();
+    im.onerror=()=>toast(AD.imgBad);
+    im.onload=()=>{
+      try{
+        const MAX=900, sc=Math.min(1,MAX/Math.max(im.width,im.height));
+        const c=document.createElement('canvas');
+        c.width=Math.max(1,Math.round(im.width*sc));
+        c.height=Math.max(1,Math.round(im.height*sc));
+        c.getContext('2d').drawImage(im,0,0,c.width,c.height);
+        let q=.82, out=c.toDataURL("image/jpeg",q);
+        while(out.length>130000&&q>.34){ q-=.1; out=c.toDataURL("image/jpeg",q) }
+        done(out);
+      }catch(e){ toast(AD.imgBad) }
+    };
+    im.src=fr.result;
+  };
+  fr.readAsDataURL(file);
+}
+
+/* ── ورقة الدخول المخفية ── */
+function adLogin(){
+  const lk=lsGet(LS_ADL)||{};
+  if(+lk.until>Date.now()){
+    toast(AD.locked.replace("{m}",Math.max(1,Math.ceil((lk.until-Date.now())/60000)))); return;
+  }
+  openSheet(`<h3 style="font-size:19px">${AD.logT}</h3>
+    <p class="sub" style="font-size:13px;margin-top:6px">${AD.logD}</p>
+    <div class="opt"><label for="ad-pass">${AD.passL}</label>
+      <input class="ctrl" id="ad-pass" type="password" inputmode="text" autocomplete="off"
+        autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="${AD.passPh}"></div>
+    <div class="acts"><button class="btn btn-p" id="ad-go">${AD.enter}</button>
+      <button class="btn btn-o" id="ad-x">${AD.cancel}</button></div>`);
+  document.getElementById('ad-x').onclick=closeSheet;
+  const tryIn=async()=>{
+    const el=document.getElementById('ad-pass'), btn=document.getElementById('ad-go');
+    if(!el||!btn) return;
+    btn.disabled=true;
+    const ok=await adCheck(el.value);
+    if(!ok){
+      const d=lsGet(LS_ADL)||{n:0}; d.n=(+d.n||0)+1;
+      if(d.n>=OWNER.TRIES){ d.until=Date.now()+OWNER.LOCK; d.n=0 }
+      lsSet(LS_ADL,d);
+      el.value=""; btn.disabled=false; toast(AD.wrong); return;
+    }
+    lsDel(LS_ADL); adIn(el.value); closeSheet();
+    adApply(); renderAll(); go('admin'); toast(AD.welcome);
+  };
+  document.getElementById('ad-go').onclick=tryIn;
+  document.getElementById('ad-pass').addEventListener('keydown',e=>{ if(e.key==='Enter') tryIn() });
+  setTimeout(()=>{ const el=document.getElementById('ad-pass'); if(el) el.focus() },250);
+}
+
+/* ── نموذج المنتج ── */
+function adForm(old){
+  const it=old||{id:"p"+Date.now().toString(36),cat:"doors",name:"",sub:"",desc:"",img:"",
+                 hot:false,newy:false,active:true};
+  let img=it.img||"", hot=!!it.hot, newy=!!it.newy;
+  const opts=CATS.map(c=>`<option value="${c.k}"${c.k===it.cat?' selected':''}>${c.n[0]}</option>`).join('');
+  openSheet(`<h3 style="font-size:19px">${old?AD.editT:AD.newT}</h3>
+    <p class="sub" style="font-size:13px;margin-top:6px">${AD.formD}</p>
+    <div class="opt"><label for="ad-cat">${AD.cat}</label>
+      <select class="ctrl" id="ad-cat">${opts}</select></div>
+    <div class="opt"><label for="ad-name">${AD.name}</label>
+      <input class="ctrl" id="ad-name" placeholder="${AD.namePh}" value="${esc(it.name)}"></div>
+    <div class="opt"><label for="ad-sub">${AD.sub}</label>
+      <input class="ctrl" id="ad-sub" placeholder="${AD.subPh}" value="${esc(it.sub)}"></div>
+    <div class="opt"><label for="ad-desc">${AD.desc}</label>
+      <textarea class="ctrl" id="ad-desc" placeholder="${AD.descPh}">${esc(it.desc)}</textarea></div>
+    <div class="opt"><label>${AD.img}</label>
+      <div class="adshot" id="ad-slot"></div>
+      <div class="adbar">
+        <button class="fixbtn" id="ad-pick">${img?AD.imgChange:AD.imgPick}</button>
+        <span id="ad-delbox"></span></div>
+      <p class="avhint" style="text-align:start;margin-top:8px">${AD.imgHint}</p></div>
+    <input type="file" id="ad-file" accept="image/*" style="display:none">
+    <div class="row" style="margin-top:14px">
+      <button class="setopt" id="ad-hot" aria-pressed="${hot}"><span><b>${AD.hot}</b></span><span class="dot"></span></button>
+      <button class="setopt" id="ad-newy" aria-pressed="${newy}"><span><b>${AD.newy}</b></span><span class="dot"></span></button></div>
+    <div class="acts"><button class="btn btn-p" id="ad-save">${AD.pub}</button>
+      <button class="btn btn-o" id="ad-x2">${AD.cancel}</button></div>`);
+
+  const slot=document.getElementById('ad-slot'), delbox=document.getElementById('ad-delbox'),
+        pick=document.getElementById('ad-pick'), file=document.getElementById('ad-file');
+  const paint=()=>{
+    slot.innerHTML = img ? `<img src="${esc(img)}" alt="">`
+      : `<span class="sub" style="font-size:12px">${AD.imgNone}</span>`;
+    pick.textContent = img?AD.imgChange:AD.imgPick;
+    delbox.innerHTML = img?`<button class="avdel" id="ad-imgdel">${AD.imgDel}</button>`:``;
+    const d=document.getElementById('ad-imgdel');
+    if(d) d.onclick=()=>{ img=""; paint() };
+  };
+  paint();
+  pick.onclick=()=>file.click();
+  file.onchange=e=>{ const f=e.target.files&&e.target.files[0];
+    if(f) adShot(f,d=>{ img=d; paint() }); file.value="" };
+  const hb=document.getElementById('ad-hot'), nb=document.getElementById('ad-newy');
+  hb.onclick=()=>{ hot=!hot; hb.setAttribute('aria-pressed',hot) };
+  nb.onclick=()=>{ newy=!newy; nb.setAttribute('aria-pressed',newy) };
+  document.getElementById('ad-x2').onclick=closeSheet;
+  document.getElementById('ad-save').onclick=async()=>{
+    const name=document.getElementById('ad-name').value.trim();
+    if(!name){ toast(AD.needName); return }
+    if(!img){ toast(AD.needImg); return }
+    const btn=document.getElementById('ad-save'); btn.disabled=true; btn.textContent=AD.saving;
+    const cat=document.getElementById('ad-cat').value, dm=AD.dims[cat]||AD.dims.doors;
+    const p=Object.assign({},it,{cat,name,
+      sub:document.getElementById('ad-sub').value.trim()||name,
+      desc:document.getElementById('ad-desc').value.trim(),
+      img,hot,newy,active:it.active!==false,w:dm[0],h:dm[1],cols:dm[2]});
+    const where=await adPublish(p);
+    adApply(); renderAll(); closeSheet(); renderAdmin();
+    toast(where==="db"?AD.pubDone:AD.pubLocal);
+  };
+}
+
+/* ── بطاقة منتج داخل اللوحة ── */
+const adCard=p=>{
+  const state = p.active===false ? `<span class="adtag off">${AD.hidden}</span>`
+    : p.live ? `<span class="adtag">${AD.live} ✓</span>`
+             : `<span class="adtag warn">${AD.localOnly}</span>`;
+  return `<div class="line">
+    <div class="thumb">${p.img?`<img class="photo" src="${esc(p.img)}" alt="">`:``}</div>
+    <div class="body">
+      <b>${esc(p.name)}</b>
+      <div class="spec">${esc(adCatName(p.cat))}${p.sub?" · "+esc(p.sub):""}</div>
+      <div class="adbar">${state}</div>
+      <div class="ft" style="gap:8px">
+        <button class="fixbtn" data-ad-edit="${esc(p.id)}">${AD.edit}</button>
+        <button class="fixbtn" data-ad-tog="${esc(p.id)}">${p.active===false?AD.show:AD.hide}</button>
+        <button class="rm" data-ad-del="${esc(p.id)}">${AD.del}</button>
+      </div></div></div>`;
+};
+
+/* ── رسم اللوحة ── */
+function renderAdmin(){
+  const box=document.getElementById('ad-body'); if(!box||!owner) return;
+  const list=adAll(), st=document.getElementById('ad-status');
+  if(st) st.textContent=list.length?list.length+" "+AD.count:"";
+  box.innerHTML=`
+    <div class="note" style="margin-top:0">${AD.formD}</div>
+    <div style="padding:0 var(--pad)">
+      <div class="acts" style="margin-top:14px">
+        <button class="btn btn-p" id="ad-new">＋ ${AD.newT}</button></div></div>
+    <section class="sec" style="padding-top:22px"><div class="sechead"><h2 style="font-size:16px">${AD.fixedT}</h2></div></section>
+    <div class="info">
+      <div class="item"><div class="ic">◧</div><div><b>${AD.colors}</b>
+        <span>${T.ar.colorOpts.join(" · ")}</span></div></div>
+      <div class="item"><div class="ic">◇</div><div><b>${AD.glass}</b>
+        <span>${T.ar.glassOpts.join(" · ")}</span></div></div>
+    </div>
+    <section class="sec" style="padding-top:22px"><div class="sechead"><h2 style="font-size:16px">${AD.listT}</h2></div></section>
+    ${list.length?list.map(adCard).join(''):`<p class="foot" style="padding-top:0">${AD.none}</p>`}
+    <div style="padding:14px var(--pad) 0">
+      <div class="acts"><button class="btn btn-o" id="ad-out">${AD.out}</button></div></div>
+    <p class="foot">${AD.hint}</p>`;
+  document.getElementById('ad-new').onclick=()=>adForm(null);
+  document.getElementById('ad-out').onclick=adOut;
+  box.querySelectorAll('[data-ad-edit]').forEach(b=>b.onclick=()=>{
+    const p=adAll().find(z=>z.id===b.dataset.adEdit); if(p) adForm(p) });
+  box.querySelectorAll('[data-ad-tog]').forEach(b=>b.onclick=async()=>{
+    const p=adAll().find(z=>z.id===b.dataset.adTog); if(!p) return;
+    b.disabled=true;
+    await adPublish(Object.assign({},p,{active:p.active===false}));
+    adApply(); renderAll(); renderAdmin(); toast(AD.togDone);
+  });
+  box.querySelectorAll('[data-ad-del]').forEach(b=>{
+    let armed=false;
+    b.onclick=async()=>{
+      if(!armed){ armed=true; b.textContent=AD.delSure;
+        setTimeout(()=>{ if(armed){ armed=false; b.textContent=AD.del } },4000); return }
+      b.disabled=true; b.textContent=AD.saving;
+      await adRemove(b.dataset.adDel);
+      renderAll(); renderAdmin(); toast(AD.delDone);
+    };
+  });
+}
+
+/* ── الباب المخفي: ٥ نقرات على الشعار أو ضغطة طويلة ── */
+(function(){
+  const logo=document.querySelector('.topbar .logo'); if(!logo) return;
+  let n=0, tap=null, hold=null;
+  const open=()=>{ n=0; owner?go('admin'):adLogin() };
+  logo.style.cursor='default';
+  logo.addEventListener('click',()=>{ n++; clearTimeout(tap);
+    tap=setTimeout(()=>n=0,2500); if(n>=5) open() });
+  logo.addEventListener('pointerdown',()=>{ hold=setTimeout(open,2000) });
+  ['pointerup','pointerleave','pointercancel'].forEach(ev=>
+    logo.addEventListener(ev,()=>clearTimeout(hold)));
+})();
 
 /* ===== السلة ===== */
 function paintBadge(){
@@ -2230,13 +2593,14 @@ document.getElementById('map-link').href="https://www.google.com/maps/search/?ap
 const dt=document.getElementById('c-date'); dt.min=new Date().toISOString().slice(0,10); dt.value=dt.min;
 restore();                                    /* يرجّع السلة والمعلومات والإعدادات */
 profBoot();                                   /* يرجّع صورة الزبون وبريده */
+adBoot(); adApply();                          /* لوحة المالك: الجلسة + منتجاتك */
 if(dark) setTheme(true);
 ['c-name','c-phone','c-area'].forEach((id,k)=>{
   const el=document.getElementById(id); if(!el) return;
   el.addEventListener('input',()=>{ customer[['name','phone','area'][k]]=el.value.trim(); persist() });
 });
 fillUI(); paintBadge();
-memberBoot();     /* يرجّع حساب الزبون ويجدّد نقاطه */
+memberBoot();     /* يرجّع حساب الزبون */
 /* الملف مفتوح محلياً؟ المتصفح يمنع الاتصال بالقاعدة — نبّه صاحب الموقع */
 if(!/^https?:$/.test(location.protocol))
   setTimeout(()=>toast(t().errNet),1500);
