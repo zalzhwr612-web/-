@@ -327,6 +327,45 @@ body.dark .credit{background:linear-gradient(170deg,#141A28,#0D121C);border-colo
   padding:11px 18px;font-weight:700;font-size:13.5px}
 :focus-visible{outline:2px solid var(--brand);outline-offset:2px}
 @media (prefers-reduced-motion:reduce){.blob{animation:none}*{transition-duration:.2s!important}}
+
+/* ═══ الملف الشخصي: الصورة + البريد ═══ */
+.avwrap{display:flex;flex-direction:column;align-items:center;gap:10px;margin-top:6px}
+.av{position:relative;width:104px;height:104px;border-radius:50%;flex:none;background:var(--brand-soft);
+  display:grid;place-items:center;overflow:hidden;border:3px solid var(--brand);
+  box-shadow:0 10px 26px color-mix(in srgb,var(--brand) 30%,transparent);transition:border-color var(--T),background-color var(--T)}
+.av img{width:100%;height:100%;object-fit:cover;display:block}
+.av .ini{font-size:34px;font-weight:700;color:var(--brand);line-height:1;transition:color var(--T)}
+.av .cam{position:absolute;inset-inline-end:-2px;bottom:-2px;width:34px;height:34px;border-radius:50%;border:3px solid var(--cardb);
+  background:var(--brand);display:grid;place-items:center;cursor:pointer;transition:background-color var(--T)}
+.av .cam svg{width:15px;height:15px;stroke:#fff;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.avmini{width:46px;height:46px;border-radius:50%;flex:none;overflow:hidden;background:var(--brand-soft);
+  display:grid;place-items:center;border:2px solid var(--brand);transition:border-color var(--T),background-color var(--T)}
+.avmini img{width:100%;height:100%;object-fit:cover;display:block}
+.avmini .ini{font-size:17px;font-weight:700;color:var(--brand)}
+.avhint{font-size:11.5px;color:var(--muted);text-align:center}
+.avdel{background:0;border:0;color:#E2685A;font-size:12px;font-weight:600;cursor:pointer;padding:2px 6px}
+.fieldwrap{position:relative}
+.fieldwrap .ctrl{padding-inline-end:40px}
+.fmark{position:absolute;inset-inline-end:13px;top:50%;transform:translateY(-50%);font-size:15px;line-height:1;
+  opacity:0;transition:opacity .2s}
+.fmark.on{opacity:1}
+.hint{display:flex;align-items:flex-start;gap:7px;font-size:12px;margin-top:7px;line-height:1.6}
+.hint.ok{color:var(--green)}
+.hint.warn{color:var(--amber)}
+.hint.bad{color:#E2685A}
+.hint.mute{color:var(--muted)}
+.fixbtn{background:var(--brand-soft);color:var(--brand-ink);border:1px solid color-mix(in srgb,var(--brand) 30%,transparent);
+  border-radius:9px;padding:4px 10px;font-size:12px;font-weight:700;cursor:pointer;margin-inline-start:4px;
+  font-family:inherit;transition:background-color var(--T),color var(--T)}
+.fixbtn:active{transform:scale(.97)}
+.spin{width:13px;height:13px;border-radius:50%;border:2px solid var(--line);border-top-color:var(--brand);
+  display:inline-block;animation:sp .7s linear infinite;flex:none;margin-top:3px}
+@keyframes sp{to{transform:rotate(360deg)}}
+.lockrow{display:flex;align-items:center;gap:9px;background:var(--wash);border:1px solid var(--line);
+  border-radius:12px;padding:11px 13px;margin-top:8px}
+.lockrow svg{width:16px;height:16px;stroke:var(--muted);fill:none;stroke-width:1.8;flex:none}
+.lockrow b{font-size:13.5px}
+.lockrow small{display:block;font-size:11px;color:var(--muted)}
 </style>
 </head>
 <body>
@@ -503,7 +542,30 @@ body.dark .credit{background:linear-gradient(170deg,#141A28,#0D121C);border-colo
 <div class="sheet" id="sheet" role="dialog" aria-modal="true"><div class="handle"></div><div id="sheet-body"></div></div>
 <div class="toast" id="toast"></div>
 <script>/* ===== الأساسيات ===== */
-const PHONE="07904694393", WA="9647904694393", DEVWA="9647865536522";
+/* ══════════ رقم المعرض — الوجهة الوحيدة لكل الطلبات ══════════
+   كل زر «أرسل الطلب على واتساب» يروح لهذا الرقم فقط: 07904694393
+   الرقم مقفول (Object.freeze) — ما يكدر أي مستخدم أو أي كود ثاني
+   يبدّله من المتصفح. الزبون يكتب رقمه هو بالطلب، بس وجهة الإرسال
+   تبقى رقمك انت.                                                */
+const SHOP=Object.freeze({ LOCAL:"07904694393", WA:"9647904694393" });
+const PHONE=SHOP.LOCAL, WA=SHOP.WA, DEVWA="9647865536522";
+
+/* فتح واتساب بشكل مضمون:
+   بعض المتصفحات والويب-ڤيو تمنع window.open — إذا انمنع نحوّل الصفحة
+   نفسها للرابط، فالطلب يوصل بكل الحالات. */
+function waURL(text){ return "https://wa.me/"+SHOP.WA+"?text="+encodeURIComponent(text||"") }
+function openWA(text){
+  const url=waURL(text);
+  let w=null;
+  try{ w=window.open(url,"_blank","noopener") }catch(e){ w=null }
+  if(!w||w.closed||typeof w.closed==="undefined"){
+    try{ const a=document.createElement('a'); a.href=url; a.target="_blank"; a.rel="noopener";
+         document.body.appendChild(a); a.click(); a.remove() }
+    catch(e){ location.href=url }
+    setTimeout(()=>{ if(!document.hidden) location.href=url },700);   /* آخر ملجأ */
+  }
+  return url;
+}
 
 /* ══════════════════════════ Supabase ══════════════════════════
    مشروعك: https://gygjpwmcuiqjelmpgxtp.supabase.co/rest/v1/
@@ -568,6 +630,11 @@ const PHONE="07904694393", WA="9647904694393", DEVWA="9647865536522";
    create policy "app read products" on public.products    for select to anon, authenticated using (true);
 
    create index if not exists orders_created_idx on public.orders (created_at desc);
+
+   -- (اختياري) حتى ينحفظ بريد الزبون ورقم حسابه مع كل طلب.
+   -- إذا ما شغّلته، التطبيق يحفظ الطلب بدونهن بشكل طبيعي:
+   alter table public.orders add column if not exists user_id    text;
+   alter table public.orders add column if not exists user_email text;
    ──────────────────────────────────────────────────────────────── */
 const SUPABASE={
   URL:"https://gygjpwmcuiqjelmpgxtp.supabase.co/rest/v1/",
@@ -708,6 +775,25 @@ ar:{dir:"rtl",label:"العربية",
  ordWait:"يجيب طلباتك…",tLoggedOut:"طلعت من حسابك",tLoggedIn:"أهلاً بيك",
  st_new:"جديد",st_confirmed:"مأكّد",st_done:"منجز",st_cancelled:"ملغي",
  tSaved:"انحفظ الطلب — رقمه",tSaveFail:"انرسل على واتساب، بس ما انحفظ بالنظام",
+ profT:"الملف الشخصي",profD:"حط صورتك وبريدك حتى نعرفك أسرع ونرسل لك تفاصيل طلبك.",
+ editProf:"عدّل ملفك",guestName:"زائر",profSave:"احفظ الملف",profSaved:"انحفظ ملفك ✓",
+ avL:"صورتك",avPick:"اختر صورة",avChange:"غيّر الصورة",avDel:"احذف الصورة",
+ avHint:"الصورة تنضغط وتنحفظ بجهازك انت — ما تنرفع لأي مكان.",
+ avBig:"الصورة كبيرة جداً — اختر وحدة أصغر.",avBad:"هذا الملف مو صورة.",avSet:"انحطت صورتك ✓",avGone:"انحذفت الصورة",
+ emailL:"البريد الإلكتروني",emailPh:"name@gmail.com",
+ emailHint:"اختياري — نرسل عليه نسخة من الطلب والعروض.",
+ emOk:"شكل البريد سليم ✓",emChecking:"يفحص نطاق البريد…",emLive:"النطاق فعّال ويستقبل بريد ✓",
+ emNoDom:"هذا النطاق مو موجود — راجع الكتابة.",emNoMx:"النطاق موجود بس ما يستقبل بريد — تأكد منه.",
+ emAt:"ناقصة علامة @.",emAt2:"أكو أكثر من @ — لازم وحدة بس.",
+ emLocal:"الجزء اللي كبل @ فارغ أو بيه رمز ما ينفع.",emDom:"الجزء اللي بعد @ ناقص أو غلط.",
+ emDot:"ما تنفع نقطتين ورا بعض.",emEdge:"ما يبدي ولا ينتهي بنقطة.",
+ emTld:"امتداد النطاق غلط — لازم مثل ‎.com‎ أو ‎.iq‎.",emSpace:"شيل الفراغات من البريد.",
+ emAr:"اكتب البريد بحروف إنكليزية.",emLong:"البريد طويل زيادة.",
+ emTemp:"بريد مؤقت — استخدم بريد دائم حتى توصلك الإشعارات.",
+ emRole:"هذا بريد عام مو شخصي — تأكد إنه مالتك.",
+ emDid:"تقصد",emFix:"صحّحه",emGmailShort:"اسم Gmail لازم ٦ حروف فأكثر.",
+ lockT:"رقم استلام الطلبات",lockD:"كل الطلبات تروح لهذا الرقم — مقفول وما ينتغيّر.",
+ oEmail:"البريد",
  setDb:"قاعدة البيانات",dbWait:"يفحص الاتصال…",dbOn:"متصل ✓",dbOff:"ما يوصل — راجع الإنترنت",
  dbKey:"المفتاح مرفوض",dbTable:"متصل — بس الجداول ناقصة",
  oCode:"رقم الطلب",
@@ -782,6 +868,25 @@ en:{dir:"ltr",label:"English",
  ordWait:"Loading your orders…",tLoggedOut:"Signed out",tLoggedIn:"Welcome",
  st_new:"New",st_confirmed:"Confirmed",st_done:"Done",st_cancelled:"Cancelled",
  tSaved:"Order saved — no.",tSaveFail:"Sent on WhatsApp, but not saved to the database",
+ profT:"My profile",profD:"Add your photo and email so we know you faster and can send your order details.",
+ editProf:"Edit profile",guestName:"Guest",profSave:"Save profile",profSaved:"Profile saved ✓",
+ avL:"Your photo",avPick:"Pick a photo",avChange:"Change photo",avDel:"Remove photo",
+ avHint:"The photo is compressed and kept on your device only — never uploaded.",
+ avBig:"Image too large — pick a smaller one.",avBad:"That file is not an image.",avSet:"Photo set ✓",avGone:"Photo removed",
+ emailL:"Email",emailPh:"name@gmail.com",
+ emailHint:"Optional — we send a copy of your order and offers to it.",
+ emOk:"Format looks right ✓",emChecking:"Checking the mail domain…",emLive:"Domain is live and accepts mail ✓",
+ emNoDom:"That domain does not exist — check the spelling.",emNoMx:"Domain exists but accepts no mail — double-check it.",
+ emAt:"Missing the @ sign.",emAt2:"More than one @ — only one is allowed.",
+ emLocal:"The part before @ is empty or has an invalid character.",emDom:"The part after @ is missing or invalid.",
+ emDot:"Two dots in a row are not allowed.",emEdge:"It cannot start or end with a dot.",
+ emTld:"Invalid domain ending — it should be like .com or .iq.",emSpace:"Remove the spaces.",
+ emAr:"Type the email in English letters.",emLong:"That email is too long.",
+ emTemp:"Temporary mailbox — use a permanent one to get notifications.",
+ emRole:"That is a generic mailbox, not a personal one — make sure it is yours.",
+ emDid:"Did you mean",emFix:"Fix it",emGmailShort:"A Gmail name needs 6 characters or more.",
+ lockT:"Orders go to",lockD:"Every order lands on this number — locked and cannot change.",
+ oEmail:"Email",
  setDb:"Database",dbWait:"Checking…",dbOn:"Connected ✓",dbOff:"Unreachable — check your connection",
  dbKey:"Key rejected",dbTable:"Connected — tables are missing",
  oCode:"Order no.",
@@ -856,6 +961,25 @@ ku:{dir:"rtl",label:"کوردی",
  ordWait:"داواکارییەکانت دەهێنرێن…",tLoggedOut:"دەرچوویت",tLoggedIn:"بەخێربێیت",
  st_new:"نوێ",st_confirmed:"پەسەندکراو",st_done:"تەواوبوو",st_cancelled:"هەڵوەشێنراوە",
  tSaved:"داواکاری پاشەکەوت کرا — ژمارە",tSaveFail:"بۆ واتساب نێردرا، بەڵام پاشەکەوت نەکرا",
+ profT:"پرۆفایلی من",profD:"وێنە و ئیمەیڵەکەت زیاد بکە تا زووتر بتناسین و وردەکاری داواکارییەکەت بۆ بنێرین.",
+ editProf:"دەستکاری پرۆفایل",guestName:"میوان",profSave:"پاشەکەوتی پرۆفایل",profSaved:"پرۆفایل پاشەکەوت کرا ✓",
+ avL:"وێنەکەت",avPick:"وێنە هەڵبژێرە",avChange:"گۆڕینی وێنە",avDel:"سڕینەوەی وێنە",
+ avHint:"وێنەکە بچووک دەکرێتەوە و تەنیا لە ئامێرەکەی خۆت دەمێنێتەوە.",
+ avBig:"وێنەکە زۆر گەورەیە — بچووکتر هەڵبژێرە.",avBad:"ئەم فایلە وێنە نییە.",avSet:"وێنە دانرا ✓",avGone:"وێنە سڕایەوە",
+ emailL:"ئیمەیڵ",emailPh:"name@gmail.com",
+ emailHint:"ئارەزوومەندانە — کۆپییەکی داواکاری و پێشکەشکراوەکانی بۆ دەنێرین.",
+ emOk:"شێوەی ئیمەیڵ دروستە ✓",emChecking:"دۆمەین تاقی دەکرێتەوە…",emLive:"دۆمەین چالاکە و ئیمەیڵ وەردەگرێت ✓",
+ emNoDom:"ئەم دۆمەینە بوونی نییە — نووسینەکە بپشکنە.",emNoMx:"دۆمەین هەیە بەڵام ئیمەیڵ وەرناگرێت — دڵنیا بە.",
+ emAt:"هێمای @ کەمە.",emAt2:"زیاتر لە یەک @ هەیە — تەنیا یەک دەبێت.",
+ emLocal:"بەشی پێش @ بەتاڵە یان هێمای نادروستی تێدایە.",emDom:"بەشی دوای @ کەمە یان هەڵەیە.",
+ emDot:"دوو خاڵ بە دوای یەکدا نابێت.",emEdge:"نابێت بە خاڵ دەست پێبکات یان کۆتایی بێت.",
+ emTld:"کۆتایی دۆمەین هەڵەیە — دەبێت وەک ‎.com‎ یان ‎.iq‎ بێت.",emSpace:"بۆشاییەکان لاببە.",
+ emAr:"ئیمەیڵ بە پیتی ئینگلیزی بنووسە.",emLong:"ئیمەیڵەکە زۆر درێژە.",
+ emTemp:"ئیمەیڵی کاتییە — ئیمەیڵی هەمیشەیی بەکاربهێنە.",
+ emRole:"ئەمە ئیمەیڵێکی گشتییە نەک کەسی — دڵنیا بە هی تۆیە.",
+ emDid:"مەبەستت",emFix:"چاکی بکە",emGmailShort:"ناوی Gmail دەبێت ٦ پیت یان زیاتر بێت.",
+ lockT:"ژمارەی وەرگرتنی داواکاری",lockD:"هەموو داواکارییەک بۆ ئەم ژمارەیە دەچێت — قوفڵدراوە و ناگۆڕدرێت.",
+ oEmail:"ئیمەیڵ",
  setDb:"بنکەی زانیاری",dbWait:"پشکنین…",dbOn:"پەیوەندی هەیە ✓",dbOff:"ناگات — ئینتەرنێت بپشکنە",
  dbKey:"کلیل ڕەتکرایەوە",dbTable:"پەیوەندی هەیە — خشتەکان نین",
  oCode:"ژمارەی داواکاری",
@@ -1251,6 +1375,12 @@ document.getElementById('settings-btn').onclick=()=>{
   const themes=`<button class="setopt" data-theme="light" aria-pressed="${!dark}"><span><b>☀ ${x.light}</b><small>${x.lightD}</small></span><span class="dot"></span></button>
     <button class="setopt" data-theme="dark" aria-pressed="${dark}"><span><b>🌙 ${x.dark}</b><small>${x.darkD}</small></span><span class="dot"></span></button>`;
   openSheet(`<h3 style="font-size:19px">${x.setT}</h3>
+    <p class="setlabel">${x.profT}</p>
+    <div class="info" style="margin:0"><div class="item" id="set-prof" style="cursor:pointer;align-items:center">
+      ${avHTML("avmini")}
+      <div style="min-width:0;flex:1"><b>${esc(profName()||x.guestName)}</b>
+        <span class="mono" style="font-size:11.5px;color:var(--muted);overflow-wrap:anywhere">${esc(profile.email||x.emailPh)}</span></div>
+      <span class="link" style="flex:none;color:var(--brand);font-weight:600">${x.editProf} ›</span></div></div>
     <p class="setlabel">${x.setLang}</p><div class="setgrid">${langs}</div>
     <p class="setlabel">${x.setFont}</p><div class="setgrid">${fonts}</div>
     <p class="setlabel">${x.setTheme}</p><div class="setgrid">${themes}</div>
@@ -1266,6 +1396,7 @@ document.getElementById('settings-btn').onclick=()=>{
     if(card) card.setAttribute('aria-pressed', st==="on"?"true":"false");
   });
   document.getElementById('set-done').onclick=closeSheet;
+  document.getElementById('set-prof').onclick=openProfile;
   sheet.querySelectorAll('[data-lang]').forEach(b=>b.onclick=()=>{lang=b.dataset.lang;fontIdx=0;fillUI();document.getElementById('settings-btn').click()});
   sheet.querySelectorAll('[data-font]').forEach(b=>b.onclick=()=>{fontIdx=+b.dataset.font;fillUI();document.getElementById('settings-btn').click()});
   sheet.querySelectorAll('[data-theme]').forEach(b=>b.onclick=()=>{setTheme(b.dataset.theme==='dark');document.getElementById('settings-btn').click()});
@@ -1331,9 +1462,10 @@ document.addEventListener('click',e=>{
   document.getElementById('add-cart').onclick=()=>{
     if(!check())return; saveCustomer();
     const it=readItem(); cart.push(it); orderCode=null; paintBadge();
-    const row=quickOrderRow(newCode(),it);
-    saveOrder(row);                                   /* يبدأ الحفظ بالقاعدة فوراً */
-    open("https://wa.me/"+WA+"?text="+encodeURIComponent(row.message),"_blank");
+    let row=null;
+    try{ row=quickOrderRow(newCode(),it) }catch(e){ console.warn("[order]",e) }
+    openWA(row?row.message:itemText(it,newCode()));   /* الوجهة: رقم المعرض المقفول */
+    if(row) saveOrder(row);
     closeSheet(); toast(t().tSent);
   };
 });
@@ -1343,6 +1475,7 @@ const dimsOf=it=>(it.w||it.h)?`${it.w||"?"} × ${it.h||"?"} ${t().unit}`:t().dim
 function itemText(it,code){
   const x=t(), m=modelOf(it.id);
   return [x.oTitle,x.oCode+": "+code,"",x.oName+": "+customer.name,x.oPhone+": "+customer.phone,
+    ...(profile.email?[x.oEmail+": "+profile.email]:[]),
     x.oLoc+": "+(customer.area||x.oNone),"",
     x.oProduct+": "+m.n[li()],x.oQty+": "+it.qty,x.oSize+": "+dimsOf(it)+" "+x.wh,
     x.oGlass+": "+it.glass,x.oColor+": "+it.color].join("\n");
@@ -1350,6 +1483,7 @@ function itemText(it,code){
 function orderText(code){
   const x=t();
   const L=[x.oTitle,x.oCode+": "+code,"",x.oName+": "+v('c-name'),x.oPhone+": "+v('c-phone')];
+  if(profile.email) L.push(x.oEmail+": "+profile.email);
   if(v('c-area')) L.push(x.oLoc+": "+v('c-area'));
   L.push(x.oVisit+": "+v('c-date')+" — "+v('c-time'),"",x.oOrder);
   cart.forEach((it,i)=>{const m=modelOf(it.id);
@@ -1376,6 +1510,292 @@ function restore(){
 }
 const modelOf=id=>MODELS.find(z=>z.id===id)||
   {id,c:"",n:["—","—","—"],s:["","",""],d:["","",""],t:[[],[],[]],w:1,h:1,cols:1};
+
+/* ═══════════════════════════════════════════════════════════════════
+   الملف الشخصي: صورة الزبون + بريده — مع تحقّق ذكي للبريد
+   الصورة تنضغط بالمتصفح وتنحفظ بجهاز الزبون (localStorage) فقط.
+   ═══════════════════════════════════════════════════════════════════ */
+const LS_PROF="ha_profile_v1";
+let profile={name:"",email:"",avatar:"",emailOk:false,updated:0};
+function profBoot(){
+  const d=lsGet(LS_PROF); if(!d||typeof d!=="object") return;
+  profile.name   = String(d.name||"");
+  profile.email  = String(d.email||"");
+  profile.avatar = (typeof d.avatar==="string"&&d.avatar.indexOf("data:image")===0)?d.avatar:"";
+  profile.emailOk= !!d.emailOk;
+  profile.updated= +d.updated||0;
+  if(!customer.name&&profile.name){ customer.name=profile.name; persist() }
+}
+function profSave(){ profile.updated=Date.now(); lsSet(LS_PROF,profile) }
+const profName=()=>profile.name||(member&&member.name)||customer.name||"";
+const initials=()=>{
+  const n=profName().trim(); if(!n) return "👤";
+  const p=n.split(/\s+/).filter(Boolean);
+  return ((p[0]||"").charAt(0)+(p[1]||"").charAt(0)).toUpperCase()||n.charAt(0).toUpperCase();
+};
+const avHTML=(cls)=>profile.avatar
+  ? `<div class="${cls}"><img src="${esc(profile.avatar)}" alt=""></div>`
+  : `<div class="${cls}"><span class="ini">${esc(initials())}</span></div>`;
+
+/* ─── ضغط الصورة: قص مربّع من الوسط + تصغير + JPEG ─── */
+function readAvatar(file,done){
+  const x=t();
+  if(!file) return;
+  if(!/^image\//i.test(file.type||"")){ toast(x.avBad); return }
+  if(file.size>15*1024*1024){ toast(x.avBig); return }
+  const fr=new FileReader();
+  fr.onerror=()=>toast(x.avBad);
+  fr.onload=()=>{
+    const img=new Image();
+    img.onerror=()=>toast(x.avBad);
+    img.onload=()=>{
+      try{
+        const S=320, c=document.createElement('canvas'); c.width=S; c.height=S;
+        const g=c.getContext('2d'), side=Math.min(img.width,img.height);
+        g.drawImage(img,(img.width-side)/2,(img.height-side)/2,side,side,0,0,S,S);
+        let q=.82, out=c.toDataURL("image/jpeg",q);
+        while(out.length>190000&&q>.38){ q-=.12; out=c.toDataURL("image/jpeg",q) }
+        done(out);
+      }catch(e){ toast(x.avBad) }
+    };
+    img.src=fr.result;
+  };
+  fr.readAsDataURL(file);
+}
+
+/* ══════════════ التحقّق الذكي من البريد ══════════════
+   ١) تنظيف: يشيل الفراغات والرموز المخفية ويحوّل الأرقام العربية
+   ٢) فحص بنيوي كامل (قبل/بعد @، النقاط، الامتداد…)
+   ٣) كشف الأخطاء المطبعية واقتراح التصحيح (gmial → gmail)
+   ٤) تحذير من البريد المؤقّت والبريد العام (info@ …)
+   ٥) فحص حيّ للنطاق عبر DNS: هل يستقبل بريد فعلاً؟          */
+const POPULAR=["gmail.com","googlemail.com","yahoo.com","yahoo.co.uk","hotmail.com","hotmail.co.uk",
+  "outlook.com","outlook.sa","live.com","msn.com","icloud.com","me.com","aol.com","proton.me",
+  "protonmail.com","yandex.com","mail.ru","zoho.com","gmx.com","fastmail.com","mail.com","edu.iq"];
+const TEMP_MAIL=["mailinator.com","guerrillamail.com","10minutemail.com","tempmail.com","temp-mail.org",
+  "yopmail.com","sharklasers.com","trashmail.com","throwawaymail.com","getnada.com","maildrop.cc",
+  "dispostable.com","fakeinbox.com","mailnesia.com","emailondeck.com","moakt.com","tempr.email",
+  "mohmal.com","tmpmail.org","spam4.me","mailcatch.com","minuteinbox.com","1secmail.com"];
+const ROLE_BOX=["info","admin","support","sales","contact","noreply","no-reply","help","service",
+  "webmaster","postmaster","office","team","billing"];
+/* امتدادات غلط شائعة — ‎.co‎ و‎.cm‎ مو موجودة هنا لأنهن امتدادات حقيقية */
+const TLD_FIX={con:"com",cpm:"com",cmo:"com",ocm:"com",comm:"com",vom:"com",xom:"com",clm:"com",
+  cim:"com",coom:"com",ney:"net",nte:"net",ner:"net",ogr:"org",orh:"org",prg:"org"};
+
+function emailClean(raw){
+  let s=String(raw||"");
+  s=s.replace(/[\u200B-\u200F\u202A-\u202E\uFEFF]/g,"");                 /* رموز اتجاه مخفية */
+  s=s.replace(/[٠-٩]/g,d=>"٠١٢٣٤٥٦٧٨٩".indexOf(d))
+     .replace(/[۰-۹]/g,d=>"۰۱۲۳۴۵۶۷۸۹".indexOf(d));                     /* أرقام عربية/فارسية */
+  s=s.replace(/[＠﹫]/g,"@").replace(/[。｡]/g,".").replace(/[،؛]/g,".");
+  return s.replace(/\s+/g,"").toLowerCase();
+}
+function lev(a,b){                                                       /* مسافة التحرير */
+  if(a===b) return 0;
+  const m=a.length,n=b.length; if(!m||!n) return m||n;
+  let prev=Array.from({length:n+1},(_,j)=>j), cur=new Array(n+1);
+  for(let i=1;i<=m;i++){ cur[0]=i;
+    for(let j=1;j<=n;j++) cur[j]=Math.min(prev[j]+1,cur[j-1]+1,prev[j-1]+(a[i-1]===b[j-1]?0:1));
+    [prev,cur]=[cur,prev]; }
+  return prev[n];
+}
+function nearDomain(d){
+  if(POPULAR.indexOf(d)>-1) return null;
+  let best=null,bd=9;
+  POPULAR.forEach(p=>{ const k=lev(d,p); if(k<bd){bd=k;best=p} });
+  const lim = bd<=1 ? 1 : (best&&best.length>=9 ? 2 : 1);
+  return (best&&bd<=lim&&bd>0)?best:null;
+}
+/* يرجّع {s:الحالة, m:النص, fix:الاقتراح} — الحالات: empty|bad|fix|warn|ok */
+function emailCheck(raw){
+  const x=t(), v=emailClean(raw);
+  if(!v) return {s:"empty",m:x.emailHint};
+  if(/[\u0600-\u06FF]/.test(v)) return {s:"bad",m:x.emAr};
+  if(/\s/.test(String(raw))&&!/@/.test(v)) return {s:"bad",m:x.emSpace};
+  if(v.length>254) return {s:"bad",m:x.emLong};
+  const at=v.split("@").length-1;
+  if(at===0) return {s:"bad",m:x.emAt};
+  if(at>1)  return {s:"bad",m:x.emAt2};
+  const i=v.lastIndexOf("@"), loc=v.slice(0,i); let dom=v.slice(i+1);
+  if(!loc||loc.length>64||!/^[a-z0-9.!#$%&'*+/=?^_`{|}~-]+$/.test(loc)) return {s:"bad",m:x.emLocal};
+  if(loc.startsWith(".")||loc.endsWith(".")) return {s:"bad",m:x.emEdge};
+  if(loc.indexOf("..")>-1) return {s:"bad",m:x.emDot};
+  if(!dom) return {s:"bad",m:x.emDom};
+  dom=dom.replace(/\.+$/,"");
+  if(dom.indexOf("..")>-1) return {s:"bad",m:x.emDot};
+  if(dom.indexOf(".")<0){                       /* نسى النقطة: gmailcom → gmail.com */
+    const g=POPULAR.find(p=>p.replace(".","")===dom);
+    return {s:"bad",m:x.emDom,fix:g?loc+"@"+g:null};
+  }
+  const labs=dom.split(".");
+  for(const l of labs){
+    if(!l||l.length>63||!/^[a-z0-9-]+$/.test(l)||l.startsWith("-")||l.endsWith("-"))
+      return {s:"bad",m:x.emDom};
+  }
+  const tld=labs[labs.length-1];
+  if(!/^[a-z]{2,24}$/.test(tld)) return {s:"bad",m:x.emTld};
+  /* اقتراح تصحيح: ما يمنع الحفظ — الزبون يقرر، وفحص الـDNS يجي بعده */
+  if(TLD_FIX[tld])
+    return {s:"fix",m:x.emDid,fix:loc+"@"+labs.slice(0,-1).join(".")+"."+TLD_FIX[tld],v:loc+"@"+dom,dom};
+  const near=nearDomain(dom);
+  if(near) return {s:"fix",m:x.emDid,fix:loc+"@"+near,v:loc+"@"+dom,dom};
+  if(TEMP_MAIL.indexOf(dom)>-1) return {s:"warn",m:x.emTemp,v:loc+"@"+dom,dom};
+  if(ROLE_BOX.indexOf(loc.split("+")[0])>-1) return {s:"warn",m:x.emRole,v:loc+"@"+dom,dom};
+  if(dom==="gmail.com"||dom==="googlemail.com"){
+    const base=loc.split("+")[0].replace(/\./g,"");
+    if(!/^[a-z0-9]{6,30}$/.test(base)) return {s:"warn",m:x.emGmailShort,v:loc+"@"+dom,dom};
+  }
+  return {s:"ok",m:x.emOk,v:loc+"@"+dom,dom};
+}
+/* فحص النطاق بالـ DNS-over-HTTPS — يشتغل بدون سيرفر، وإذا ما وصل ينتجاهل بهدوء */
+const mxMemo=new Map();
+async function domainLive(dom){
+  if(mxMemo.has(dom)) return mxMemo.get(dom);
+  const ask=async(url,head)=>{
+    const c=new AbortController(), tm=setTimeout(()=>c.abort(),6500);
+    try{ const r=await fetch(url,{signal:c.signal,headers:head||{}});
+         if(!r.ok) throw new Error("dns"); return await r.json() }
+    finally{ clearTimeout(tm) }
+  };
+  const read=(j,type)=>{
+    if(!j) return null;
+    if(j.Status===3) return "nodomain";
+    if(j.Status!==0) return null;
+    return ((j.Answer||[]).some(a=>a.type===type))?"yes":"no";
+  };
+  let out="unknown";
+  try{
+    const q=encodeURIComponent(dom);
+    let mx=null;
+    try{ mx=read(await ask("https://cloudflare-dns.com/dns-query?name="+q+"&type=MX",{accept:"application/dns-json"}),15) }
+    catch(e){ mx=read(await ask("https://dns.google/resolve?name="+q+"&type=MX"),15) }
+    if(mx==="yes") out="mx";
+    else if(mx==="nodomain") out="nodomain";
+    else if(mx==="no"){
+      let a=null;
+      try{ a=read(await ask("https://cloudflare-dns.com/dns-query?name="+q+"&type=A",{accept:"application/dns-json"}),1) }
+      catch(e){ a=null }
+      out = a==="yes" ? "nomx" : a==="nodomain" ? "nodomain" : "unknown";
+    }
+  }catch(e){ out="unknown" }                     /* ما توفر إنترنت/محجوب → ننتجاهل */
+  mxMemo.set(dom,out);
+  return out;
+}
+/* يربط حقل بريد بالفحص الحيّ: علامة ✓/✕ + سطر توضيح + زر تصحيح */
+function bindEmail(inp,hint,mark,after){
+  let timer=null, seq=0;
+  const qm=()=>t().dir==="rtl"?"؟":"?";
+  const paint=(cls,msg,markTxt,fix,busy)=>{
+    hint.className="hint "+cls;
+    hint.innerHTML=(busy?`<span class="spin"></span>`:``)
+      +`<span>${esc(msg)}${fix?` <b class="mono">${esc(fix)}</b>${qm()}`:``}</span>`
+      +(fix?`<button class="fixbtn" id="em-fix">${esc(t().emFix)}</button>`:``);
+    mark.textContent=markTxt||"";
+    mark.classList.toggle("on",!!markTxt);
+    mark.style.color = cls==="ok"?"var(--green)" : cls==="bad"?"#E2685A" : cls==="warn"?"var(--amber)":"var(--muted)";
+    const b=hint.querySelector("#em-fix");
+    if(b&&fix) b.onclick=()=>{ inp.value=fix; run(true) };
+  };
+  const tell=(val,good)=>{ profile.emailOk=!!good; after&&after(good?val:"",!!good) };
+  function run(deep){
+    const x=t(), r=emailCheck(inp.value), my=++seq;
+    if(r.s==="empty"){ paint("mute",x.emailHint,""); tell("",false); return }
+    if(r.s==="bad"){ paint("bad",r.m,"✕",r.fix); tell("",false); return }   /* غلط بنيوي → يمنع */
+    const cls = r.s==="ok" ? "ok" : "warn";
+    const base= r.s==="fix" ? x.emDid : r.m;                                /* اقتراح/تنبيه → ما يمنع */
+    paint(cls,base,cls==="ok"?"✓":"!",r.fix);
+    tell(r.v||"",true);
+    if(!deep||!r.dom) return;
+    paint("mute",x.emChecking,"",null,true);                                /* فحص حيّ للنطاق */
+    domainLive(r.dom).then(st=>{
+      if(my!==seq) return;                                   /* المستخدم كتب شي جديد */
+      const y=t();
+      if(st==="nodomain"){ paint("bad",y.emNoDom,"✕",r.fix); tell("",false); return }
+      if(st==="nomx"){ paint("warn",y.emNoMx,"!",r.fix); return }
+      if(st==="mx"&&r.s==="ok"){ paint("ok",y.emLive,"✓"); return }
+      paint(cls,base,cls==="ok"?"✓":"!",r.fix);              /* ما وصل الفحص — نكتفي بالشكل */
+    });
+  }
+  inp.addEventListener('input',()=>{ clearTimeout(timer); run(false); timer=setTimeout(()=>run(true),750) });
+  inp.addEventListener('blur',()=>{ const c=emailClean(inp.value); if(c!==inp.value) inp.value=c; run(true) });
+  run(!!inp.value.trim());
+}
+
+/* ─── ورقة الملف الشخصي ─── */
+function openProfile(){
+  const x=t();
+  openSheet(`<h3 style="font-size:19px">${x.profT}</h3>
+    <p class="sub" style="font-size:13px;margin-top:6px">${x.profD}</p>
+    <div class="avwrap">
+      <div id="pf-slot">${avHTML("av")}</div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button class="fixbtn" id="pf-pick">${profile.avatar?x.avChange:x.avPick}</button>
+        <span id="pf-delbox">${profile.avatar?`<button class="avdel" id="pf-del">${x.avDel}</button>`:``}</span>
+      </div>
+      <p class="avhint">${x.avHint}</p>
+    </div>
+    <input type="file" id="pf-file" accept="image/*" style="display:none">
+    <div class="opt"><label for="pf-name">${x.lname}</label>
+      <input class="ctrl" id="pf-name" autocomplete="name" placeholder="${x.namePh}" value="${esc(profName())}"></div>
+    <div class="opt"><label for="pf-phone">${x.lphone}</label>
+      <input class="ctrl mono" id="pf-phone" type="tel" inputmode="numeric" placeholder="07XXXXXXXXX"
+        value="${esc(customer.phone||(member?member.phone:"")||"")}"></div>
+    <div class="opt"><label for="pf-email">${x.emailL}</label>
+      <div class="fieldwrap">
+        <input class="ctrl mono" id="pf-email" type="email" inputmode="email" autocomplete="email"
+          dir="ltr" spellcheck="false" placeholder="${x.emailPh}" value="${esc(profile.email)}">
+        <span class="fmark" id="pf-mark"></span>
+      </div>
+      <div class="hint mute" id="pf-hint">${x.emailHint}</div></div>
+    <div class="lockrow">
+      <svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
+      <div style="min-width:0"><b>${x.lockT}</b>
+        <span class="mono" style="font-size:13px">0790 469 4393</span>
+        <small>${x.lockD}</small></div></div>
+    <div class="acts"><button class="btn btn-p" id="pf-save">${x.profSave}</button></div>`);
+
+  /* تحديث الصورة بمكانها — بدون ما نعيد بناء الورقة ونضيّع اللي كتبه الزبون */
+  const refreshAv=()=>{
+    const y=t(), slot=document.getElementById('pf-slot'), pick=document.getElementById('pf-pick'),
+          box=document.getElementById('pf-delbox');
+    if(slot) slot.innerHTML=avHTML("av");
+    if(pick) pick.textContent=profile.avatar?y.avChange:y.avPick;
+    if(box){
+      box.innerHTML=profile.avatar?`<button class="avdel" id="pf-del">${y.avDel}</button>`:``;
+      const d=document.getElementById('pf-del');
+      if(d) d.onclick=()=>{ profile.avatar=""; profSave(); renderAcct(); toast(t().avGone); refreshAv() };
+    }
+  };
+  const file=document.getElementById('pf-file');
+  document.getElementById('pf-pick').onclick=()=>file.click();
+  file.onchange=()=>{
+    readAvatar(file.files&&file.files[0],out=>{
+      profile.avatar=out; profSave(); renderAcct(); toast(t().avSet); refreshAv();
+    });
+    file.value="";                       /* حتى نفس الصورة تنقبل مرة ثانية */
+  };
+  const del0=document.getElementById('pf-del');
+  if(del0) del0.onclick=()=>{ profile.avatar=""; profSave(); renderAcct(); toast(t().avGone); refreshAv() };
+
+  const inp=document.getElementById('pf-email');
+  bindEmail(inp,document.getElementById('pf-hint'),document.getElementById('pf-mark'));
+
+  document.getElementById('pf-save').onclick=()=>{
+    const y=t(), nm=document.getElementById('pf-name').value.trim(),
+          ph=document.getElementById('pf-phone').value.replace(/\s/g,"").trim(),
+          r=emailCheck(inp.value);
+    if(r.s==="bad"||r.s==="fix"){ toast(r.s==="fix"?y.emDid+" "+r.fix:r.m); inp.focus(); return }
+    if(ph&&!okPhone(ph)){ toast(y.errP); return }
+    profile.name=nm; profile.email=(r.s==="ok"||r.s==="warn")?(r.v||""):""; profile.emailOk=!!profile.email;
+    profSave();
+    if(nm) customer.name=nm;
+    if(ph) customer.phone=ph;
+    persist();
+    ['c-name','c-phone'].forEach((id,k)=>{ const el=document.getElementById(id), val=[nm,ph][k];
+      if(el&&val) el.value=val });
+    renderAcct(); closeSheet(); toast(y.profSaved);
+  };
+}
 
 /* ═══════════ حساب الزبون والنقاط ═══════════ */
 let member=null;                       /* {phone,name,area,points} */
@@ -1425,13 +1845,21 @@ function openMember(mode){
     ${reg?`<div class="opt"><label for="m-name">${x.lname}</label>
       <input class="ctrl" id="m-name" placeholder="${x.namePh}" value="${esc(customer.name||"")}"></div>
     <div class="opt"><label for="m-area">${x.larea}</label>
-      <input class="ctrl" id="m-area" placeholder="${x.areaPh}" value="${esc(customer.area||"")}"></div>`:``}
+      <input class="ctrl" id="m-area" placeholder="${x.areaPh}" value="${esc(customer.area||"")}"></div>
+    <div class="opt"><label for="m-email">${x.emailL}</label>
+      <div class="fieldwrap">
+        <input class="ctrl mono" id="m-email" type="email" inputmode="email" autocomplete="email"
+          dir="ltr" spellcheck="false" placeholder="${x.emailPh}" value="${esc(profile.email||"")}">
+        <span class="fmark" id="m-mark"></span></div>
+      <div class="hint mute" id="m-hint">${x.emailHint}</div></div>`:``}
     <div class="opt"><label for="m-pin">${x.pinL}</label>
       <input class="ctrl mono" id="m-pin" type="tel" inputmode="numeric" maxlength="6" placeholder="${x.pinPh}">
       <p class="sub" style="font-size:11.5px;margin-top:6px">${x.pinHint}</p></div>
     <div class="acts"><button class="btn btn-p" id="m-go">${reg?x.regT:x.logT}</button>
       <button class="btn btn-o" id="m-swap">${reg?x.haveAcct:x.noAcct}</button></div>`);
   document.getElementById('m-swap').onclick=()=>openMember(reg?"log":"reg");
+  if(reg) bindEmail(document.getElementById('m-email'),
+    document.getElementById('m-hint'),document.getElementById('m-mark'));
   document.getElementById('m-go').onclick=async()=>{
     const ph=document.getElementById('m-phone').value.replace(/\s/g,"").trim();
     const pin=document.getElementById('m-pin').value.trim();
@@ -1444,8 +1872,13 @@ function openMember(mode){
         const nm=document.getElementById('m-name').value.trim();
         const ar=document.getElementById('m-area').value.trim();
         if(!nm){ toast(x.errN); btn.disabled=false; return }
+        const em=emailCheck(document.getElementById('m-email').value);
+        if(em.s==="bad"||em.s==="fix"){ toast(em.s==="fix"?x.emDid+" "+em.fix:em.m);
+          document.getElementById('m-email').focus(); btn.disabled=false; return }
         r=await sbRpc("customer_register",{p_phone:ph,p_pin:pin,p_name:nm,p_area:ar||null});
         customer.name=nm; customer.phone=ph; if(ar) customer.area=ar; persist();
+        profile.name=nm; if(em.s==="ok"||em.s==="warn"){ profile.email=em.v||""; profile.emailOk=true }
+        profSave();
       }else{
         r=await sbRpc("customer_login",{p_phone:ph,p_pin:pin});
         if(r&&r[0]){ customer.phone=ph; if(!customer.name&&r[0].name) customer.name=r[0].name; persist() }
@@ -1463,8 +1896,12 @@ function renderAcct(){
   if(member){
     const pts=+member.points||0, pct=Math.min(100,pts/POINTS.GIFT*100);
     const left=Math.max(0,POINTS.GIFT-pts);
-    box.innerHTML=`<div class="info" style="margin:0"><div class="item"><div class="ic">◉</div>
-        <div><b>${esc(member.name||"")}</b><span class="mono">${esc(member.phone)}</span></div></div></div>
+    box.innerHTML=`<div class="info" style="margin:0"><div class="item" id="acct-head" style="cursor:pointer;align-items:center">
+        ${avHTML("avmini")}
+        <div style="min-width:0;flex:1"><b>${esc(profName()||member.name||"")}</b>
+          <span class="mono">${esc(member.phone)}</span>
+          ${profile.email?`<span class="mono" style="font-size:11.5px;color:var(--muted);overflow-wrap:anywhere">${esc(profile.email)}</span>`:``}</div>
+        <span class="link" style="flex:none;color:var(--brand);font-weight:600">${x.editProf} ›</span></div></div>
       <div class="opt" style="margin-top:12px;text-align:center">
         <div class="mono" style="font-size:32px;font-weight:700;color:var(--brand);line-height:1.2">${fmt(pts)}</div>
         <div class="sub" style="font-size:12.5px">${x.pointsL}</div>
@@ -1477,13 +1914,21 @@ function renderAcct(){
       <div class="pair" style="margin-top:10px">
         <button class="btn btn-p" id="acct-orders">${x.myOrders}</button>
         <button class="btn btn-o" id="acct-out">${x.logout}</button></div>`;
+    document.getElementById('acct-head').onclick=openProfile;
     document.getElementById('acct-orders').onclick=openOrders;
     document.getElementById('acct-out').onclick=memberOut;
   }else{
-    box.innerHTML=`<p class="sub" style="font-size:13px;margin:-6px 0 10px">
+    box.innerHTML=`<div class="info" style="margin:0 0 12px"><div class="item" id="acct-head" style="cursor:pointer;align-items:center">
+        ${avHTML("avmini")}
+        <div style="min-width:0;flex:1"><b>${esc(profName()||x.guestName)}</b>
+          ${profile.email?`<span class="mono" style="font-size:11.5px;color:var(--muted);overflow-wrap:anywhere">${esc(profile.email)}</span>`
+            :`<span style="font-size:11.5px;color:var(--muted)">${esc(x.profD)}</span>`}</div>
+        <span class="link" style="flex:none;color:var(--brand);font-weight:600">${x.editProf} ›</span></div></div>
+      <p class="sub" style="font-size:13px;margin:-6px 0 10px">
         ${noteTxt()}</p>
       <div class="pair"><button class="btn btn-p" id="acct-reg">${x.regT}</button>
         <button class="btn btn-o" id="acct-log">${x.logT}</button></div>`;
+    document.getElementById('acct-head').onclick=openProfile;
     document.getElementById('acct-reg').onclick=()=>openMember("reg");
     document.getElementById('acct-log').onclick=()=>openMember("log");
   }
@@ -1522,7 +1967,7 @@ const itemRow=it=>{
 };
 function cartOrderRow(code){
   return Object.assign({code,lang,source:"cart",
-    user_id:user?user.id:null,user_email:user?user.email:null,
+    user_id:member?member.phone:null,user_email:profile.email||null,
     customer_name:v('c-name'),customer_phone:v('c-phone'),customer_area:v('c-area')||null,
     visit_date:v('c-date')||null,visit_time:v('c-time')||null,notes:v('c-note')||null,
     items:cart.map(itemRow),total_qty:cart.reduce((s,i)=>s+i.qty,0),
@@ -1530,7 +1975,7 @@ function cartOrderRow(code){
 }
 function quickOrderRow(code,it){
   return Object.assign({code,lang,source:"quick",
-    user_id:user?user.id:null,user_email:user?user.email:null,
+    user_id:member?member.phone:null,user_email:profile.email||null,
     customer_name:customer.name,customer_phone:customer.phone,customer_area:customer.area||null,
     visit_date:null,visit_time:null,notes:null,
     items:[itemRow(it)],total_qty:it.qty,
@@ -1543,8 +1988,18 @@ const savedCodes=new Set();
 async function saveOrder(row){
   if(savedCodes.has(row.code)){ toast(t().tSaved+" "+row.code); return }   /* لا تكرار */
   savedCodes.add(row.code);
-  try{ await sbInsert(SUPABASE.T.orders,row); toast(t().tSaved+" "+row.code);
-    setTimeout(memberRefresh,1200) }
+  try{
+    try{ await sbInsert(SUPABASE.T.orders,row) }
+    catch(e1){
+      /* الجدول القديم ما بيه عمودَي user_id/user_email → نعيد الحفظ بدونهن
+         (تكدر تضيفهن بالـ SQL المذكور فوك حتى ينحفظ بريد الزبون بعد) */
+      const m=String(e1&&e1.message||e1);
+      if(!/PGRST204|column|schema cache/i.test(m)) throw e1;
+      const slim=Object.assign({},row); delete slim.user_id; delete slim.user_email;
+      await sbInsert(SUPABASE.T.orders,slim);
+    }
+    toast(t().tSaved+" "+row.code); setTimeout(memberRefresh,1200);
+  }
   catch(e){ savedCodes.delete(row.code); console.warn("[supabase] order:",e); toast(t().tSaveFail) }
 }
 async function saveBug(text){
@@ -1637,9 +2092,12 @@ function validate(){
 document.getElementById('send').onclick=()=>{
   if(!cart.length){toast(t().tCartEmpty);return}
   if(!validate())return;
-  const row=cartOrderRow(currentCode());
-  saveOrder(row);                                     /* يبدأ الحفظ بالقاعدة فوراً */
-  open("https://wa.me/"+WA+"?text="+encodeURIComponent(row.message),"_blank");
+  let row=null;
+  try{ row=cartOrderRow(currentCode()) }catch(e){ console.warn("[order]",e) }
+  /* واتساب أولاً وهو داخل ضغطة المستخدم — حتى لو صار أي خطأ بالحفظ */
+  openWA(row?row.message:orderText(currentCode()));
+  if(row) saveOrder(row);                             /* الحفظ يكمل بالخلفية (keepalive) */
+  toast(t().tSent);
 };
 document.getElementById('copy').onclick=async()=>{
   if(!cart.length){toast(t().tCartEmpty);return}
@@ -1654,7 +2112,7 @@ document.getElementById('send-bug').onclick=()=>{
   if(!b.value.trim()){toast(x.tBugEmpty);b.focus();return}
   const info="\n\n---\n"+x.tech+" "+screen.width+"x"+screen.height+" · "+navigator.userAgent.slice(0,80);
   saveBug(b.value.trim());                            /* ينحفظ بجدول bug_reports */
-  open("https://wa.me/"+WA+"?text="+encodeURIComponent(x.bugMsgT+"\n\n"+b.value.trim()+info),"_blank");
+  openWA(x.bugMsgT+"\n\n"+b.value.trim()+info);
   toast(x.tThanks);
 };
 document.addEventListener('click',e=>{
@@ -1771,6 +2229,7 @@ document.getElementById('wa-plain').href="https://wa.me/"+WA;
 document.getElementById('map-link').href="https://www.google.com/maps/search/?api=1&query="+encodeURIComponent("بلد شارع المحيط معمل الزهور");
 const dt=document.getElementById('c-date'); dt.min=new Date().toISOString().slice(0,10); dt.value=dt.min;
 restore();                                    /* يرجّع السلة والمعلومات والإعدادات */
+profBoot();                                   /* يرجّع صورة الزبون وبريده */
 if(dark) setTheme(true);
 ['c-name','c-phone','c-area'].forEach((id,k)=>{
   const el=document.getElementById(id); if(!el) return;
