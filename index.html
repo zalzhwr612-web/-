@@ -51,7 +51,7 @@ button,input,select,textarea{font-family:inherit;font-size:inherit;color:inherit
 a{color:inherit;text-decoration:none}
 #sky{position:fixed;inset:0;z-index:0;display:none;pointer-events:none}
 body.dark #sky{display:block}
-.app{max-width:520px;margin:0 auto;min-height:100vh;position:relative;z-index:1}
+.app{max-width:520px;margin:0 auto;min-height:100vh;min-height:100dvh;position:relative;z-index:1}
 
 /* شفق الهيدر */
 .aurora{position:absolute;inset:0;overflow:hidden;pointer-events:none}
@@ -89,7 +89,7 @@ main{padding-bottom:calc(var(--tabh) + 30px);position:relative}
 .view.on{display:block}
 @keyframes rise{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 .sec{padding:20px var(--pad) 0}
-.sechead{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:12px}
+.sechead{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:12px}
 .sechead h2{font-size:17px}
 .link{color:var(--brand);font-size:13px;font-weight:600;background:0;border:0;cursor:pointer;padding:0;transition:color var(--T)}
 .sub{color:var(--muted);font-size:13.5px;margin:0}
@@ -142,9 +142,9 @@ body.dark .price,body.dark .link,body.dark .pill{color:var(--brand-3)}
 .empty{text-align:center;padding:40px var(--pad);color:var(--muted)}
 .empty b{display:block;font-size:15px;color:var(--ink);margin-bottom:4px}
 
-.scrim{position:fixed;inset:0;background:rgba(5,8,16,.6);z-index:60;opacity:0;pointer-events:none;transition:.25s}
+.scrim{position:fixed;inset:0;background:rgba(5,8,16,.6);z-index:90;opacity:0;pointer-events:none;transition:.25s}
 .scrim.on{opacity:1;pointer-events:auto}
-.sheet{position:fixed;inset-inline:0;bottom:0;z-index:61;max-width:520px;margin:0 auto;background:var(--cardb);
+.sheet{position:fixed;inset-inline:0;bottom:0;z-index:91;max-width:520px;margin:0 auto;background:var(--cardb);
   border-radius:24px 24px 0 0;padding:8px var(--pad) calc(18px + env(safe-area-inset-bottom));
   transform:translateY(102%);transition:transform .3s cubic-bezier(.2,.8,.2,1);max-height:90vh;overflow:auto;
   border-top:1px solid var(--line)}
@@ -416,10 +416,10 @@ body.dark .msg-av .ini{color:var(--brand-3)}
 .chat-ticks.read svg{stroke:#4FC3F7;opacity:1}
 
 /* شاشة المحادثة */
-.chat-screen{position:fixed;inset:0;z-index:80;background:var(--m-bg);display:none;flex-direction:column;
+.chat-screen{position:fixed;inset:0;height:100dvh;z-index:80;background:var(--m-bg);display:none;flex-direction:column;
   max-width:520px;margin:0 auto;transition:background-color var(--T)}
 .chat-screen.on{display:flex}
-.chat-top{display:flex;align-items:center;gap:11px;padding:calc(env(safe-area-inset-top,0px) + 12px) 14px 12px;
+.chat-top{display:flex;align-items:center;gap:8px;min-width:0;padding:calc(env(safe-area-inset-top,0px) + 12px) 12px 12px;
   background:var(--m-head);color:var(--ink);flex:none;border-bottom:1px solid var(--m-sep);
   transition:background-color var(--T),border-color var(--T)}
 .chat-back{width:34px;height:34px;border:0;border-radius:11px;background:transparent;color:var(--ink);
@@ -522,7 +522,7 @@ body.dark .chat-follow-btn{color:var(--brand-3);border-color:var(--brand-3)}
   height:1px;background:var(--m-sep)}
 .follow-item:last-child::after{display:none}
 .follow-item .msg-av{width:46px;height:46px}
-.follow-item b{font-size:14.5px;flex:1;font-weight:700}
+.follow-item b{font-size:14.5px;flex:1;font-weight:700;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .follow-btn{border:0;background:var(--brand);color:#fff;border-radius:12px;
   padding:8px 15px;font-size:12.5px;font-weight:700;cursor:pointer;flex:none;transition:.15s}
 .follow-btn.off{background:var(--m-surface);color:var(--brand)}
@@ -580,8 +580,8 @@ body.dark .follow-btn.off{color:var(--brand-3)}
 .up-cover-edit svg{width:16px;height:16px;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 
 /* الصورة + الأزرار */
-.up-head{display:flex;align-items:flex-start;justify-content:space-between;
-  padding:0 20px;margin-top:-52px;position:relative;z-index:4;flex-direction:row-reverse}
+.up-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;
+  padding:0 20px;margin-top:-52px;position:relative;z-index:4;flex-direction:row-reverse;flex-wrap:nowrap}
 .up-avwrap{position:relative;flex:none}
 .up-av{width:112px;height:112px;border-radius:50%;overflow:hidden;background:var(--m-surface);
   border:4px solid var(--m-bg);display:grid;place-items:center;transition:border-color var(--T)}
@@ -593,19 +593,19 @@ body.dark .up-av .ini{color:var(--brand-3)}
 .up-av-edit{position:absolute;top:6px;inset-inline-start:2px;width:32px;height:32px;border:0;border-radius:50%;
   background:var(--brand);display:grid;place-items:center;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.3)}
 .up-av-edit svg{width:15px;height:15px;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-.up-acts{display:flex;align-items:center;gap:9px;margin-top:62px}
+.up-acts{display:flex;align-items:center;gap:9px;margin-top:62px;flex-wrap:wrap;justify-content:flex-end;min-width:0;flex:1}
 .up-ibtn{width:46px;height:46px;border:0;border-radius:14px;background:var(--m-surface);color:var(--ink);
   display:grid;place-items:center;cursor:pointer;transition:background-color var(--T),transform .15s}
 .up-ibtn svg{width:21px;height:21px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .up-ibtn:active{transform:scale(.93)}
-.up-follow{border:0;border-radius:14px;background:var(--brand);color:#fff;padding:0 26px;height:46px;
+.up-follow{border:0;border-radius:14px;background:var(--brand);color:#fff;padding:0 20px;height:46px;white-space:nowrap;
   font-size:15px;font-weight:700;cursor:pointer;transition:transform .15s,background .18s}
 .up-follow.following{background:var(--m-surface);color:var(--ink)}
 .up-follow:active{transform:scale(.95)}
 
 /* الاسم والنبذة */
 .up-info{padding:16px 20px 0;text-align:end}
-.up-info h2{font-size:26px;font-weight:800;margin:0 0 3px;letter-spacing:-.4px}
+.up-info h2{font-size:26px;font-weight:800;margin:0 0 3px;letter-spacing:-.4px;overflow-wrap:anywhere}
 .up-user{font-family:"IBM Plex Mono",monospace;font-size:14px;color:var(--muted);direction:ltr;
   unicode-bidi:isolate;text-align:end;margin-bottom:12px}
 .up-bio{font-size:14.5px;line-height:1.75;color:var(--ink);opacity:.86;margin:0 0 16px}
@@ -4132,8 +4132,6 @@ async function msgOpenProfile(phone){
   document.getElementById('uprof-screen').classList.add('on');
   /* زائر غير مسجّل دخول لازم ما يُعتبر أبداً "أنا" — حتى لو الأرقام تطابقت بالصدفة وهي فاضية */
   const isMe = isLoggedMsg() && phone===myPhone();
-  /* ▼▼ تشخيص مؤقت — يبيّن القيم الحقيقية. احذف هالسطر بعد ما نلگي المشكلة ▼▼ */
-  toast('ملف: '+phone+' | أنا: '+(myPhone()||'فاضي')+' | isMe: '+isMe);
   /* حالة التحميل */
   document.getElementById('up-name').textContent='…';
   document.getElementById('up-username').textContent='';
