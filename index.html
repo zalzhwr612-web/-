@@ -2492,8 +2492,13 @@ async function rlEncode(o,onprog){
   let AC=null;
   try{
     AC=new (window.AudioContext||window.webkitAudioContext)();
+    /* نفتح AudioContext قبل أي شي — بعض المتصفحات تبدأه suspended */
+    if(AC.state==="suspended"){ try{ await AC.resume() }catch(e){} }
     const dest=AC.createMediaStreamDestination();
-    const sn=AC.createMediaElementSource(vid); sn.connect(dest);
+    const sn=AC.createMediaElementSource(vid);
+    sn.connect(dest);
+    /* نربط الصوت بالسماعات أيضاً حتى يتم التسجيل بشكل صحيح */
+    sn.connect(AC.destination);
     const at=dest.stream.getAudioTracks()[0]; if(at) cstream.addTrack(at);
   }catch(e){ AC=null; }
 
@@ -2514,8 +2519,9 @@ async function rlEncode(o,onprog){
     rec.onerror=e=>reject((e&&e.error)||new Error("rec"));
   });
   rec.start(300);
-  try{ await vid.play() }catch(e){}
+  /* نتأكد AudioContext شغال قبل تشغيل الفيديو */
   if(AC&&AC.state==="suspended"){ try{ await AC.resume() }catch(e){} }
+  try{ await vid.play() }catch(e){}
 
   let raf;
   const draw=()=>{
@@ -2616,15 +2622,39 @@ function rlRenderFeed(){
   /* نقر التشغيل/الإيقاف */
   feed.querySelectorAll(".rl-tap").forEach(btn=>btn.onclick=()=>{
     const it=btn.closest(".rl-item"), v=it.querySelector("video");
-    if(!_rlAudioOn){ rlAudioUnlock(); try{v.muted=false}catch(e){} if(v.paused){v.play();it.classList.remove("paused")} return; }
-    if(v.paused){ v.play(); it.classList.remove("paused"); } else { v.pause(); it.classList.add("paused"); }
+    if(!_rlAudioOn){
+      rlAudioUnlock();
+      /* فتح الصوت لكل الفيديوات المحمّلة */
+      document.querySelectorAll(".rl-item video").forEach(vv=>{ try{vv.muted=false}catch(e){} });
+      if(v.paused){
+        const p=v.play(); if(p&&p.catch) p.catch(()=>{
+          /* لو فشل التشغيل — نعيد muted ونشغل بصمت */
+          v.muted=true; v.play().then(()=>{ v.muted=false; }).catch(()=>{});
+        });
+        it.classList.remove("paused");
+      }
+      return;
+    }
+    if(v.paused){
+      const p=v.play(); if(p&&p.catch) p.catch(()=>{});
+      it.classList.remove("paused");
+    } else { v.pause(); it.classList.add("paused"); }
   });
   /* التشغيل التلقائي للأوضح */
   if(_rlObs) _rlObs.disconnect();
   _rlObs=new IntersectionObserver(es=>{ es.forEach(en=>{
     const it=en.target, v=it.querySelector("video"), r=REELS.find(z=>z.id===it.dataset.id);
     if(en.isIntersecting && en.intersectionRatio>0.6){
-      rlAttach(v,it,r); try{v.muted=!_rlAudioOn}catch(e){} v.play&&v.play().catch(()=>{}); it.classList.remove("paused");
+      rlAttach(v,it,r).then(()=>{
+        try{ v.muted=!_rlAudioOn }catch(e){}
+        const p=v.play();
+        if(p&&p.catch) p.catch(()=>{
+          /* المتصفح منع التشغيل بالصوت — شغّل بصمت ثم حاول فتح الصوت */
+          v.muted=true;
+          v.play().then(()=>{ if(_rlAudioOn){ v.muted=false; } }).catch(()=>{});
+        });
+        it.classList.remove("paused");
+      });
     } else { try{v.pause()}catch(e){} }
   }); },{threshold:[0,0.6,1]});
   feed.querySelectorAll(".rl-item").forEach(it=>_rlObs.observe(it));
@@ -2634,20 +2664,46 @@ async function rlAttach(v,it,r){
   const u=await rlVideoURL(r);
   if(!u){ v.dataset.loaded=""; return; }
   v.src=u;
+  v.load();
   const baked=it.dataset.baked!=="false", start=+it.dataset.start||0, end=+it.dataset.end||0;
   if(!baked && start){ v.addEventListener("loadeddata",()=>{ try{v.currentTime=start}catch(e){} },{once:true}); }
   if(!baked && end){ v.addEventListener("timeupdate",()=>{ if(v.currentTime>=end) v.currentTime=start||0; }); }
   const snd=it.querySelector(".rl-snd"); if(snd&&!_rlAudioOn) snd.hidden=false;
+  /* ننتظر بيانات كافية قبل التشغيل */
+  await new Promise(res=>{
+    if(v.readyState>=2){ res(); return; }
+    v.addEventListener("canplay",res,{once:true});
+    v.addEventListener("error",res,{once:true});
+    /* timeout احتياطي لو التحميل بطيء */
+    setTimeout(res,8000);
+  });
   try{ v.muted=!_rlAudioOn }catch(e){}
-  try{ await v.play() }catch(e){}
+  try{
+    await v.play();
+  }catch(e){
+    /* fallback: شغّل بصمت أولاً ثم حاول فتح الصوت */
+    try{ v.muted=true; await v.play(); if(_rlAudioOn) v.muted=false; }catch(e2){}
+  }
 }
 let _rlAudioOn=false;
 function rlAudioUnlock(){
   if(_rlAudioOn) return; _rlAudioOn=true;
   document.querySelectorAll(".rl-snd").forEach(s=>s.hidden=true);
+  /* فتح الصوت لكل الفيديوات — مو بس الحالي */
+  document.querySelectorAll(".rl-item video").forEach(v=>{
+    try{ v.muted=false; }catch(e){}
+  });
+  /* إذا ما يشتغل الحالي — أعد تشغيله بصوت */
   const cur=[...document.querySelectorAll(".rl-item")].find(it=>{
     const v=it.querySelector("video"); return v && !v.paused; });
-  if(cur){ const v=cur.querySelector("video"); v.muted=false; }
+  if(cur){
+    const v=cur.querySelector("video");
+    try{ v.muted=false; }catch(e){}
+    /* لو المتصفح رفض — أوقف وشغّل من جديد بصوت */
+    if(v.paused){
+      const p=v.play(); if(p&&p.catch) p.catch(()=>{});
+    }
+  }
 }
 
 /* ═════════ الدخول/الخروج من الشاشة ═════════ */
