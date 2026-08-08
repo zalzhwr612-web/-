@@ -14,6 +14,17 @@
 {"@context":"https://schema.org","@type":"Store","name":"حيدر حميد للألمنيوم الحديث","telephone":"+9647904694393","address":{"@type":"PostalAddress","streetAddress":"شارع المحيط — معمل الزهور","addressLocality":"بلد","addressCountry":"IQ"}}
 </script>
 <style>
+/* يمنع تحديد النص وقائمة الضغط الطويل (نسخ/مشاركة/بحث الويب) بكل الموقع.
+   نستثني حقول الإدخال والنصوص حتى الزبون يكدر يكتب وينسخ فيها بشكل طبيعي */
+*{
+  -webkit-user-select:none; -moz-user-select:none; -ms-user-select:none; user-select:none;
+  -webkit-touch-callout:none;   /* يمنع قائمة آيفون */
+  -webkit-tap-highlight-color:transparent;
+}
+input, textarea, [contenteditable="true"]{
+  -webkit-user-select:text; -moz-user-select:text; -ms-user-select:text; user-select:text;
+  -webkit-touch-callout:default;
+}
 :root{
   --bg:#FFFFFF; --wash:#F5F7FC; --card:#FFFFFF; --cardb:#FFFFFF;
   --ink:#0F1724; --muted:#6B7887; --line:#E6EAF3; --art:var(--brand-soft);
@@ -380,6 +391,13 @@ body.dark .credit{background:linear-gradient(170deg,#141A28,#0D121C);border-colo
 .chat-bubble.me{background:var(--brand);color:#fff;align-self:flex-end;border-bottom-left-radius:16px;border-bottom-right-radius:6px}
 .chat-bubble.them{background:var(--card);border:1px solid var(--line);align-self:flex-start;border-bottom-right-radius:16px;border-bottom-left-radius:6px}
 .chat-bubble .chat-img{max-width:100%;border-radius:10px;margin-bottom:4px;display:block;cursor:pointer}
+.chat-img-wrap{position:relative;display:inline-block}
+.chat-img-dl{position:absolute;bottom:10px;inset-inline-end:8px;width:30px;height:30px;border-radius:50%;
+  background:rgba(0,0,0,.55);border:0;display:grid;place-items:center;cursor:pointer;backdrop-filter:blur(2px)}
+.chat-img-dl svg{width:16px;height:16px;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.chat-img-dl:active{transform:scale(.9)}
+.uprof-av-lg{width:88px!important;height:88px!important}
+.uprof-av-lg .ini{font-size:30px!important}
 .chat-bubble .chat-ts{font-size:10px;opacity:.6;margin-top:3px;text-align:end;font-family:"IBM Plex Mono"}
 .chat-date{text-align:center;font-size:11px;color:var(--muted);padding:8px 0}
 
@@ -614,8 +632,10 @@ body.dark .credit{background:linear-gradient(170deg,#141A28,#0D121C);border-colo
     <div class="chat-screen" id="chat-screen">
       <div class="chat-top">
         <button class="chat-back" id="chat-back"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button>
-        <div class="msg-av" id="chat-av"></div>
-        <div class="chat-top-info"><b id="chat-name"></b><small id="chat-sub"></small></div>
+        <div class="chat-top-click" id="chat-top-click" style="display:flex;align-items:center;gap:10px;flex:1;min-width:0;cursor:pointer">
+          <div class="msg-av" id="chat-av"></div>
+          <div class="chat-top-info"><b id="chat-name"></b><small id="chat-sub"></small></div>
+        </div>
         <button class="chat-follow-btn" id="chat-follow">متابعة</button>
       </div>
       <div class="chat-msgs" id="chat-msgs"></div>
@@ -629,6 +649,33 @@ body.dark .credit{background:linear-gradient(170deg,#141A28,#0D121C);border-colo
         <button class="chat-send-btn" id="chat-send"><svg viewBox="0 0 24 24"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4z"/></svg></button>
       </div>
       <input type="file" id="chat-file" accept="image/*" style="display:none">
+    </div>
+
+    <!-- شاشة الملف الشخصي لشخص آخر -->
+    <div class="chat-screen" id="uprof-screen" style="background:var(--bg)">
+      <div class="chat-top" style="background:var(--brand)">
+        <button class="chat-back" id="uprof-back"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button>
+        <div class="chat-top-info"><b>الملف الشخصي</b></div>
+      </div>
+      <div style="padding:28px 20px;text-align:center;overflow-y:auto;flex:1">
+        <div id="uprof-av" style="width:88px;height:88px;margin:0 auto 12px"></div>
+        <h3 id="uprof-name" style="font-size:19px;margin:0 0 2px"></h3>
+        <div id="uprof-username" class="username-tag" style="font-size:13px;justify-content:center;display:block;margin-bottom:16px"></div>
+        <div style="display:flex;justify-content:center;gap:32px;margin:18px 0 22px;padding:16px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)">
+          <div style="text-align:center">
+            <b id="uprof-followers-n" style="display:block;font-size:20px">0</b>
+            <span class="sub" style="font-size:12.5px">المتابعون</span>
+          </div>
+          <div style="text-align:center">
+            <b id="uprof-following-n" style="display:block;font-size:20px">0</b>
+            <span class="sub" style="font-size:12.5px">يتابع</span>
+          </div>
+        </div>
+        <div style="display:flex;gap:10px;justify-content:center">
+          <button class="btn btn-p" id="uprof-follow-btn" style="flex:1;max-width:160px">متابعة</button>
+          <button class="fixbtn" id="uprof-msg-btn" style="flex:1;max-width:160px">💬 مراسلة</button>
+        </div>
+      </div>
     </div>
 
     <div class="view" id="v-admin">
@@ -2800,6 +2847,8 @@ function rlItemHTML(r){
   </section>`;
 }
 let _rlObs=null;
+const LS_RLSOUND="ha_reels_sound_v1";
+let _rlAudioOn = lsGet(LS_RLSOUND)===true;
 function rlRenderFeed(){
   rlEnsureView();
   const feed=document.getElementById("rl-feed"); if(!feed) return;
@@ -2878,9 +2927,9 @@ async function rlAttach(v,it,r){
     try{ v.muted=true; await v.play(); if(_rlAudioOn) v.muted=false; }catch(e2){}
   }
 }
-let _rlAudioOn=false;
 function rlAudioUnlock(){
   if(_rlAudioOn) return; _rlAudioOn=true;
+  lsSet(LS_RLSOUND,true);   /* يضل الصوت مفعّل مدى الحياة حتى بعد إغلاق المتصفح */
   document.querySelectorAll(".rl-snd").forEach(s=>s.hidden=true);
   /* فتح الصوت لكل الفيديوات — مو بس الحالي */
   document.querySelectorAll(".rl-item video").forEach(v=>{
@@ -3358,6 +3407,21 @@ async function msgIsFollowing(phone){
   try{const r=await sbSelect("follows","select=follower&follower=eq."+encodeURIComponent(myPhone())+"&following=eq."+encodeURIComponent(phone)+"&limit=1");
     return r&&r.length>0}catch(e){return false}
 }
+/* عدد المتابعين والمتابَعين لأي شخص (مو بس أنا) */
+async function msgCountFollowers(phone){
+  try{const r=await sbSelect("follows","select=follower&following=eq."+encodeURIComponent(phone));return (r||[]).length}
+  catch(e){return 0}
+}
+async function msgCountFollowing(phone){
+  try{const r=await sbSelect("follows","select=following&follower=eq."+encodeURIComponent(phone));return (r||[]).length}
+  catch(e){return 0}
+}
+/* جلب ملف مستخدم واحد */
+async function msgGetProfile(phone){
+  try{const r=await sbSelect("user_profiles","select=*&phone=eq."+encodeURIComponent(phone)+"&limit=1");
+    return (r&&r[0])||{phone,name:phone}}
+  catch(e){return {phone,name:phone}}
+}
 
 /* ═══ المحادثات ═══ */
 async function msgGetOrCreateConv(otherPhone){
@@ -3553,13 +3617,30 @@ async function msgRefreshChat(){
     }
     const isMe=m.sender===me;
     let content='';
-    if(m.img) content+=`<img class="chat-img" src="${esc(m.img)}" alt="صورة">`;
+    if(m.img) content+=`<div class="chat-img-wrap"><img class="chat-img" src="${esc(m.img)}" alt="صورة"><button class="chat-img-dl" data-src="${esc(m.img)}" title="حفظ الصورة"><svg viewBox="0 0 24 24"><path d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14"/></svg></button></div>`;
     if(m.body) content+=`<div>${esc(m.body)}</div>`;
     content+=`<div class="chat-ts">${d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</div>`;
     html+=`<div class="chat-bubble ${isMe?'me':'them'}">${content}</div>`;
   });
   box.innerHTML=html;
   box.scrollTop=box.scrollHeight;
+  /* أزرار حفظ الصور */
+  box.querySelectorAll('.chat-img-dl').forEach(btn=>{
+    btn.onclick=e=>{ e.stopPropagation(); msgDownloadImg(btn.dataset.src); };
+  });
+}
+
+/* ═══ حفظ صورة الشات بجهاز الزبون ═══ */
+function msgDownloadImg(src){
+  try{
+    const a=document.createElement('a');
+    a.href=src;
+    a.download='chat-image-'+Date.now()+'.jpg';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    toast('تم حفظ الصورة');
+  }catch(e){ toast('تعذّر حفظ الصورة'); }
 }
 
 function msgCloseChat(){
@@ -3569,9 +3650,49 @@ function msgCloseChat(){
   if(msgTab==='chats') msgRenderConvs();
 }
 
+/* ═══ الملف الشخصي لشخص آخر ═══ */
+async function msgOpenProfile(phone){
+  if(!phone) return;
+  const scr=document.getElementById('uprof-screen');
+  scr.classList.add('on');
+  document.getElementById('uprof-name').textContent='…';
+  document.getElementById('uprof-username').textContent='';
+  document.getElementById('uprof-followers-n').textContent='—';
+  document.getElementById('uprof-following-n').textContent='—';
+  const p=await msgGetProfile(phone);
+  document.getElementById('uprof-av').innerHTML=msgAvHTML(p.name,p.avatar,'msg-av uprof-av-lg');
+  document.getElementById('uprof-name').innerHTML=esc(p.name||p.phone)+(p.verified?verifiedBadge('lg'):'');
+  document.getElementById('uprof-username').textContent=p.username?'@'+p.username:'';
+  const [flrs,fing]=await Promise.all([msgCountFollowers(phone),msgCountFollowing(phone)]);
+  document.getElementById('uprof-followers-n').textContent=flrs;
+  document.getElementById('uprof-following-n').textContent=fing;
+  const fb=document.getElementById('uprof-follow-btn');
+  if(phone===myPhone()){ fb.style.display='none'; }
+  else{
+    fb.style.display='';
+    const isF=await msgIsFollowing(phone);
+    fb.textContent=isF?mt().unfollow:mt().follow;
+    fb.onclick=async()=>{
+      if(await msgIsFollowing(phone)){await msgUnfollow(phone);fb.textContent=mt().follow}
+      else{await msgFollow(phone);fb.textContent=mt().unfollow}
+      const nf=await msgCountFollowers(phone);
+      document.getElementById('uprof-followers-n').textContent=nf;
+    };
+  }
+  document.getElementById('uprof-msg-btn').onclick=()=>{
+    msgCloseProfile();
+    msgOpenChat(phone,p.name,p.avatar);
+  };
+}
+function msgCloseProfile(){
+  document.getElementById('uprof-screen').classList.remove('on');
+}
+
 /* ═══ ربط الأحداث ═══ */
 function msgBoot(){
   msgFillUI();
+  document.getElementById('uprof-back').onclick=msgCloseProfile;
+  document.getElementById('chat-top-click').onclick=()=>{ if(chatWith) msgOpenProfile(chatWith); };
   /* تبويبات المراسلات */
   document.querySelectorAll('[data-mtab]').forEach(b=>{b.onclick=()=>{
     msgTab=b.dataset.mtab;
@@ -3675,6 +3796,14 @@ syncProducts();   /* يسحب المنتجات من Supabase إذا الجدول
 logVisit();       /* يسجّل الزيارة بجدول visits */
 reelsBoot();      /* يهيّئ نظام الريلز ويربطه بالتنقّل */
 msgBoot();        /* يهيّئ نظام المراسلات والمتابعة */
+
+/* يمنع قائمة الضغط الطويل (نسخ/مشاركة/بحث الويب) — يستثني حقول الكتابة */
+document.addEventListener('contextmenu',e=>{
+  const tag=(e.target.tagName||'').toLowerCase();
+  if(tag==='input'||tag==='textarea'||e.target.isContentEditable) return;
+  e.preventDefault();
+});
+
 </script>
 </body>
 </html>
