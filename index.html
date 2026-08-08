@@ -252,7 +252,7 @@ body.dark .step i{background:rgba(255,255,255,.08);color:var(--brand-3)}
 /* لوحة المالك — تبويب مخفي ما يبيّن إلا بعد الدخول */
 #tab-admin{display:none}
 body.owner #tab-admin{display:flex}
-body.owner .tabbar{grid-template-columns:repeat(5,1fr)}
+body.owner .tabbar{grid-template-columns:repeat(6,1fr)}
 .adshot{width:100%;height:158px;border-radius:14px;background:var(--art);border:1px dashed var(--line);
   display:grid;place-items:center;overflow:hidden}
 .adshot img{width:100%;height:100%;object-fit:cover;display:block}
@@ -264,7 +264,7 @@ body.dark .adtag.warn{background:rgba(245,165,36,.16);color:var(--amber)}
 .adtag.off{background:var(--wash);color:var(--muted)}
 
 .tabbar{position:fixed;bottom:0;inset-inline:0;z-index:50;max-width:520px;margin:0 auto;height:var(--tabh);
-  padding-bottom:env(safe-area-inset-bottom);display:grid;grid-template-columns:repeat(4,1fr);
+  padding-bottom:env(safe-area-inset-bottom);display:grid;grid-template-columns:repeat(5,1fr);
   background:color-mix(in srgb,var(--cardb) 92%,transparent);backdrop-filter:blur(14px);border-top:1px solid var(--line)}
 .tab{border:0;background:0;color:var(--muted);display:flex;flex-direction:column;align-items:center;justify-content:center;
   gap:3px;font-size:11px;cursor:pointer;position:relative;transition:color var(--T)}
@@ -493,6 +493,8 @@ body.dark .credit{background:linear-gradient(170deg,#141A28,#0D121C);border-colo
       <svg viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 10v10h14V10"/></svg><span id="t-tab1"></span></button>
     <button class="tab" role="tab" aria-selected="false" data-go="shop">
       <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7.5" height="7.5" rx="1.6"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="1.6"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="1.6"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1.6"/></svg><span id="t-tab2"></span></button>
+    <button class="tab" role="tab" aria-selected="false" data-go="reels">
+      <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="3.2"/><path d="M8 4l2.2 4M13 4l2.2 4M3.4 8h17.2"/><path d="M10.3 12.2l4 2.3-4 2.3z"/></svg><span id="t-tabR"></span></button>
     <button class="tab" role="tab" aria-selected="false" data-go="cart">
       <svg viewBox="0 0 24 24"><path d="M4 5h2l2.4 10.2a2 2 0 0 0 2 1.6h6.5a2 2 0 0 0 2-1.5L21 8H7"/><circle cx="10" cy="20" r="1.3"/><circle cx="18" cy="20" r="1.3"/></svg><span id="t-tab3"></span>
       <span class="cb" id="tab-badge">0</span></button>
@@ -724,7 +726,7 @@ const FONTS={
 const T={
 ar:{dir:"rtl",label:"العربية",
  brand:"حيدر حميد للألمنيوم الحديث",addr:"بلد — شارع المحيط، معمل الزهور",searchPh:"دوّر على باب، شباك، كلادينج…",
- tab:["الرئيسية","المنتجات","السلة","تواصل"],
+ tab:["الرئيسية","المنتجات","السلة","تواصل"],tabR:"ريلز",
  bannerT:"قياس ومعاينة مجاناً",bannerP:"اختر الموديل، حدّد القياس، وأرسل الطلب — ونوصل نقيس بالموقع.",bannerB:"ابدأ التسوّق",
  hot:"الأكثر طلباً",newA:"وصل حديثاً",all:"الكل",allProducts:"كل المنتجات",countSuffix:"منتج",
  howT:"كيف تطلب",
@@ -816,7 +818,7 @@ ar:{dir:"rtl",label:"العربية",
 
 en:{dir:"ltr",label:"English",
  brand:"Haidar Hameed Modern Aluminum",addr:"Balad — Al-Muheet St., Al-Zuhoor Factory",searchPh:"Search doors, windows, cladding…",
- tab:["Home","Products","Cart","Contact"],
+ tab:["Home","Products","Cart","Contact"],tabR:"Reels",
  bannerT:"Free measuring & site visit",bannerP:"Pick a model, set the size, send the request — we come and measure on site.",bannerB:"Start shopping",
  hot:"Most requested",newA:"New arrivals",all:"All",allProducts:"All products",countSuffix:"products",
  howT:"How to order",
@@ -908,7 +910,7 @@ en:{dir:"ltr",label:"English",
 
 ku:{dir:"rtl",label:"کوردی",
  brand:"حەیدەر حەمید بۆ ئەلەمنیۆمی مۆدێرن",addr:"بەلەد — شەقامی موحیت، کارگەی زوهوور",searchPh:"بگەڕێ بۆ دەرگا، پەنجەرە، کلادینگ…",
- tab:["سەرەکی","بەرهەمەکان","سەبەتە","پەیوەندی"],
+ tab:["سەرەکی","بەرهەمەکان","سەبەتە","پەیوەندی"],tabR:"ڕیڵز",
  bannerT:"پێوان و سەردان بەخۆڕایی",bannerP:"مۆدێلەکە هەڵبژێرە، پێوانەکە بنووسە و داواکاری بنێرە — ئێمە دێین و پێوانە دەکەین.",bannerB:"دەست بکە بە کڕین",
  hot:"زۆرترین داواکراو",newA:"نوێ گەیشتوو",all:"هەموو",allProducts:"هەموو بەرهەمەکان",countSuffix:"بەرهەم",
  howT:"چۆن داوا بکەیت",
@@ -1188,6 +1190,7 @@ function fillUI(){
   setTxt('t-brand',x.brand); setTxt('t-addr',x.addr);
   document.getElementById('q').placeholder=x.searchPh;
   x.tab.forEach((v,i)=>setTxt('t-tab'+(i+1),v));
+  setTxt('t-tabR',x.tabR||'ريلز');
   setTxt('t-bannerT',x.bannerT); setTxt('t-bannerP',x.bannerP); setTxt('t-bannerB',x.bannerB);
   setTxt('t-hot',x.hot); setTxt('t-new',x.newA); setTxt('t-all1',x.all); setTxt('t-all2',x.all); setTxt('t-howT',x.howT);
   setTxt('t-foot1',x.foot1); setTxt('t-foot2',x.foot2); setTxt('t-foot3',x.foot3); setTxt('t-foot4',x.foot4);
@@ -2319,6 +2322,633 @@ const profFab=document.getElementById('prof-fab');
 if(profFab) profFab.onclick=()=>openProfile();
 refreshFabAv();
 
+
+/* ═══════════════════════════════════════════════════════════════
+   نظام الريلز — مُضاف
+   ═══════════════════════════════════════════════════════════════ */
+/* ═══════════════════════ نظام الريلز — المالك ينشر، الكل يشاهد ═══════════════════════
+   الفكرة: شاشة ريلز عمودية (سحب فوق/تحت) يشوفها كل الزوّار. النشر للمالك فقط
+   (يستعمل نفس بصمة المالك OWNER). المالك ينشر فيديو واحد لكل ريل بحد أقصى دقيقتين،
+   يختار دقة الإخراج (٤٨٠p / ٧٢٠p / ١٠٨٠p)، ويحط موسيقى هادئة تُدمج داخل المقطع.
+   زر (حفظ) = مسوّدة بجهازه مع الوصف — ما تظهر للناس. زر (نشر) = تروح للعام.
+
+   ── جدول القاعدة: شغّله مرة وحدة في لوحة Supabase ← SQL Editor ← New query ──
+   (يعتمد على دالة admin_ok الموجودة أصلاً بنظام المنتجات)
+
+   create table if not exists public.reels (
+     id text primary key,
+     created_at timestamptz not null default now(),
+     active boolean not null default true, sort int not null default 10,
+     descr text, video text, poster text,
+     music text, baked boolean not null default true,
+     quality text, dur numeric default 0 );
+
+   alter table public.reels enable row level security;
+   drop policy if exists "app read reels" on public.reels;
+   create policy "app read reels" on public.reels for select to anon, authenticated using (active);
+   create index if not exists reels_created_idx on public.reels (created_at desc);
+
+   create or replace function public.admin_save_reel(p_pass text, p_row jsonb)
+   returns void language plpgsql security definer set search_path = public as $$
+   begin
+     if not admin_ok(p_pass) then raise exception 'bad_pass'; end if;
+     insert into reels (id,active,sort,descr,video,poster,music,baked,quality,dur)
+     select x.id,coalesce(x.active,true),coalesce(x.sort,10),x.descr,x.video,x.poster,
+            x.music,coalesce(x.baked,true),x.quality,coalesce(x.dur,0)
+     from jsonb_to_record(p_row) as x(id text,active boolean,sort int,descr text,video text,
+          poster text,music text,baked boolean,quality text,dur numeric)
+     on conflict (id) do update set
+       active=excluded.active, sort=excluded.sort, descr=excluded.descr,
+       video =coalesce(excluded.video ,reels.video),
+       poster=coalesce(excluded.poster,reels.poster),
+       music=excluded.music, baked=excluded.baked, quality=excluded.quality, dur=excluded.dur;
+   end $$;
+
+   create or replace function public.admin_delete_reel(p_pass text, p_id text)
+   returns void language plpgsql security definer set search_path = public as $$
+   begin
+     if not admin_ok(p_pass) then raise exception 'bad_pass'; end if;
+     delete from reels where id = p_id;
+   end $$;
+
+   grant execute on function public.admin_save_reel(text,jsonb)  to anon, authenticated;
+   grant execute on function public.admin_delete_reel(text,text) to anon, authenticated;
+   ──────────────────────────────────────────────────────────────── */
+
+SUPABASE.T.reels = "reels";
+const LS_RLMINE = "ha_reels_mine_v1";      /* فهرس ريلزات المالك (يشمل المخفي) */
+const RL_MAXPUB = 9300000;                 /* أقصى حجم Base64 للنشر للقاعدة (~6.7MB) */
+let REELS = [], REELS_LOADED = false;
+const rlVidCache = new Map();              /* id → رابط الفيديو بعد جلبه */
+
+/* نصوص المالك (عربي — نفس أسلوب لوحة المالك) */
+const RL = {
+  new:"ريل جديد", edit:"تعديل الريل", manage:"إدارة الريلز", drafts:"المسوّدات",
+  pickVid:"اختر فيديو", changeVid:"بدّل الفيديو", noVid:"ما اخترت فيديو بعد",
+  vidBad:"الملف مو فيديو صالح", vidBig:"الفيديو كبير — اختر مقطع أقصر أو أخف",
+  dur:"المدة", max2:"الحد الأقصى دقيقتين — الزايد ينقصّ تلقائياً",
+  start:"بداية المقطع", length:"طول المقطع", secs:"ثانية",
+  quality:"دقة الإخراج", music:"الموسيقى", musicHint:"تُدمج داخل الفيديو وتوصل للناس ويّاه",
+  mNone:"بدون", mOrig:"الصوت الأصلي", preview:"سماع", stop:"إيقاف",
+  descL:"الوصف", descPh:"اكتب وصف الريل…",
+  save:"حفظ (مسودة)", pub:"نشر للعام", cancel:"إلغاء",
+  needVid:"اختر فيديو أول", saving:"يحفظ…", processing:"يعالج المقطع…",
+  savedDraft:"انحفظ بالمسوّدات ✓", pubDone:"انتشر الريل — الناس يشوفونه ✓",
+  pubLocal:"انحفظ بجهازك بس — شغّل ملف SQL بـ Supabase حتى يوصل للناس",
+  tooBig:"المقطع أكبر من اللازم للنشر — قلّل الدقة أو خلّي المدة أقصر",
+  encFail:"صار خطأ بالمعالجة — جرّب دقة أقل أو مقطع أقصر",
+  noEnc:"جهازك ما يدعم دمج الموسيقى/تغيير الدقة — بيننشر الفيديو بصوته الأصلي",
+  live:"منشور للعام", localOnly:"بجهازك فقط", hidden:"مخفي",
+  none:"ماكو ريلز لهسه.", noneOwner:"ابدأ بأول ريل من زر (＋).",
+  editDesc:"تعديل الوصف", del:"حذف", hide:"إخفاء", show:"إظهار",
+  delSure:"أكيد؟ اضغط مرة ثانية", delDone:"انحذف الريل", pubDraft:"نشر",
+  emptyDraft:"ماكو مسوّدات.", tapSound:"اضغط للصوت 🔊",
+  origSound:"الفيديو يُنشر بصوته الأصلي ونفس دقّته"
+};
+
+/* ═════════ تخزين محلي (IndexedDB للمقاطع + localStorage للفهرس) ═════════ */
+let _rlDB = null;
+function rlIDB(){
+  if(_rlDB) return Promise.resolve(_rlDB);
+  return new Promise((res,rej)=>{
+    let rq; try{ rq=indexedDB.open("ha_reels",1) }catch(e){ return rej(e) }
+    rq.onupgradeneeded=()=>{ const db=rq.result;
+      if(!db.objectStoreNames.contains("drafts")) db.createObjectStore("drafts",{keyPath:"id"});
+      if(!db.objectStoreNames.contains("pub"))    db.createObjectStore("pub",{keyPath:"id"});
+    };
+    rq.onsuccess=()=>{ _rlDB=rq.result; res(_rlDB) };
+    rq.onerror=()=>rej(rq.error);
+  });
+}
+async function idbPut(store,val){ const db=await rlIDB(); return new Promise((res,rej)=>{
+  const tx=db.transaction(store,"readwrite"); tx.objectStore(store).put(val);
+  tx.oncomplete=res; tx.onerror=()=>rej(tx.error); }); }
+async function idbGet(store,key){ const db=await rlIDB(); return new Promise((res,rej)=>{
+  const r=db.transaction(store,"readonly").objectStore(store).get(key);
+  r.onsuccess=()=>res(r.result||null); r.onerror=()=>rej(r.error); }); }
+async function idbAll(store){ const db=await rlIDB(); return new Promise((res,rej)=>{
+  const r=db.transaction(store,"readonly").objectStore(store).getAll();
+  r.onsuccess=()=>res(r.result||[]); r.onerror=()=>rej(r.error); }); }
+async function idbDel(store,key){ const db=await rlIDB(); return new Promise((res,rej)=>{
+  const tx=db.transaction(store,"readwrite"); tx.objectStore(store).delete(key);
+  tx.oncomplete=res; tx.onerror=()=>rej(tx.error); }); }
+
+const rlMine   = ()=>{ const l=lsGet(LS_RLMINE); return Array.isArray(l)?l:[] };
+const rlMinePut= l =>lsSet(LS_RLMINE,l);
+function rlMineSet(m){ const l=rlMine().filter(z=>z.id!==m.id); l.unshift(m); rlMinePut(l); }
+function rlMineDel(id){ rlMinePut(rlMine().filter(z=>z.id!==id)); }
+
+/* ═════════ قدرات المعالجة ═════════ */
+function rlMime(){
+  const c=["video/webm;codecs=vp9,opus","video/webm;codecs=vp8,opus",
+           "video/webm;codecs=vp9","video/webm;codecs=vp8","video/webm","video/mp4"];
+  for(const m of c){ try{ if(window.MediaRecorder&&MediaRecorder.isTypeSupported(m)) return m }catch(e){} }
+  return "";
+}
+const rlCanEncode = ()=> !!(window.MediaRecorder && HTMLCanvasElement.prototype.captureStream && rlMime());
+
+/* لقطة غلاف سريعة بدون معالجة */
+function rlGrabPoster(blob,at){
+  return new Promise(res=>{
+    const url=URL.createObjectURL(blob), v=document.createElement("video");
+    v.src=url; v.muted=true; v.playsInline=true;
+    const fail=()=>{ URL.revokeObjectURL(url); res(null) };
+    v.onerror=fail;
+    v.onloadeddata=()=>{ try{ v.currentTime=Math.min(at||0.3, (v.duration||1)-0.05) }catch(e){} };
+    v.onseeked=()=>{ try{
+      const w=200, h=Math.round(w*(v.videoHeight/v.videoWidth||1.6));
+      const c=document.createElement("canvas"); c.width=w; c.height=h;
+      c.getContext("2d").drawImage(v,0,0,w,h);
+      const d=c.toDataURL("image/jpeg",0.55); URL.revokeObjectURL(url); res(d);
+    }catch(e){ fail() } };
+    setTimeout(fail,4000);
+  });
+}
+function rlMeta(blob){
+  return new Promise((res,rej)=>{
+    const url=URL.createObjectURL(blob), v=document.createElement("video");
+    v.src=url; v.muted=true; v.playsInline=true;
+    v.onloadedmetadata=()=>{ res({dur:v.duration||0,w:v.videoWidth||0,h:v.videoHeight||0,url,v}) };
+    v.onerror=()=>{ URL.revokeObjectURL(url); rej(new Error("meta")) };
+    setTimeout(()=>rej(new Error("meta-timeout")),8000);
+  });
+}
+
+/* المعالجة: قصّ فقط — نفس دقة الفيديو الأصلية وصوته الأصلي (بدون رفع دقة/موسيقى) */
+async function rlEncode(o,onprog){
+  const mime=rlMime(); if(!mime) throw new Error("unsupported");
+  const url=URL.createObjectURL(o.blob), vid=document.createElement("video");
+  vid.src=url; vid.playsInline=true; vid.muted=false;
+  await new Promise((res,rej)=>{ vid.onloadedmetadata=res; vid.onerror=()=>rej(new Error("vid")); });
+  const srcW=vid.videoWidth||720, srcH=vid.videoHeight||1280, aspect=srcW/srcH;
+  /* نفس الدقة الأصلية — بدون تكبير. سقف أمان فقط حتى ما يصير الملف ضخم */
+  let outW=srcW, outH=srcH;
+  const CAP=1280; const big=Math.max(outW,outH);
+  if(big>CAP){ const k=CAP/big; outW=Math.round(outW*k); outH=Math.round(outH*k); }
+  outW-=outW%2; outH-=outH%2; outW=Math.max(2,outW); outH=Math.max(2,outH);
+  const canvas=document.createElement("canvas"); canvas.width=outW; canvas.height=outH;
+  const cx=canvas.getContext("2d"), fps=30, cstream=canvas.captureStream(fps);
+
+  let AC=null;
+  try{
+    AC=new (window.AudioContext||window.webkitAudioContext)();
+    const dest=AC.createMediaStreamDestination();
+    const sn=AC.createMediaElementSource(vid); sn.connect(dest);
+    const at=dest.stream.getAudioTracks()[0]; if(at) cstream.addTrack(at);
+  }catch(e){ AC=null; }
+
+  const bit = outH>=1000?2600000 : outH>=700?1600000 : outH>=440?900000 : 700000;
+  let rec; try{ rec=new MediaRecorder(cstream,{mimeType:mime,videoBitsPerSecond:bit}); }
+  catch(e){ rec=new MediaRecorder(cstream); }
+  const chunks=[]; rec.ondataavailable=e=>{ if(e.data&&e.data.size) chunks.push(e.data) };
+
+  const start=Math.max(0,o.start||0);
+  const end=Math.min(vid.duration||(start+o.dur), start+Math.min(o.dur||120,120));
+  await new Promise(res=>{ vid.onseeked=res; try{ vid.currentTime=start }catch(e){ res() } });
+
+  let poster=null;
+  const done=new Promise((resolve,reject)=>{
+    rec.onstop=()=>{ try{AC&&AC.close()}catch(e){}
+      URL.revokeObjectURL(url);
+      resolve({blob:new Blob(chunks,{type:mime.split(";")[0]}),poster,dur:+(end-start).toFixed(1)}); };
+    rec.onerror=e=>reject((e&&e.error)||new Error("rec"));
+  });
+  rec.start(300);
+  try{ await vid.play() }catch(e){}
+  if(AC&&AC.state==="suspended"){ try{ await AC.resume() }catch(e){} }
+
+  let raf;
+  const draw=()=>{
+    const s=Math.max(outW/srcW,outH/srcH), dw=srcW*s, dh=srcH*s;
+    try{ cx.drawImage(vid,(outW-dw)/2,(outH-dh)/2,dw,dh) }catch(e){}
+    if(!poster && vid.currentTime>start+0.06){ try{ poster=canvas.toDataURL("image/jpeg",0.6) }catch(e){} }
+    onprog && onprog(Math.min(1,(vid.currentTime-start)/Math.max(0.1,end-start)));
+    if(vid.currentTime>=end-0.03 || vid.ended){ try{rec.stop()}catch(e){} try{vid.pause()}catch(e){} return; }
+    raf=requestAnimationFrame(draw);
+  };
+  raf=requestAnimationFrame(draw);
+  const out=await done; cancelAnimationFrame(raf);
+  if(!out.poster) out.poster=await rlGrabPoster(out.blob,0.2).catch(()=>null);
+  return out;
+}
+const rlBlobToURL = b => new Promise((res,rej)=>{ const fr=new FileReader();
+  fr.onload=()=>res(fr.result); fr.onerror=()=>rej(fr.error); fr.readAsDataURL(b); });
+
+/* ═════════ القاعدة ═════════ */
+async function rlLoad(){
+  let db=[];
+  try{ db=await sbSelect(SUPABASE.T.reels,
+    "select=id,descr,poster,music,baked,quality,dur,active,created_at&order=created_at.desc")||[]; }
+  catch(e){ db=[]; }
+  db=db.map(r=>Object.assign({},r,{source:"db"}));
+  const ids=new Set(db.map(r=>r.id));
+  let loc=[]; try{ loc=(await idbAll("pub")).filter(r=>!ids.has(r.id))
+    .map(r=>Object.assign({},r,{source:"local"})); }catch(e){}
+  REELS=db.concat(loc).filter(r=>r.active!==false);
+  REELS_LOADED=true; return REELS;
+}
+async function rlVideoURL(r){
+  if(rlVidCache.has(r.id)) return rlVidCache.get(r.id);
+  let u=null;
+  if(r.source==="local"){ try{ const rec=await idbGet("pub",r.id);
+      if(rec&&rec.blob) u=URL.createObjectURL(rec.blob); }catch(e){} }
+  else { try{ const rows=await sbSelect(SUPABASE.T.reels,"select=video&id=eq."+encodeURIComponent(r.id));
+      if(rows&&rows[0]&&rows[0].video) u=rows[0].video; }catch(e){} }
+  if(u) rlVidCache.set(r.id,u);
+  return u;
+}
+async function rlDbSave(row){ await sbRpc("admin_save_reel",{p_pass:owner?owner.pass:"",p_row:row}); }
+async function rlDbDelete(id){
+  try{ await sbRpc("admin_delete_reel",{p_pass:owner?owner.pass:"",p_id:id}); }
+  catch(e){ /* لو الدالة مو موجودة نكمل بالحذف المحلي */ }
+  try{ await idbDel("pub",id) }catch(e){}
+}
+
+/* ═════════ عناصر واجهة الشاشة ═════════ */
+function rlEnsureView(){
+  if(document.getElementById("v-reels")) return;
+  const main=document.querySelector("main"); if(!main) return;
+  const v=document.createElement("div"); v.className="view"; v.id="v-reels";
+  v.innerHTML=`<div class="rl-feed" id="rl-feed"></div>
+    <div class="rl-top">
+      <button class="rl-back" id="rl-back" aria-label="رجوع">
+        <svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
+      <b class="rl-ttl">ريلز</b>
+      <button class="rl-add" id="rl-add" aria-label="ريل جديد">＋</button>
+      <button class="rl-mng" id="rl-mng" aria-label="إدارة">⚙</button>
+    </div>`;
+  const cart=document.getElementById("v-cart");
+  main.insertBefore(v,cart||null);
+  document.getElementById("rl-back").onclick=()=>go("home");
+  document.getElementById("rl-add").onclick=()=>rlEditor(null);
+  document.getElementById("rl-mng").onclick=rlManage;
+}
+
+const rlBrandHTML = ()=>`<span class="rl-logo"><img src="${document.querySelector('.logo img')?document.querySelector('.logo img').src:''}" alt=""></span><b>${esc((t&&t().brand)||"")}</b>`;
+function rlItemHTML(r){
+  return `<section class="rl-item" data-id="${esc(r.id)}" data-baked="${r.baked!==false}" data-start="${+r.start||0}" data-end="${r.end?+r.end:0}">
+    <div class="rl-vwrap">
+      <video class="rl-video" playsinline webkit-playsinline muted loop preload="none"${r.poster?` poster="${esc(r.poster)}"`:""}></video>
+      <button class="rl-tap" aria-label="تشغيل/إيقاف"></button>
+      <div class="rl-play"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></div>
+      <span class="rl-snd" hidden>${RL.tapSound}</span>
+    </div>
+    <div class="rl-grad"></div>
+    <div class="rl-meta">
+      <div class="rl-brand">${rlBrandHTML()}</div>
+      ${r.descr?`<p class="rl-desc">${esc(r.descr)}</p>`:""}
+    </div>
+  </section>`;
+}
+let _rlObs=null;
+function rlRenderFeed(){
+  rlEnsureView();
+  const feed=document.getElementById("rl-feed"); if(!feed) return;
+  if(!REELS.length){
+    feed.innerHTML=`<div class="rl-empty">
+      <div class="rl-elogo">${rlBrandHTML()}</div>
+      <p>${RL.none}</p>${owner?`<p class="rl-esub">${RL.noneOwner}</p>
+      <button class="btn btn-p" id="rl-empty-add">＋ ${RL.new}</button>`:""}</div>`;
+    const a=document.getElementById("rl-empty-add"); if(a) a.onclick=()=>rlEditor(null);
+    return;
+  }
+  feed.innerHTML=REELS.map(rlItemHTML).join("");
+  /* نقر التشغيل/الإيقاف */
+  feed.querySelectorAll(".rl-tap").forEach(btn=>btn.onclick=()=>{
+    const it=btn.closest(".rl-item"), v=it.querySelector("video");
+    if(!_rlAudioOn){ rlAudioUnlock(); try{v.muted=false}catch(e){} if(v.paused){v.play();it.classList.remove("paused")} return; }
+    if(v.paused){ v.play(); it.classList.remove("paused"); } else { v.pause(); it.classList.add("paused"); }
+  });
+  /* التشغيل التلقائي للأوضح */
+  if(_rlObs) _rlObs.disconnect();
+  _rlObs=new IntersectionObserver(es=>{ es.forEach(en=>{
+    const it=en.target, v=it.querySelector("video"), r=REELS.find(z=>z.id===it.dataset.id);
+    if(en.isIntersecting && en.intersectionRatio>0.6){
+      rlAttach(v,it,r); try{v.muted=!_rlAudioOn}catch(e){} v.play&&v.play().catch(()=>{}); it.classList.remove("paused");
+    } else { try{v.pause()}catch(e){} }
+  }); },{threshold:[0,0.6,1]});
+  feed.querySelectorAll(".rl-item").forEach(it=>_rlObs.observe(it));
+}
+async function rlAttach(v,it,r){
+  if(v.dataset.loaded) return; v.dataset.loaded="1";
+  const u=await rlVideoURL(r);
+  if(!u){ v.dataset.loaded=""; return; }
+  v.src=u;
+  const baked=it.dataset.baked!=="false", start=+it.dataset.start||0, end=+it.dataset.end||0;
+  if(!baked && start){ v.addEventListener("loadeddata",()=>{ try{v.currentTime=start}catch(e){} },{once:true}); }
+  if(!baked && end){ v.addEventListener("timeupdate",()=>{ if(v.currentTime>=end) v.currentTime=start||0; }); }
+  const snd=it.querySelector(".rl-snd"); if(snd&&!_rlAudioOn) snd.hidden=false;
+  try{ v.muted=!_rlAudioOn }catch(e){}
+  try{ await v.play() }catch(e){}
+}
+let _rlAudioOn=false;
+function rlAudioUnlock(){
+  if(_rlAudioOn) return; _rlAudioOn=true;
+  document.querySelectorAll(".rl-snd").forEach(s=>s.hidden=true);
+  const cur=[...document.querySelectorAll(".rl-item")].find(it=>{
+    const v=it.querySelector("video"); return v && !v.paused; });
+  if(cur){ const v=cur.querySelector("video"); v.muted=false; }
+}
+
+/* ═════════ الدخول/الخروج من الشاشة ═════════ */
+async function rlEnter(){
+  rlEnsureView();
+  document.body.classList.add("reels");
+  const feed=document.getElementById("rl-feed");
+  if(!REELS_LOADED){ if(feed) feed.innerHTML=`<div class="rl-empty"><p>…</p></div>`; await rlLoad(); }
+  rlRenderFeed();
+}
+function rlLeave(){
+  document.body.classList.remove("reels");
+  document.querySelectorAll(".rl-video").forEach(v=>{ try{v.pause()}catch(e){} });
+}
+
+/* ═════════ محرّر الريل (المالك) ═════════ */
+function rlEditor(draft){
+  let file=draft?draft.blob:null, meta=draft?{dur:draft.dur||0}:null, posterQuick=draft?draft.poster:null;
+  let start=draft?draft.start||0:0, len=draft?draft.dur||0:0;
+
+  openSheet(`<h3 style="font-size:19px">${draft?RL.edit:RL.new}</h3>
+    <div class="opt" style="margin-top:12px">
+      <div class="rl-slot" id="rl-slot"><span class="sub" style="font-size:12px">${RL.noVid}</span></div>
+      <div class="adbar"><button class="fixbtn" id="rl-pick">${file?RL.changeVid:RL.pickVid}</button>
+        <span class="sub" id="rl-dur" style="font-size:12px"></span></div>
+      <p class="avhint" style="text-align:start;margin-top:6px">${RL.max2}</p></div>
+    <input type="file" id="rl-file" accept="video/*" style="display:none">
+    <div id="rl-trim" hidden>
+      <div class="opt"><label>${RL.start} — <span id="rl-startv" class="mono"></span></label>
+        <input class="rl-range" id="rl-startr" type="range" min="0" max="0" step="1" value="0"></div>
+      <div class="opt"><label>${RL.length} — <span id="rl-lenv" class="mono"></span></label>
+        <input class="rl-range" id="rl-lenr" type="range" min="3" max="120" step="1" value="30"></div>
+    </div>
+    <p class="avhint" style="text-align:start;margin-top:2px">${RL.origSound}</p>
+    <div class="opt"><label for="rl-desc">${RL.descL}</label>
+      <textarea class="ctrl" id="rl-desc" placeholder="${RL.descPh}">${esc(draft?draft.descr||"":"")}</textarea></div>
+    <div class="rl-prog" id="rl-prog" hidden><div class="rl-bar"><i id="rl-bari"></i></div>
+      <span class="sub" id="rl-progt" style="font-size:12px"></span></div>
+    <div class="acts">
+      <button class="btn btn-p" id="rl-pub">${RL.pub}</button>
+      <button class="btn btn-o" id="rl-save">${RL.save}</button></div>
+    <div class="acts" style="margin-top:8px"><button class="btn btn-o" id="rl-cancel">${RL.cancel}</button></div>`);
+
+  const slot=document.getElementById("rl-slot"), durEl=document.getElementById("rl-dur"),
+        fileEl=document.getElementById("rl-file"), trim=document.getElementById("rl-trim"),
+        sr=document.getElementById("rl-startr"), lr=document.getElementById("rl-lenr"),
+        sv=document.getElementById("rl-startv"), lv=document.getElementById("rl-lenv");
+  const fmt=s=>{ s=Math.max(0,Math.round(s)); return (s/60|0)+":"+String(s%60).padStart(2,"0") };
+
+  function paintSlot(){
+    slot.innerHTML = posterQuick?`<img src="${esc(posterQuick)}" alt="">`
+      :`<span class="sub" style="font-size:12px">${file?"✓":RL.noVid}</span>`;
+    document.getElementById("rl-pick").textContent=file?RL.changeVid:RL.pickVid;
+  }
+  function paintTrim(){
+    if(!meta||!meta.dur){ trim.hidden=true; durEl.textContent=""; return; }
+    const D=meta.dur; durEl.textContent=fmt(D)+(D>120?" ⚠":"");
+    trim.hidden=false;
+    sr.max=Math.max(0,Math.floor(D-3)); if(start>+sr.max) start=+sr.max; sr.value=start;
+    const maxLen=Math.min(120,Math.max(3,Math.floor(D-start)));
+    lr.max=maxLen; if(!len||len>maxLen) len=maxLen; lr.value=len;
+    sv.textContent=fmt(start); lv.textContent=fmt(len);
+  }
+  sr.oninput=()=>{ start=+sr.value; const maxLen=Math.min(120,Math.max(3,Math.floor((meta.dur||0)-start)));
+    lr.max=maxLen; if(len>maxLen){ len=maxLen; lr.value=len } sv.textContent=fmt(start); lv.textContent=fmt(len); };
+  lr.oninput=()=>{ len=+lr.value; lv.textContent=fmt(len); };
+  paintSlot();
+
+  async function loadFile(f){
+    if(!/^video\//i.test(f.type||"")){ toast(RL.vidBad); return; }
+    if(f.size>200*1024*1024){ toast(RL.vidBig); return; }
+    file=f; start=0; len=0;
+    try{ const m=await rlMeta(f); meta={dur:m.dur,w:m.w,h:m.h}; URL.revokeObjectURL(m.url); }
+    catch(e){ meta={dur:0}; }
+    posterQuick=await rlGrabPoster(f,0.3).catch(()=>null);
+    paintSlot(); paintTrim();
+  }
+  document.getElementById("rl-pick").onclick=()=>fileEl.click();
+  fileEl.onchange=e=>{ const f=e.target.files&&e.target.files[0]; if(f) loadFile(f); fileEl.value=""; };
+  if(draft){ meta={dur:draft.dur||0}; paintTrim(); }
+
+  document.getElementById("rl-cancel").onclick=()=>{ closeSheet(); };
+
+  const settings=()=>({start:Math.round(start),
+    dur:Math.round(len||Math.min(120,meta&&meta.dur||30))});
+
+  /* حفظ مسودة — بدون معالجة، بسرعة (يكتب الوصف بس) */
+  document.getElementById("rl-save").onclick=async()=>{
+    if(!file){ toast(RL.needVid); return; }
+    const s=settings(), id=draft?draft.id:"r"+Date.now().toString(36);
+    const d={id,blob:file,poster:posterQuick,descr:document.getElementById("rl-desc").value.trim(),
+             start:s.start,dur:s.dur,ts:Date.now()};
+    try{ await idbPut("drafts",d); toast(RL.savedDraft); }catch(e){ toast(RL.vidBig); }
+    closeSheet();
+  };
+
+  /* نشر — قصّ فقط (نفس الدقة والصوت الأصلي) ثم رفع للقاعدة */
+  document.getElementById("rl-pub").onclick=async()=>{
+    if(!file){ toast(RL.needVid); return; }
+    const s=settings(), descr=document.getElementById("rl-desc").value.trim();
+    const id=draft?draft.id:"r"+Date.now().toString(36);
+    const prog=document.getElementById("rl-prog"), bari=document.getElementById("rl-bari"),
+          progt=document.getElementById("rl-progt");
+    const pub=document.getElementById("rl-pub"), sv2=document.getElementById("rl-save");
+    pub.disabled=sv2.disabled=true; prog.hidden=false; progt.textContent=RL.processing;
+
+    let out, baked=true;
+    try{
+      if(rlCanEncode()){
+        out=await rlEncode({blob:file,start:s.start,dur:s.dur,audio:"orig"},
+              p=>{ bari.style.width=Math.round(p*100)+"%"; });
+      }else{
+        baked=false;
+        out={blob:file,poster:posterQuick||await rlGrabPoster(file,0.3).catch(()=>null),dur:s.dur};
+      }
+    }catch(e){ console.warn("[reel] encode",e); pub.disabled=sv2.disabled=false; prog.hidden=true;
+      toast(RL.encFail); return; }
+
+    progt.textContent=RL.saving; bari.style.width="100%";
+    const dataURL=await rlBlobToURL(out.blob).catch(()=>null);
+    if(!dataURL){ pub.disabled=sv2.disabled=false; prog.hidden=true; toast(RL.encFail); return; }
+
+    const meta2={id,active:true,descr,poster:out.poster||posterQuick||null,
+      music:"orig",baked,quality:"",dur:out.dur||s.dur,
+      start:baked?0:s.start,end:baked?0:(s.start+ (out.dur||s.dur))};
+    const row=Object.assign({sort:10,video:dataURL},meta2);
+
+    let where="local";
+    if(dataURL.length<=RL_MAXPUB){
+      try{ await rlDbSave(row); where="db"; }
+      catch(e){ console.warn("[reel] publish",e); where="local"; }
+    } else {
+      where="local"; /* أكبر من حد النشر — بنخزنه بالجهاز ونعلم المالك */
+    }
+
+    if(where==="local"){
+      try{ await idbPut("pub",Object.assign({},meta2,{blob:out.blob})); }catch(e){}
+    }
+    /* فهرس المالك (صورة مصغّرة فقط حتى ما يمتلئ التخزين) */
+    const thumb=await rlThumb(out.poster||posterQuick).catch(()=>out.poster||posterQuick||null);
+    rlMineSet({id,descr,poster:thumb,music:"orig",quality:"",dur:out.dur||s.dur,
+      active:true,live:where==="db",ts:Date.now()});
+    if(draft){ try{ await idbDel("drafts",draft.id) }catch(e){} }
+
+    rlVidCache.delete(id); await rlLoad(); rlRenderFeed(); closeSheet();
+    toast(dataURL.length>RL_MAXPUB?RL.tooBig:(where==="db"?RL.pubDone:RL.pubLocal));
+  };
+}
+/* صورة مصغّرة صغيرة للفهرس */
+function rlThumb(dataURL){
+  return new Promise(res=>{ if(!dataURL) return res(null);
+    const im=new Image(); im.onload=()=>{ try{
+      const w=120,h=Math.round(w*(im.height/im.width||1.6)), c=document.createElement("canvas");
+      c.width=w; c.height=h; c.getContext("2d").drawImage(im,0,0,w,h); res(c.toDataURL("image/jpeg",0.5));
+    }catch(e){ res(dataURL) } }; im.onerror=()=>res(dataURL); im.src=dataURL; });
+}
+
+/* تعديل الوصف السريع (من الشاشة) */
+function rlEditDesc(r){
+  openSheet(`<h3 style="font-size:19px">${RL.editDesc}</h3>
+    <div class="opt" style="margin-top:12px"><label for="rl-ed">${RL.descL}</label>
+      <textarea class="ctrl" id="rl-ed" placeholder="${RL.descPh}">${esc(r.descr||"")}</textarea></div>
+    <div class="acts"><button class="btn btn-p" id="rl-eds">${RL.save.replace(" (مسودة)","")}</button>
+      <button class="btn btn-o" id="rl-edx">${RL.cancel}</button></div>`);
+  document.getElementById("rl-edx").onclick=closeSheet;
+  document.getElementById("rl-eds").onclick=async()=>{
+    const descr=document.getElementById("rl-ed").value.trim();
+    const btn=document.getElementById("rl-eds"); btn.disabled=true; btn.textContent=RL.saving;
+    const row={id:r.id,active:r.active!==false,sort:10,descr,video:null,poster:null,
+      music:r.music||"none",baked:r.baked!==false,quality:r.quality||"",dur:r.dur||0};
+    try{ await rlDbSave(row); }catch(e){ try{ const rec=await idbGet("pub",r.id);
+      if(rec){ rec.descr=descr; await idbPut("pub",rec) } }catch(e2){} }
+    const m=rlMine().find(z=>z.id===r.id); if(m){ m.descr=descr; rlMineSet(m); }
+    await rlLoad(); rlRenderFeed(); closeSheet(); toast(RL.savedDraft.replace("بالمسوّدات","")+"✓");
+  };
+}
+
+/* إدارة الريلز + المسوّدات */
+async function rlManage(){
+  const mine=rlMine();
+  let drafts=[]; try{ drafts=await idbAll("drafts") }catch(e){}
+  const row=(m,isDraft)=>`<div class="line">
+    <div class="thumb">${m.poster?`<img class="photo" src="${esc(m.poster)}" alt="">`:""}</div>
+    <div class="body"><b>${esc((m.descr||"").slice(0,40)||(isDraft?RL.drafts:"ريل"))}</b>
+      <div class="spec">${isDraft?RL.drafts:(m.live?RL.live:RL.localOnly)}${m.dur?" · "+Math.round(m.dur)+RL.secs:""}${m.active===false?" · "+RL.hidden:""}</div>
+      <div class="ft" style="gap:8px">
+        ${isDraft?`<button class="fixbtn" data-dpub="${esc(m.id)}">${RL.pubDraft}</button>
+                   <button class="fixbtn" data-dedit="${esc(m.id)}">${RL.editDesc}</button>
+                   <button class="rm" data-ddel="${esc(m.id)}">${RL.del}</button>`
+                :`<button class="fixbtn" data-mtog="${esc(m.id)}">${m.active===false?RL.show:RL.hide}</button>
+                  <button class="rm" data-mdel="${esc(m.id)}">${RL.del}</button>`}
+      </div></div></div>`;
+  openSheet(`<h3 style="font-size:19px">${RL.manage}</h3>
+    <div class="acts" style="margin-top:12px"><button class="btn btn-p" id="rl-mnew">＋ ${RL.new}</button></div>
+    <section class="sec" style="padding:16px 0 6px"><div class="sechead"><h2 style="font-size:15px">${RL.drafts}</h2></div></section>
+    ${drafts.length?drafts.map(d=>row(d,true)).join(""):`<p class="foot" style="padding-top:0">${RL.emptyDraft}</p>`}
+    <section class="sec" style="padding:16px 0 6px"><div class="sechead"><h2 style="font-size:15px">${RL.live}</h2></div></section>
+    ${mine.length?mine.map(m=>row(m,false)).join(""):`<p class="foot" style="padding-top:0">${RL.none}</p>`}
+    <div class="acts" style="margin-top:14px"><button class="btn btn-o" id="rl-mx">${RL.cancel}</button></div>`);
+  const box=document.getElementById("sheet-body");
+  document.getElementById("rl-mx").onclick=closeSheet;
+  document.getElementById("rl-mnew").onclick=()=>rlEditor(null);
+  box.querySelectorAll("[data-dpub]").forEach(b=>b.onclick=async()=>{
+    const d=(await idbAll("drafts")).find(z=>z.id===b.dataset.dpub); if(d){ closeSheet(); rlEditor(d); } });
+  box.querySelectorAll("[data-dedit]").forEach(b=>b.onclick=async()=>{
+    const d=(await idbAll("drafts")).find(z=>z.id===b.dataset.dedit); if(d){ closeSheet(); rlEditor(d); } });
+  box.querySelectorAll("[data-ddel]").forEach(b=>{ let a=false; b.onclick=async()=>{
+    if(!a){ a=true; b.textContent=RL.delSure; setTimeout(()=>{a=false;b.textContent=RL.del},3500); return; }
+    await idbDel("drafts",b.dataset.ddel); toast(RL.delDone); rlManage(); }; });
+  box.querySelectorAll("[data-mtog]").forEach(b=>b.onclick=async()=>{
+    const m=rlMine().find(z=>z.id===b.dataset.mtog); if(!m) return; b.disabled=true;
+    const row2={id:m.id,active:m.active===false,sort:10,descr:m.descr||"",video:null,poster:null,
+      music:m.music||"none",baked:true,quality:m.quality||"",dur:m.dur||0};
+    try{ await rlDbSave(row2); }catch(e){ try{ const rec=await idbGet("pub",m.id);
+      if(rec){ rec.active=m.active===false; await idbPut("pub",rec) } }catch(e2){} }
+    m.active=m.active===false; rlMineSet(m); rlVidCache.delete(m.id);
+    await rlLoad(); rlRenderFeed(); rlManage(); });
+  box.querySelectorAll("[data-mdel]").forEach(b=>{ let a=false; b.onclick=async()=>{
+    if(!a){ a=true; b.textContent=RL.delSure; setTimeout(()=>{a=false;b.textContent=RL.del},3500); return; }
+    b.disabled=true; await rlDbDelete(b.dataset.mdel); rlMineDel(b.dataset.mdel);
+    rlVidCache.delete(b.dataset.mdel); await rlLoad(); rlRenderFeed(); rlManage(); toast(RL.delDone); }; });
+}
+
+/* ═════════ تنسيقات الشاشة (تُحقن مرة وحدة) ═════════ */
+function rlCSS(){
+  if(document.getElementById("reels-css")) return;
+  const s=document.createElement("style"); s.id="reels-css";
+  s.textContent=`
+  body.reels .topbar{display:none}
+  body.reels main{padding-bottom:0}
+  body.reels .proffab{display:none}
+  #v-reels{padding:0;background:#000}
+  .rl-feed{height:calc(100vh - var(--tabh));height:calc(100dvh - var(--tabh));overflow-y:auto;scroll-snap-type:y mandatory;
+    -webkit-overflow-scrolling:touch;background:#000;scrollbar-width:none}
+  .rl-feed::-webkit-scrollbar{display:none}
+  .rl-item{position:relative;height:calc(100vh - var(--tabh));height:calc(100dvh - var(--tabh));scroll-snap-align:start;scroll-snap-stop:always;
+    display:grid;place-items:center;overflow:hidden;background:#000}
+  .rl-vwrap{position:absolute;inset:0}
+  .rl-video{width:100%;height:100%;object-fit:cover;background:#000;display:block}
+  .rl-tap{position:absolute;inset:0;background:0;border:0;cursor:pointer;z-index:2}
+  .rl-play{position:absolute;inset:0;display:none;place-items:center;z-index:3;pointer-events:none}
+  .rl-play svg{width:64px;height:64px;fill:rgba(255,255,255,.92);filter:drop-shadow(0 2px 10px rgba(0,0,0,.5))}
+  .rl-item.paused .rl-play{display:grid}
+  .rl-grad{position:absolute;inset-inline:0;bottom:0;height:52%;z-index:2;pointer-events:none;
+    background:linear-gradient(to top,rgba(0,0,0,.78),rgba(0,0,0,.32) 46%,transparent)}
+  .rl-meta{position:absolute;inset-inline:0;bottom:0;z-index:4;color:#fff;padding:16px 16px 22px}
+  .rl-brand{display:flex;align-items:center;gap:9px;margin-bottom:8px}
+  .rl-brand b{font-size:14px;font-weight:700;text-shadow:0 1px 6px rgba(0,0,0,.5)}
+  .rl-logo{width:34px;height:34px;border-radius:10px;overflow:hidden;flex:none;background:#0F151C;
+    display:grid;place-items:center;box-shadow:0 0 0 1px rgba(255,255,255,.28)}
+  .rl-logo img{width:78%;height:auto;display:block}
+  .rl-desc{margin:0;font-size:14.5px;line-height:1.7;text-shadow:0 1px 6px rgba(0,0,0,.55);
+    max-height:6.2em;overflow:hidden;white-space:pre-wrap}
+  .rl-mtag{display:inline-flex;align-items:center;gap:5px;margin-top:9px;font-size:12px;font-weight:600;
+    background:rgba(255,255,255,.18);backdrop-filter:blur(6px);padding:5px 11px;border-radius:99px}
+  .rl-snd{position:absolute;top:14px;inset-inline-start:50%;transform:translateX(-50%);z-index:5;
+    background:rgba(0,0,0,.5);color:#fff;font-size:12px;padding:6px 13px;border-radius:99px;backdrop-filter:blur(6px)}
+  .rl-top{position:fixed;top:0;inset-inline:0;max-width:520px;margin:0 auto;z-index:52;
+    display:flex;align-items:center;gap:8px;padding:calc(env(safe-area-inset-top) + 10px) 12px 20px;
+    background:linear-gradient(to bottom,rgba(0,0,0,.5),transparent);pointer-events:none}
+  .rl-top>*{pointer-events:auto}
+  .rl-ttl{color:#fff;font-size:16px;font-weight:700;flex:1;text-shadow:0 1px 6px rgba(0,0,0,.5)}
+  .rl-back,.rl-add,.rl-mng{width:38px;height:38px;border:0;border-radius:12px;cursor:pointer;
+    background:rgba(255,255,255,.16);color:#fff;display:grid;place-items:center;font-size:20px;line-height:1;backdrop-filter:blur(8px)}
+  .rl-back svg{width:22px;height:22px;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+  .rl-add,.rl-mng{display:none;font-weight:700}
+  body.owner .rl-add,body.owner .rl-mng{display:grid}
+  .rl-empty{height:calc(100vh - var(--tabh));height:calc(100dvh - var(--tabh));display:flex;flex-direction:column;align-items:center;
+    justify-content:center;gap:12px;color:#fff;text-align:center;padding:24px}
+  .rl-empty p{margin:0;opacity:.86;font-size:15px}
+  .rl-empty .rl-esub{opacity:.6;font-size:13px}
+  .rl-elogo{display:flex;align-items:center;gap:9px;margin-bottom:6px}
+  .rl-elogo b{font-size:16px}
+  .rl-empty .btn{margin-top:8px;min-width:180px}
+  .rl-slot{width:100%;height:150px;border-radius:14px;background:var(--art);border:1px dashed var(--line);
+    display:grid;place-items:center;overflow:hidden}
+  .rl-slot img{width:100%;height:100%;object-fit:cover;display:block}
+  .rl-chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+  .rl-chip{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:11px;
+    padding:8px 13px;font-size:13px;font-weight:600;cursor:pointer;transition:.15s}
+  .rl-chip.on{background:var(--brand);border-color:var(--brand);color:#fff}
+  .rl-range{width:100%;accent-color:var(--brand);margin-top:8px}
+  .rl-prog{margin-top:14px;display:flex;align-items:center;gap:10px}
+  .rl-bar{flex:1;height:8px;border-radius:99px;background:var(--line);overflow:hidden}
+  .rl-bar i{display:block;height:100%;width:0;background:var(--brand);transition:width .2s}
+  `;
+  document.head.appendChild(s);
+}
+
+/* ═════════ الربط بنظام التنقل ═════════ */
+function reelsBoot(){
+  rlCSS();
+  rlEnsureView();
+  if(typeof go==="function" && !go._rlWrapped){
+    const _g=go;
+    go=function(view){ _g(view); if(view==="reels") rlEnter(); else rlLeave(); };
+    go._rlWrapped=true;
+  }
+}
+
+
 /* ===== الإقلاع ===== */
 document.getElementById('wa-plain').href="https://wa.me/"+WA;
 document.getElementById('map-link').href="https://www.google.com/maps/search/?api=1&query="+encodeURIComponent("بلد شارع المحيط معمل الزهور");
@@ -2339,6 +2969,7 @@ if(!/^https?:$/.test(location.protocol))
   setTimeout(()=>toast(t().errNet),1500);
 syncProducts();   /* يسحب المنتجات من Supabase إذا الجدول موجود وبيه صفوف */
 logVisit();       /* يسجّل الزيارة بجدول visits */
+reelsBoot();      /* يهيّئ نظام الريلز ويربطه بالتنقّل */
 </script>
 </body>
 </html>
