@@ -215,61 +215,20 @@ body.dark .info .ic{background:rgba(255,255,255,.08);color:var(--brand-3)}
 [dir="rtl"] .ig .go{transform:rotate(180deg)}
 @media (prefers-reduced-motion:reduce){.ig::after{animation:none}}
 
-/* ===== مساعد الذكاء الاصطناعي ===== */
-.aifab{position:fixed;bottom:calc(var(--tabh) + 16px);inset-inline-end:max(16px,calc(50% - 244px));z-index:55;
-  width:54px;height:54px;border:0;border-radius:18px;cursor:pointer;display:grid;place-items:center;color:#fff;
-  background:linear-gradient(135deg,var(--brand-2),var(--brand));transition:transform .18s,background var(--T);
-  box-shadow:0 10px 26px color-mix(in srgb,var(--brand) 45%,transparent),0 0 0 1px rgba(255,255,255,.16) inset}
-.aifab:active{transform:scale(.94)}
-.aifab svg{width:25px;height:25px;stroke:#fff;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
-.aifab i{position:absolute;inset:0;border-radius:18px;border:2px solid var(--brand-2);opacity:0;animation:aiPulse 3.4s ease-out infinite}
-@keyframes aiPulse{0%{opacity:.55;transform:scale(1)}70%,100%{opacity:0;transform:scale(1.45)}}
+/* ===== زر الملف الشخصي العائم ===== */
+.proffab{position:fixed;bottom:calc(var(--tabh) + 16px);inset-inline-end:max(16px,calc(50% - 244px));z-index:55;
+  width:56px;height:56px;border:3px solid #fff;padding:0;border-radius:50%;cursor:pointer;overflow:hidden;
+  background:var(--brand-soft);display:grid;place-items:center;transition:transform .18s,border-color var(--T);
+  box-shadow:0 10px 26px color-mix(in srgb,var(--brand) 42%,transparent),0 0 0 1px rgba(255,255,255,.14)}
+body.dark .proffab{border-color:var(--cardb)}
+.proffab:active{transform:scale(.94)}
+.proffab .pf-av{width:100%;height:100%;border-radius:50%;overflow:hidden;display:grid;place-items:center;background:var(--brand-soft)}
+.proffab .pf-av img{width:100%;height:100%;object-fit:cover;display:block}
+.proffab .pf-av svg{width:28px;height:28px;stroke:var(--brand);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 
-.aiwrap{position:fixed;inset:0;z-index:70;display:none}
-.aiwrap.on{display:block}
-.aiwrap .back{position:absolute;inset:0;background:rgba(6,10,20,.45);backdrop-filter:blur(3px)}
-.aipanel{position:absolute;inset-inline:0;bottom:0;top:0;max-width:520px;margin:0 auto;background:var(--wash);
-  display:flex;flex-direction:column;animation:aiUp .28s cubic-bezier(.4,0,.2,1) both}
-@keyframes aiUp{from{transform:translateY(16px);opacity:0}to{transform:none;opacity:1}}
-.aihead{background:var(--brand);color:#fff;padding:14px var(--pad);display:flex;align-items:center;gap:11px;
-  border-radius:0 0 20px 20px;transition:background-color var(--T);flex:none}
-.aihead .av{width:40px;height:40px;flex:none;border-radius:13px;display:grid;place-items:center;
-  background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.35)}
-.aihead .av svg{width:21px;height:21px;stroke:#fff;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
-.aihead .tx{flex:1;min-width:0}
-.aihead b{display:block;font-size:15px}
-.aihead span{display:block;font-size:11.5px;opacity:.85;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.aihead button{width:36px;height:36px;flex:none;border:0;border-radius:11px;background:rgba(255,255,255,.2);color:#fff;
-  cursor:pointer;display:grid;place-items:center;font-size:17px}
-.aibody{flex:1;overflow-y:auto;padding:16px var(--pad) 6px;display:flex;flex-direction:column;gap:10px;
-  -webkit-overflow-scrolling:touch}
-.msg{max-width:86%;padding:11px 14px;border-radius:17px;font-size:14px;line-height:1.8;white-space:pre-wrap;
-  word-break:break-word;animation:rise .22s ease both;box-shadow:var(--shadow)}
-.msg.bot{align-self:flex-start;background:var(--card);border:1px solid var(--line);border-start-start-radius:6px}
-.msg.me{align-self:flex-end;background:var(--brand);color:#fff;border-end-end-radius:6px;transition:background-color var(--T)}
-.msg.err{align-self:flex-start;background:#FEF0E6;border:1px solid #F5A524;color:#8A3D14;border-start-start-radius:6px}
-body.dark .msg.err{background:rgba(245,165,36,.13);color:#F5C27A}
-.dots{align-self:flex-start;display:flex;gap:5px;padding:14px 16px;background:var(--card);border:1px solid var(--line);
-  border-radius:17px;border-start-start-radius:6px}
-.dots i{width:7px;height:7px;border-radius:50%;background:var(--muted);animation:aiDot 1.3s ease-in-out infinite}
-.dots i:nth-child(2){animation-delay:.18s}.dots i:nth-child(3){animation-delay:.36s}
-@keyframes aiDot{0%,60%,100%{opacity:.28;transform:translateY(0)}30%{opacity:1;transform:translateY(-4px)}}
-.aichips{display:flex;gap:8px;overflow-x:auto;padding:8px var(--pad);flex:none;scrollbar-width:none}
-.aichips::-webkit-scrollbar{display:none}
-.aichips button{flex:none;border:1px solid var(--line);background:var(--card);color:var(--brand);border-radius:999px;
-  padding:8px 14px;font-size:12.5px;font-weight:600;cursor:pointer;transition:color var(--T)}
-.aifoot{flex:none;padding:8px var(--pad) calc(10px + env(safe-area-inset-bottom));background:var(--cardb);
-  border-top:1px solid var(--line)}
-.airow{display:flex;align-items:flex-end;gap:9px}
-.airow textarea{flex:1;border:1px solid var(--line);background:var(--card);border-radius:15px;padding:11px 13px;
-  font-size:14px;resize:none;max-height:110px;outline:0;line-height:1.6}
-.airow textarea:focus{border-color:var(--brand)}
-.airow button{width:44px;height:44px;flex:none;border:0;border-radius:14px;background:var(--brand);color:#fff;
-  cursor:pointer;display:grid;place-items:center;transition:background-color var(--T),opacity .2s}
-.airow button:disabled{opacity:.45}
-.airow button svg{width:20px;height:20px;stroke:#fff;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
-[dir="rtl"] .airow button svg{transform:scaleX(-1)}
-.aidisc{text-align:center;font-size:10.5px;color:var(--muted);margin:7px 0 0}
+/* بطاقة فيسبوك — نفس شكل بطاقة إنستغرام بلون فيسبوك */
+.ig.fb{box-shadow:0 10px 26px rgba(24,119,242,.30);
+  background:linear-gradient(135deg,#2D88FF 0%,#1877F2 45%,#0A5DC2 100%)}
 .steps{margin:0 var(--pad);background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:14px;
   box-shadow:var(--shadow);backdrop-filter:blur(8px)}
 .step{display:flex;gap:11px;padding:7px 0}
@@ -426,6 +385,11 @@ body.dark .credit{background:linear-gradient(170deg,#141A28,#0D121C);border-colo
         <span class="igt"><b id="t-ig1"></b><span class="handle">@aluminum_.iq</span></span>
         <svg class="go" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg>
       </a>
+      <a class="ig fb" href="https://www.facebook.com/share/196sCXeAPp/" target="_blank" rel="noopener">
+        <span class="igi"><svg viewBox="0 0 24 24"><path d="M13.5 21.5v-8.2h2.8l.42-3.26h-3.22V7.9c0-.94.26-1.58 1.6-1.58h1.71V3.4c-.3-.04-1.31-.13-2.5-.13-2.47 0-4.17 1.51-4.17 4.28v2.49H7.4v3.26h2.93v8.2z" fill="#fff" stroke="none"/></svg></span>
+        <span class="igt"><b id="t-fb1"></b><span class="handle">facebook.com</span></span>
+        <svg class="go" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg>
+      </a>
       <p class="foot"><span id="t-foot1"></span><br>
         <button class="reportlink report" id="t-report1"></button>
         <span class="devline" id="t-dev1"></span></p>
@@ -495,6 +459,11 @@ body.dark .credit{background:linear-gradient(170deg,#141A28,#0D121C);border-colo
         <span class="igt"><b id="t-ig2"></b><span class="handle">@aluminum_.iq</span></span>
         <svg class="go" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg>
       </a>
+      <a class="ig fb" href="https://www.facebook.com/share/196sCXeAPp/" target="_blank" rel="noopener">
+        <span class="igi"><svg viewBox="0 0 24 24"><path d="M13.5 21.5v-8.2h2.8l.42-3.26h-3.22V7.9c0-.94.26-1.58 1.6-1.58h1.71V3.4c-.3-.04-1.31-.13-2.5-.13-2.47 0-4.17 1.51-4.17 4.28v2.49H7.4v3.26h2.93v8.2z" fill="#fff" stroke="none"/></svg></span>
+        <span class="igt"><b id="t-fb2"></b><span class="handle">facebook.com</span></span>
+        <svg class="go" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg>
+      </a>
       <section class="sec"><div class="sechead"><h2 id="t-bugT"></h2></div></section>
       <div style="padding:0 var(--pad)">
         <p class="sub" style="font-size:13px;margin:-6px 0 10px" id="t-bugD"></p>
@@ -534,30 +503,9 @@ body.dark .credit{background:linear-gradient(170deg,#141A28,#0D121C);border-colo
   </nav>
 </div>
 
-<button class="aifab" id="ai-fab" aria-label="AI">
-  <i></i><svg viewBox="0 0 24 24"><path d="M12 3l1.9 4.6L18.5 9.5l-4.6 1.9L12 16l-1.9-4.6L5.5 9.5l4.6-1.9z"/><path d="M18 15.5l.9 2.1 2.1.9-2.1.9-.9 2.1-.9-2.1-2.1-.9 2.1-.9z"/></svg>
+<button class="proffab" id="prof-fab" aria-label="الملف الشخصي">
+  <span class="pf-av" id="prof-fab-av"></span>
 </button>
-
-<div class="aiwrap" id="ai-wrap">
-  <div class="back" id="ai-back"></div>
-  <div class="aipanel">
-    <div class="aihead">
-      <span class="av"><svg viewBox="0 0 24 24"><path d="M12 3l1.9 4.6L18.5 9.5l-4.6 1.9L12 16l-1.9-4.6L5.5 9.5l4.6-1.9z"/></svg></span>
-      <span class="tx"><b id="t-aiT"></b><span id="t-aiSub"></span></span>
-      <button id="ai-new" title="new">⟳</button>
-      <button id="ai-close">✕</button>
-    </div>
-    <div class="aibody" id="ai-body"></div>
-    <div class="aichips" id="ai-chips"></div>
-    <div class="aifoot">
-      <div class="airow">
-        <textarea id="ai-input" rows="1"></textarea>
-        <button id="ai-send"><svg viewBox="0 0 24 24"><path d="M4 12l16-8-6 8 6 8z"/></svg></button>
-      </div>
-      <p class="aidisc" id="t-aiDisc"></p>
-    </div>
-  </div>
-</div>
 
 <div class="scrim" id="scrim"></div>
 <div class="sheet" id="sheet" role="dialog" aria-modal="true"><div class="handle"></div><div id="sheet-body"></div></div>
@@ -816,7 +764,7 @@ ar:{dir:"rtl",label:"العربية",
  aiBadKey:"المفتاح مرفوض — إمّا ملغى أو مقيّد بدومين ثاني. جدّده من Google AI Studio.",
  aiQuota:"تجاوزت الحصة المجانية لهذا اليوم. جرّب باچر أو راسلنا واتساب.",
  aiNoKey:"المساعد غير مفعّل بعد. المطلوب ضبط الإعدادات في أعلى ملف الموقع.",
- aiDisc:"الأسعار تُحدَّد بعد المعاينة — للتأكيد اتصل بالمعرض.", igT:"تابعنا على إنستغرام", call:"اتصال",wa:"واتساب",copyNum:"نسخ الرقم",map:"الخريطة",
+ aiDisc:"الأسعار تُحدَّد بعد المعاينة — للتأكيد اتصل بالمعرض.", igT:"تابعنا على إنستغرام", fbT:"تابعنا على فيسبوك", call:"اتصال",wa:"واتساب",copyNum:"نسخ الرقم",map:"الخريطة",
  bugT:"لاحظت خطأ؟",bugD:"إذا صار خطأ بالتطبيق أو معلومة غلط أو زر ما يشتغل — اكتبها هنا وتوصلنا مباشرة.",
  bugL:"وصف المشكلة",bugPh:"مثال: زر (أضف للسلة) ما يشتغل بصفحة الشبابيك",bugSend:"أرسل الملاحظة على واتساب",
  devKicker:"تصميم وتطوير",devName:"غي لإنشاء المواقع والتطبيقات بالذكاء الاصطناعي",
@@ -908,7 +856,7 @@ en:{dir:"ltr",label:"English",
  aiBadKey:"The API key was rejected — revoked or restricted to another domain. Create a new one in Google AI Studio.",
  aiQuota:"Daily free quota exceeded. Try tomorrow or message us on WhatsApp.",
  aiNoKey:"The assistant is not configured yet. Set the options at the top of the site file.",
- aiDisc:"Prices are set after inspection — call the shop to confirm.", igT:"Follow us on Instagram", call:"Call",wa:"WhatsApp",copyNum:"Copy number",map:"Map",
+ aiDisc:"Prices are set after inspection — call the shop to confirm.", igT:"Follow us on Instagram", fbT:"Follow us on Facebook", call:"Call",wa:"WhatsApp",copyNum:"Copy number",map:"Map",
  bugT:"Found a problem?",bugD:"If something is broken, wrong, or a button does not work — write it here and it reaches us directly.",
  bugL:"Describe the problem",bugPh:"e.g. the Add to cart button does not work on windows",bugSend:"Send note on WhatsApp",
  devKicker:"DESIGN & DEVELOPMENT",devName:"Ghi — AI-powered websites and apps",
@@ -1000,7 +948,7 @@ ku:{dir:"rtl",label:"کوردی",
  aiBadKey:"کلیلەکە ڕەتکرایەوە — یان هەڵوەشێنراوە یان بۆ دۆمەینێکی تر بەربەستکراوە.",
  aiQuota:"سنووری بەخۆڕایی ئەمڕۆ تەواو بوو. سبەینێ تاقی بکەرەوە.",
  aiNoKey:"یاریدەدەر هێشتا چالاک نەکراوە. ڕێکخستنەکانی سەرەوەی فایلی ماڵپەڕ دابنێ.",
- aiDisc:"نرخ دوای سەردان دیاری دەکرێت — بۆ دڵنیایی پەیوەندی بکە.", igT:"لە ئینستاگرام بمانپەیوە", call:"پەیوەندی",wa:"واتساب",copyNum:"کۆپیکردنی ژمارە",map:"نەخشە",
+ aiDisc:"نرخ دوای سەردان دیاری دەکرێت — بۆ دڵنیایی پەیوەندی بکە.", igT:"لە ئینستاگرام بمانپەیوە", fbT:"لە فەیسبووک بمانپەیوە", call:"پەیوەندی",wa:"واتساب",copyNum:"کۆپیکردنی ژمارە",map:"نەخشە",
  bugT:"هەڵەیەکت بینی؟",bugD:"ئەگەر هەڵەیەک ڕوویدا یان دوگمەیەک کار ناکات — لێرە بینووسە و ڕاستەوخۆ دەگاتە ئێمە.",
  bugL:"باسی کێشەکە",bugPh:"نموونە: دوگمەی (زیادکردن بۆ سەبەتە) کار ناکات",bugSend:"تێبینی بنێرە بۆ واتساب",
  devKicker:"دیزاین و گەشەپێدان",devName:"غی بۆ دروستکردنی ماڵپەڕ و ئەپ بە زیرەکی دەستکرد",
@@ -1260,10 +1208,7 @@ function fillUI(){
   setTxt('t-iHours',x.iHours); setTxt('t-iHoursV',x.iHoursV); setTxt('t-iServ',x.iServ); setTxt('t-iServV',x.iServV);
   setTxt('t-call',x.call); setTxt('wa-plain',x.wa); setTxt('copy-num',x.copyNum); setTxt('map-link',x.map);
   setTxt('t-ig1',x.igT); setTxt('t-ig2',x.igT);
-  setTxt('t-aiT',x.aiT); setTxt('t-aiSub',x.aiSub); setTxt('t-aiDisc',x.aiDisc);
-  document.getElementById('ai-input').placeholder=x.aiPh;
-  document.getElementById('ai-fab').setAttribute('aria-label',x.aiT);
-  aiReset();
+  setTxt('t-fb1',x.fbT); setTxt('t-fb2',x.fbT);
   setTxt('t-acctT',x.acctT); renderAcct();
   ['c-name','c-phone','c-area'].forEach((id,k)=>{const el=document.getElementById(id),
     val=[customer.name,customer.phone,customer.area][k]; if(el&&!el.value&&val) el.value=val});
@@ -1458,7 +1403,7 @@ function profBoot(){
   profile.updated= +d.updated||0;
   if(!customer.name&&profile.name){ customer.name=profile.name; persist() }
 }
-function profSave(){ profile.updated=Date.now(); lsSet(LS_PROF,profile) }
+function profSave(){ profile.updated=Date.now(); lsSet(LS_PROF,profile); if(typeof refreshFabAv==="function") refreshFabAv() }
 const profName=()=>profile.name||(member&&member.name)||customer.name||"";
 const initials=()=>{
   const n=profName().trim(); if(!n) return "👤";
@@ -2362,110 +2307,17 @@ async function copy(txt){
 }
 let tt;function toast(m){const el=document.getElementById('toast');el.textContent=m;el.classList.add('on');clearTimeout(tt);tt=setTimeout(()=>el.classList.remove('on'),2500)}
 
-/* ===== المساعد الذكي (Gemini) ===== */
-/* ┌───────────────────────────────────────────────────────────────────────┐
-   │  الوضع (أ) الآمن والمنصوح به: ضع رابط الوسيط (Worker) في PROXY واترك │
-   │      KEY فارغاً — المفتاح يبقى مخفياً في الخادم ولا يراه أحد.        │
-   │  الوضع (ب) للتجربة السريعة فقط: ضع المفتاح في KEY واترك PROXY فارغاً │
-   │      ⚠ في هذا الوضع أي زائر يقدر يشوف المفتاح من «عرض المصدر».      │
-   └───────────────────────────────────────────────────────────────────────┘ */
-/* المفتاح مجزّأ ومعكوس Base64 حتى ما يظهر كسلسلة واضحة بفحص GitHub —
-   تنويه: هذا تمويه وليس حماية حقيقية، أي زائر يقدر يستخرج المفتاح الفعلي
-   من تبويب Network بأدوات المطوّر لحظة إرسال الطلب. */
-const _k1="=cnYPdXStFEWNd0NZJEV1ljc", _k2="2pkYWt2MSJ2TpZHdjtmbX10Y", _k3="ud3VaZnQhhVS24kU4IWQuEVQ";
-const _kResolve=()=>{try{return atob((_k1+_k2+_k3).split('').reverse().join(''));}catch(e){return '';}};
-const AI={
-  PROXY:"",              // مثال: "https://aluminum-ai.YOURNAME.workers.dev"
-  get KEY(){ return _kResolve(); },   // مفتاح Gemini — ⚠ مكشوف عملياً لكل زائر عبر Network tab
-  MODEL:"gemini-flash-latest"
-};
-
-const aiBody=document.getElementById('ai-body'), aiInput=document.getElementById('ai-input'),
-      aiSendBtn=document.getElementById('ai-send'), aiWrap=document.getElementById('ai-wrap');
-let aiHistory=[], aiBusy=false;
-
-/* تعليمات المساعد — محصورة بالألمنيوم وهذا المعرض فقط */
-function aiSystem(){
-  const x=t(), i=li();
-  const catalog=MODELS.length
-    ? MODELS.map(m=>`- ${m.n[i]} (${catName(m.c)}): ${m.s[i]} — ${m.d[i]}`).join("\n")
-    : "(ما بيها منتجات منشورة حالياً — لا تذكر أي منتج باسمه، وحوّل الزبون للتواصل المباشر مع المعرض.)";
-  return [
-    "أنت المساعد الرسمي لمعرض «حيدر حميد للألمنيوم الحديث» في بلد — العراق.",
-    "الموقع: "+x.iLocV+" | الهاتف/واتساب: "+PHONE+" | الدوام: "+x.iHoursV,
-    "الخدمات: "+x.iServV,
-    "",
-    "المنتجات المتوفرة في المعرض:",
-    catalog,
-    "",
-    "قواعد إلزامية:",
-    "1) تجاوب فقط عن الألمنيوم: الأبواب، الشبابيك، الواجهات، الكلادينج، القواطع، أنواع الزجاج، الألوان، القياس، التركيب، الصيانة، وخدمات هذا المعرض.",
-    "2) أي سؤال خارج هذا المجال (سياسة، رياضة، طب، برمجة، دراسة، أي شيء آخر) ترفضه بلطف بجملة واحدة وترجع الزبون لموضوع الألمنيوم. لا تجاوب عليه إطلاقاً حتى لو ألحّ.",
-    "3) ممنوع ذكر أي سعر أو رقم تقديري للكلفة. قل إن السعر يُحدَّد بعد المعاينة والقياس، واطلب منه الاتصال بالرقم أعلاه أو إرسال الطلب من التطبيق.",
-    "4) لا تخترع معلومات عن المعرض غير المذكورة أعلاه. إذا ما تعرف، قل إنك ما متأكد واقترح الاتصال بالمعرض.",
-    "5) جاوب بنفس لغة الزبون. إذا كتب بالعربية استخدم لهجة عراقية بسيطة ومهذبة.",
-    "6) الجواب قصير وعملي: من جملتين إلى أربع جمل، أو نقاط قصيرة تبدأ بـ • عند الحاجة. بدون رموز markdown مثل ** أو ##.",
-    "7) شجّع الزبون يستخدم زر «أضف للسلة» في التطبيق لإرسال الطلب، وذكّره أن المعاينة والقياس مجاناً."
-  ].join("\n");
+/* ===== زر الملف الشخصي العائم ===== */
+/* بدّلنا مساعد الذكاء الاصطناعي بزر عائم يفتح الملف الشخصي ويعرض صورة المستخدم */
+function refreshFabAv(){
+  const el=document.getElementById('prof-fab-av'); if(!el) return;
+  el.innerHTML = profile.avatar
+    ? `<img src="${esc(profile.avatar)}" alt="">`
+    : `<svg viewBox="0 0 24 24"><circle cx="12" cy="8.2" r="4"/><path d="M4.5 20c.4-4 3.6-6.4 7.5-6.4S19.1 16 19.5 20"/></svg>`;
 }
-
-function aiAdd(cls,text){
-  const d=document.createElement('div');
-  d.className='msg '+cls; d.textContent=text;      /* textContent = لا حقن HTML */
-  aiBody.appendChild(d); aiBody.scrollTop=aiBody.scrollHeight; return d;
-}
-function aiDots(){
-  const d=document.createElement('div'); d.className='dots'; d.innerHTML='<i></i><i></i><i></i>';
-  aiBody.appendChild(d); aiBody.scrollTop=aiBody.scrollHeight; return d;
-}
-function aiReset(){
-  const x=t();
-  aiHistory=[]; aiBody.innerHTML=''; aiAdd('bot',x.aiHi);
-  const box=document.getElementById('ai-chips'); box.innerHTML='';
-  x.aiChips.forEach(q=>{const b=document.createElement('button');b.textContent=q;
-    b.onclick=()=>{aiInput.value=q;aiSend()};box.appendChild(b)});
-}
-
-async function aiSend(){
-  const x=t(), msg=aiInput.value.trim();
-  if(!msg||aiBusy) return;
-  if(!AI.PROXY&&!AI.KEY){aiAdd('err',x.aiNoKey);return}
-  aiInput.value=''; aiInput.style.height='auto';
-  aiAdd('me',msg); aiHistory.push({role:"user",parts:[{text:msg}]});
-  aiBusy=true; aiSendBtn.disabled=true;
-  const dots=aiDots();
-  try{
-    /* المفتاح كـ query param بدل الترويسة — أبسط لطلبات المتصفح */
-    const url=AI.PROXY||`https://generativelanguage.googleapis.com/v1beta/models/${AI.MODEL}:generateContent?key=${encodeURIComponent(AI.KEY)}`;
-    const r=await fetch(url,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({
-      system_instruction:{parts:[{text:aiSystem()}]},
-      contents:aiHistory.slice(-12),
-      generationConfig:{temperature:0.4,maxOutputTokens:2048,thinkingConfig:{thinkingBudget:0}}
-    })});
-    if(!r.ok){const b=await r.text().catch(()=>""); throw new Error("HTTP "+r.status+" "+b.slice(0,200))}
-    const data=await r.json();
-    const out=(data?.candidates?.[0]?.content?.parts||[]).map(z=>z.text||"").join("").trim();
-    dots.remove();
-    if(!out) throw new Error("empty");
-    aiAdd('bot',out); aiHistory.push({role:"model",parts:[{text:out}]});
-  }catch(err){
-    dots.remove(); aiHistory.pop(); console.error(err);
-    const m=String(err&&err.message||err);
-    let why=x.aiErr;
-    if(m.includes("Failed to fetch")||err instanceof TypeError) why=x.aiLocal;   /* file:// أو الشبكة */
-    else if(m.includes("403")||m.includes("400")) why=x.aiBadKey;                /* مفتاح ملغى/مقيّد */
-    else if(m.includes("429")) why=x.aiQuota;                                    /* تجاوز الحصة */
-    aiAdd('err',why);
-  }finally{ aiBusy=false; aiSendBtn.disabled=false; aiBody.scrollTop=aiBody.scrollHeight; }
-}
-
-document.getElementById('ai-fab').onclick=()=>{aiWrap.classList.add('on');setTimeout(()=>aiInput.focus(),260)};
-document.getElementById('ai-close').onclick=()=>aiWrap.classList.remove('on');
-document.getElementById('ai-back').onclick=()=>aiWrap.classList.remove('on');
-document.getElementById('ai-new').onclick=()=>aiReset();
-aiSendBtn.onclick=aiSend;
-aiInput.addEventListener('input',()=>{aiInput.style.height='auto';aiInput.style.height=Math.min(110,aiInput.scrollHeight)+'px'});
-aiInput.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();aiSend()}});
+const profFab=document.getElementById('prof-fab');
+if(profFab) profFab.onclick=()=>openProfile();
+refreshFabAv();
 
 /* ===== الإقلاع ===== */
 document.getElementById('wa-plain').href="https://wa.me/"+WA;
@@ -2473,6 +2325,7 @@ document.getElementById('map-link').href="https://www.google.com/maps/search/?ap
 const dt=document.getElementById('c-date'); dt.min=new Date().toISOString().slice(0,10); dt.value=dt.min;
 restore();                                    /* يرجّع السلة والمعلومات والإعدادات */
 profBoot();                                   /* يرجّع صورة الزبون وبريده */
+if(typeof refreshFabAv==="function") refreshFabAv();  /* حدّث صورة زر الملف الشخصي */
 adBoot(); adApply();                          /* لوحة المالك: الجلسة + منتجاتك */
 if(dark) setTheme(true);
 ['c-name','c-phone','c-area'].forEach((id,k)=>{
