@@ -227,16 +227,7 @@ body.dark .info .ic{background:rgba(255,255,255,.08);color:var(--brand-3)}
 @media (prefers-reduced-motion:reduce){.ig::after{animation:none}}
 
 /* ===== زر الملف الشخصي العائم ===== */
-.proffab{position:fixed;bottom:calc(var(--tabh) + 16px);inset-inline-end:max(16px,calc(50% - 244px));z-index:55;
-  width:56px;height:56px;border:3px solid #fff;padding:0;border-radius:50%;cursor:pointer;overflow:hidden;
-  background:var(--brand-soft);display:grid;place-items:center;transition:transform .18s,border-color var(--T);
-  box-shadow:0 10px 26px color-mix(in srgb,var(--brand) 42%,transparent),0 0 0 1px rgba(255,255,255,.14)}
-body.dark .proffab{border-color:var(--cardb)}
-.proffab:active{transform:scale(.94)}
-.proffab .pf-av{width:100%;height:100%;border-radius:50%;overflow:hidden;display:grid;place-items:center;background:var(--brand-soft)}
-.proffab .pf-av img{width:100%;height:100%;object-fit:cover;display:block}
-.proffab .pf-av svg{width:28px;height:28px;stroke:var(--brand);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
-
+body.dark 
 /* بطاقة فيسبوك — نفس شكل بطاقة إنستغرام بلون فيسبوك */
 .ig.fb{box-shadow:0 10px 26px rgba(24,119,242,.30);
   background:linear-gradient(135deg,#2D88FF 0%,#1877F2 45%,#0A5DC2 100%)}
@@ -557,6 +548,98 @@ body.dark .chat-follow-btn{color:var(--brand-3);border-color:var(--brand-3)}
 .push-btn:active{transform:scale(.985)}
 .push-btn.on{background:color-mix(in srgb,var(--green) 14%,transparent);
   border-color:color-mix(in srgb,var(--green) 45%,transparent);color:var(--green)}
+
+/* ═══════════ قائمة ملفي الشخصي ═══════════
+   الاتجاه البصري مأخوذ من مادة المعرض نفسها: صفيحة ألمنيوم مؤكسدة —
+   خطوط سحب رفيعة، لمعة تمشي على السطح، وإطار مخرّط حول الصورة. */
+.hbtn-av{padding:0;overflow:hidden;background:rgba(255,255,255,.22)}
+.hb-av{width:100%;height:100%;border-radius:12px;overflow:hidden;display:grid;place-items:center}
+.hb-av img{width:100%;height:100%;object-fit:cover;display:block}
+.hb-av svg{width:20px;height:20px;stroke:#fff;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+
+.pm-screen{position:fixed;inset:0;z-index:90;display:none;flex-direction:column;
+  background:var(--m-bg);max-width:520px;margin:0 auto;transition:background-color var(--T)}
+.pm-screen.on{display:flex}
+.pm-body{flex:1;overflow-y:auto;overscroll-behavior:contain;padding-bottom:26px}
+/* حافة مخروطة أسفل الصفيحة — مثل حرف مقطوعة الألمنيوم */
+.pm-plate{border-bottom:1px solid rgba(255,255,255,.28);
+  box-shadow:0 1px 0 rgba(0,0,0,.22),0 10px 26px rgba(0,0,0,.16)}
+
+/* الصفيحة المؤكسدة */
+.pm-plate{position:relative;overflow:hidden;flex:none;color:#fff;text-align:center;
+  padding:calc(env(safe-area-inset-top,0px) + 14px) 20px 26px;
+  background:linear-gradient(150deg,color-mix(in srgb,var(--brand) 88%,#000) 0%,
+    var(--brand) 46%,color-mix(in srgb,var(--brand-2) 84%,#fff 8%) 100%);
+  transition:background var(--T)}
+.pm-plate::before{content:"";position:absolute;inset:0;pointer-events:none;
+  background:repeating-linear-gradient(90deg,
+    rgba(255,255,255,.10) 0 1px,transparent 1px 2px,rgba(0,0,0,.07) 2px 3px,transparent 3px 5px)}
+.pm-plate::after{content:"";position:absolute;top:-60%;bottom:-60%;width:36%;pointer-events:none;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.2),transparent);
+  transform:skewX(-14deg);animation:pmSheen 7.5s ease-in-out infinite}
+@keyframes pmSheen{0%{inset-inline-start:-45%}58%,100%{inset-inline-start:120%}}
+.pm-top{position:relative;z-index:2;display:flex;align-items:center;margin-bottom:6px}
+.pm-x{width:36px;height:36px;border:0;border-radius:11px;background:rgba(255,255,255,.18);
+  color:#fff;display:grid;place-items:center;cursor:pointer;flex:none}
+.pm-x svg{width:19px;height:19px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round}
+.pm-x:active{transform:scale(.92)}
+
+/* الصورة بإطار مخرّط */
+.pm-av{position:relative;width:94px;height:94px;margin:6px auto 13px;z-index:2}
+.pm-av::before{content:"";position:absolute;inset:-5px;border-radius:50%;
+  background:conic-gradient(from 0deg,rgba(255,255,255,.8),rgba(255,255,255,.05) 24%,
+    rgba(255,255,255,.55) 50%,rgba(255,255,255,.05) 74%,rgba(255,255,255,.8));
+  animation:pmRing 16s linear infinite}
+@keyframes pmRing{to{transform:rotate(360deg)}}
+.pm-av-in{position:relative;width:94px;height:94px;border-radius:50%;overflow:hidden;
+  background:rgba(0,0,0,.3);display:grid;place-items:center;
+  box-shadow:inset 0 0 0 3px rgba(255,255,255,.16)}
+.pm-av-in img{width:100%;height:100%;object-fit:cover;display:block}
+.pm-av-in svg{width:42px;height:42px;stroke:rgba(255,255,255,.9);fill:none;stroke-width:1.6;
+  stroke-linecap:round;stroke-linejoin:round}
+.pm-name{position:relative;z-index:2;font-family:"Reem Kufi",var(--font);font-size:21px;
+  font-weight:600;letter-spacing:.2px;margin-bottom:3px}
+.pm-sub{position:relative;z-index:2;font-size:12.5px;opacity:.82;overflow-wrap:anywhere;
+  font-family:"IBM Plex Mono",monospace;direction:ltr;unicode-bidi:isolate}
+.pm-edit{position:relative;z-index:2;margin-top:15px;border:1px solid rgba(255,255,255,.42);
+  background:rgba(255,255,255,.12);color:#fff;border-radius:12px;padding:9px 22px;
+  font-size:13px;font-weight:700;cursor:pointer;font-family:var(--font)}
+.pm-edit:active{transform:scale(.96);background:rgba(255,255,255,.22)}
+
+/* عناوين المجموعات */
+.pm-eyebrow{font-family:"Reem Kufi",var(--font);font-size:12px;font-weight:600;color:var(--muted);
+  letter-spacing:.6px;padding:20px 18px 8px}
+
+/* صفوف القائمة */
+.pm-group{background:var(--card);border-block:1px solid var(--line);overflow:hidden;
+  transition:background-color var(--T),border-color var(--T)}
+body.dark .pm-group{background:var(--cardb)}
+.pm-row{display:flex;align-items:center;gap:13px;width:100%;padding:13px 16px;cursor:pointer;
+  position:relative;background:transparent;border:0;color:var(--ink);text-align:start;
+  font-family:var(--font);font-size:14.5px}
+.pm-row+.pm-row::before{content:"";position:absolute;top:0;inset-inline:60px 14px;height:1px;
+  background:linear-gradient(90deg,transparent,var(--line) 22%,var(--line) 78%,transparent)}
+.pm-row::after{content:"";position:absolute;inset-inline-start:0;top:14%;bottom:14%;width:3px;
+  border-radius:0 3px 3px 0;background:var(--brand);transform:scaleY(0);transition:transform .18s}
+.pm-row:active::after{transform:scaleY(1)}
+.pm-row:active{background:var(--art)}
+.pm-ic{width:38px;height:38px;border-radius:11px;flex:none;display:grid;place-items:center;
+  background:var(--m-surface);color:var(--brand);
+  box-shadow:inset 0 1px 2px rgba(0,0,0,.14),inset 0 -1px 0 rgba(255,255,255,.07)}
+body.dark .pm-ic{color:var(--brand-3)}
+.pm-ic svg{width:19px;height:19px;stroke:currentColor;fill:none;stroke-width:1.75;
+  stroke-linecap:round;stroke-linejoin:round}
+.pm-label{flex:1;min-width:0;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pm-val{flex:none;font-size:12.5px;color:var(--muted);font-weight:600}
+.pm-val.ok{color:var(--green)}
+.pm-count{flex:none;min-width:21px;height:21px;border-radius:99px;background:var(--brand);color:#fff;
+  font-size:11px;font-weight:700;display:grid;place-items:center;padding:0 6px;
+  font-family:"IBM Plex Mono",monospace}
+.pm-go{flex:none;width:16px;height:16px;stroke:var(--muted);fill:none;stroke-width:2;
+  stroke-linecap:round;stroke-linejoin:round;opacity:.55}
+html[dir="rtl"] .pm-go{transform:scaleX(-1)}
+.pm-foot{padding:22px 18px 0;display:flex;flex-direction:column;gap:10px}
+.pm-note{font-size:12.5px;color:var(--muted);line-height:1.7;text-align:center;padding:0 4px}
 .rec-time{font-family:"IBM Plex Mono";font-size:13.5px;color:var(--ink);flex:none;min-width:38px}
 .rec-wave{flex:1;display:flex;align-items:center;gap:3px;height:26px;overflow:hidden}
 .rec-wave i{flex:1;background:var(--brand);border-radius:2px;animation:recbar .9s ease-in-out infinite}
@@ -723,6 +806,9 @@ body.dark .up-tab.on{color:var(--brand-3)}
     <div class="trow">
       <div class="logo"><img src="data:image/jpeg;base64,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" alt="logo"></div>
       <div class="tt"><b id="t-brand"></b><span id="t-addr"></span></div>
+      <button class="hbtn hbtn-av" id="prof-btn" aria-label="ملفي الشخصي">
+        <span class="hb-av" id="hdr-av"></span>
+      </button>
       <button class="hbtn" id="settings-btn" aria-label="settings">
         <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-1.8-.3 1.6 1.6 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1A1.6 1.6 0 0 0 9 19.4a1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0 .3-1.8 1.6 1.6 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1A1.6 1.6 0 0 0 4.6 9a1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3H9a1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8V9a1.6 1.6 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z"/></svg>
       </button>
@@ -813,8 +899,6 @@ body.dark .up-tab.on{color:var(--brand-3)}
     </div>
 
     <div class="view" id="v-contact">
-      <section class="sec"><div class="sechead"><h2 id="t-acctT"></h2></div></section>
-      <div style="padding:0 var(--pad)" id="acct-box"></div>
       <section class="sec"><div class="sechead"><h2 id="t-contactT"></h2></div></section>
       <div class="info">
         <div class="item"><div class="ic">☏</div><div><b id="t-iPhone"></b><span class="mono">0790 469 4393</span></div></div>
@@ -913,6 +997,21 @@ body.dark .up-tab.on{color:var(--brand-3)}
         <button class="chat-send-btn" id="chat-send"><svg viewBox="0 0 24 24"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4z"/></svg></button>
       </div>
       <input type="file" id="chat-file" accept="image/*" style="display:none">
+    </div>
+
+    <!-- قائمة ملفي الشخصي -->
+    <div class="pm-screen" id="pm-screen">
+      <div class="pm-plate">
+        <div class="pm-top">
+          <button class="pm-x" id="pm-close" aria-label="إغلاق">
+            <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+        </div>
+        <div class="pm-av"><div class="pm-av-in" id="pm-av"></div></div>
+        <div class="pm-name" id="pm-name"></div>
+        <div class="pm-sub" id="pm-sub"></div>
+        <button class="pm-edit" id="pm-edit"></button>
+      </div>
+      <div class="pm-body" id="pm-body"></div>
     </div>
 
     <!-- صوت الطرف الآخر -->
@@ -1041,9 +1140,6 @@ body.dark .up-tab.on{color:var(--brand-3)}
   </nav>
 </div>
 
-<button class="proffab" id="prof-fab" aria-label="الملف الشخصي">
-  <span class="pf-av" id="prof-fab-av"></span>
-</button>
 
 <div class="scrim" id="scrim"></div>
 <div class="sheet" id="sheet" role="dialog" aria-modal="true"><div class="handle"></div><div id="sheet-body"></div></div>
@@ -1748,7 +1844,7 @@ function fillUI(){
   setTxt('t-call',x.call); setTxt('wa-plain',x.wa); setTxt('copy-num',x.copyNum); setTxt('map-link',x.map);
   setTxt('t-ig1',x.igT); setTxt('t-ig2',x.igT);
   setTxt('t-fb1',x.fbT); setTxt('t-fb2',x.fbT);
-  setTxt('t-acctT',x.acctT); renderAcct();
+  renderAcct();
   ['c-name','c-phone','c-area'].forEach((id,k)=>{const el=document.getElementById(id),
     val=[customer.name,customer.phone,customer.area][k]; if(el&&!el.value&&val) el.value=val});
   setTxt('t-bugT',x.bugT); setTxt('t-bugD',x.bugD); setTxt('t-bugL',x.bugL); setTxt('send-bug',x.bugSend);
@@ -2349,38 +2445,93 @@ function openMember(mode){
   };
 }
 
-/* بطاقة الحساب بصفحة التواصل */
-function renderAcct(){
-  const x=t(), box=document.getElementById('acct-box'); if(!box) return;
-  if(member){
-    box.innerHTML=`<div class="info" style="margin:0"><div class="item" id="acct-head" style="cursor:pointer;align-items:center">
-        ${avHTML("avmini")}
-        <div style="min-width:0;flex:1"><b>${esc(profName()||member.name||"")}</b>
-          <span class="mono">${esc(member.phone)}</span>
-          ${profile.email?`<span class="mono" style="font-size:11.5px;color:var(--muted);overflow-wrap:anywhere">${esc(profile.email)}</span>`:``}</div>
-        <span class="link" style="flex:none;color:var(--brand);font-weight:600">${x.editProf} ›</span></div></div>
-      <div class="pair" style="margin-top:12px">
-        <button class="btn btn-p" id="acct-orders">${x.myOrders}</button>
-        <button class="btn btn-o" id="acct-out">${x.logout}</button></div>`;
-    document.getElementById('acct-head').onclick=openProfile;
-    document.getElementById('acct-orders').onclick=openOrders;
-    document.getElementById('acct-out').onclick=memberOut;
-  }else{
-    box.innerHTML=`<div class="info" style="margin:0 0 12px"><div class="item" id="acct-head" style="cursor:pointer;align-items:center">
-        ${avHTML("avmini")}
-        <div style="min-width:0;flex:1"><b>${esc(profName()||x.guestName)}</b>
-          ${profile.email?`<span class="mono" style="font-size:11.5px;color:var(--muted);overflow-wrap:anywhere">${esc(profile.email)}</span>`
-            :`<span style="font-size:11.5px;color:var(--muted)">${esc(x.profD)}</span>`}</div>
-        <span class="link" style="flex:none;color:var(--brand);font-weight:600">${x.editProf} ›</span></div></div>
-      <p class="sub" style="font-size:13px;margin:-6px 0 10px">
-        ${noteTxt()}</p>
-      <div class="pair"><button class="btn btn-p" id="acct-reg">${x.regT}</button>
-        <button class="btn btn-o" id="acct-log">${x.logT}</button></div>`;
-    document.getElementById('acct-head').onclick=openProfile;
-    document.getElementById('acct-reg').onclick=()=>openMember("reg");
-    document.getElementById('acct-log').onclick=()=>openMember("log");
-  }
+/* ═══════════ قائمة ملفي الشخصي ═══════════
+   تجمع الحساب والطلبات والرسائل والتفضيلات بمكان واحد.
+   اسم الدالة بقى renderAcct حتى تشتغل كل النداءات القديمة. */
+const PM_ICONS={
+  orders:'<path d="M6 2h12l1.5 5.5H4.5z"/><path d="M5 7.5V20a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V7.5"/><path d="M9.5 11.5h5"/>',
+  msgs:'<path d="M21 14.5a2 2 0 0 1-2 2H7.5L3 21V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',
+  bell:'<path d="M18 8.5a6 6 0 1 0-12 0c0 6-2.2 7.5-2.2 7.5h16.4S18 14.5 18 8.5"/><path d="M13.7 20a2 2 0 0 1-3.4 0"/>',
+  theme:'<circle cx="12" cy="12" r="4.2"/><path d="M12 2v2.4M12 19.6V22M2 12h2.4M19.6 12H22M4.9 4.9l1.7 1.7M17.4 17.4l1.7 1.7M19.1 4.9l-1.7 1.7M6.6 17.4l-1.7 1.7"/>',
+  gear:'<circle cx="12" cy="12" r="3"/><path d="M19.2 14.8a1.5 1.5 0 0 0 .3 1.7l.1.1a1.9 1.9 0 1 1-2.7 2.7l-.1-.1a1.5 1.5 0 0 0-2.6 1.1v.2a1.9 1.9 0 1 1-3.8 0v-.1a1.5 1.5 0 0 0-2.6-1.2l-.1.1a1.9 1.9 0 1 1-2.7-2.7l.1-.1a1.5 1.5 0 0 0-1.1-2.6h-.2a1.9 1.9 0 1 1 0-3.8h.1a1.5 1.5 0 0 0 1.2-2.6l-.1-.1a1.9 1.9 0 1 1 2.7-2.7l.1.1a1.5 1.5 0 0 0 1.7.3h.1a1.5 1.5 0 0 0 .9-1.4v-.2a1.9 1.9 0 1 1 3.8 0v.1a1.5 1.5 0 0 0 2.6 1.2l.1-.1a1.9 1.9 0 1 1 2.7 2.7l-.1.1a1.5 1.5 0 0 0 1.1 2.6h.2a1.9 1.9 0 1 1 0 3.8h-.1a1.5 1.5 0 0 0-1.4.9z"/>',
+  out:'<path d="M15 17l5-5-5-5"/><path d="M20 12H9"/><path d="M11 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h5"/>'
+};
+const pmChev='<svg class="pm-go" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg>';
+const pmRow=(id,icon,label,right)=>`<button class="pm-row" id="${id}">
+  <span class="pm-ic"><svg viewBox="0 0 24 24">${PM_ICONS[icon]}</svg></span>
+  <span class="pm-label">${label}</span>${right||''}${pmChev}</button>`;
+
+/* صورة المستخدم بزر الهيدر */
+function refreshFabAv(){
+  const el=document.getElementById('hdr-av'); if(!el) return;
+  el.innerHTML = profile.avatar
+    ? `<img src="${esc(profile.avatar)}" alt="">`
+    : `<svg viewBox="0 0 24 24"><circle cx="12" cy="8.2" r="4"/><path d="M4.5 20c.4-4 3.6-6.4 7.5-6.4S19.1 16 19.5 20"/></svg>`;
 }
+
+function renderAcct(){
+  refreshFabAv();
+  const x=t(), body=document.getElementById('pm-body'); if(!body) return;
+
+  /* رأس الصفيحة */
+  const av=document.getElementById('pm-av');
+  if(av) av.innerHTML = profile.avatar
+    ? `<img src="${esc(profile.avatar)}" alt="">`
+    : `<svg viewBox="0 0 24 24"><circle cx="12" cy="8.2" r="4"/><path d="M4.5 20c.4-4 3.6-6.4 7.5-6.4S19.1 16 19.5 20"/></svg>`;
+  setTxt('pm-name', profName() || (member&&member.name) || x.guestName);
+  setTxt('pm-sub', profile.email || (member?member.phone:'') );
+  setTxt('pm-edit', x.editProf);
+
+  /* عدد الرسائل غير المقروءة — نقراه من بادج الهيدر */
+  const hb=document.getElementById('msg-hdr-badge');
+  const unread=(hb&&hb.style.display!=='none')?(hb.textContent||''):'';
+  const msgRight=unread?`<span class="pm-count">${esc(unread)}</span>`:'';
+
+  const pushRight=`<span class="pm-val${_pushOn?' ok':''}" id="pm-push-val">${
+    _pushOn?'مفعّلة':'مطفية'}</span>`;
+  const themeRight=`<span class="pm-val" id="pm-theme-val">${dark?'داكن':'فاتح'}</span>`;
+
+  body.innerHTML=`
+    <div class="pm-eyebrow">${x.acctT}</div>
+    <div class="pm-group">
+      ${pmRow('pm-orders','orders',x.myOrders)}
+      ${pmRow('pm-msgs','msgs','رسائلي',msgRight)}
+      ${pmRow('pm-push','bell','الإشعارات',pushRight)}
+    </div>
+    <div class="pm-eyebrow">التفضيلات</div>
+    <div class="pm-group">
+      ${pmRow('pm-theme','theme','المظهر',themeRight)}
+      ${pmRow('pm-set','gear','الإعدادات')}
+    </div>
+    ${member
+      ? `<div class="pm-group" style="margin-top:20px">${pmRow('pm-out','out',x.logout)}</div>`
+      : `<div class="pm-foot">
+           <p class="pm-note">${noteTxt()}</p>
+           <button class="btn btn-p" id="pm-reg">${x.regT}</button>
+           <button class="btn btn-o" id="pm-log">${x.logT}</button>
+         </div>`}`;
+
+  const on=(id,fn)=>{const el=document.getElementById(id); if(el) el.onclick=fn};
+  on('pm-orders',openOrders);
+  on('pm-msgs',()=>{ pmClose(); go('messages') });
+  on('pm-push',async()=>{
+    if(_pushOn) await pushDisable(); else await pushEnable(false);
+    const v=document.getElementById('pm-push-val');
+    if(v){ v.textContent=_pushOn?'مفعّلة':'مطفية'; v.classList.toggle('ok',_pushOn) }
+  });
+  on('pm-theme',()=>{
+    setTheme(!dark);
+    const v=document.getElementById('pm-theme-val');
+    if(v) v.textContent=dark?'داكن':'فاتح';
+  });
+  on('pm-set',()=>{ pmClose(); document.getElementById('settings-btn').click() });
+  on('pm-out',()=>{ memberOut(); });
+  on('pm-reg',()=>{ pmClose(); openMember("reg") });
+  on('pm-log',()=>{ pmClose(); openMember("log") });
+}
+
+function pmOpen(){ renderAcct(); document.getElementById('pm-screen').classList.add('on') }
+function pmClose(){ document.getElementById('pm-screen').classList.remove('on') }
 
 async function openOrders(){
   const x=t(), d=lsGet(LS_MEM)||{};
@@ -2889,16 +3040,13 @@ async function copy(txt){
 }
 let tt;function toast(m){const el=document.getElementById('toast');el.textContent=m;el.classList.add('on');clearTimeout(tt);tt=setTimeout(()=>el.classList.remove('on'),2500)}
 
-/* ===== زر الملف الشخصي العائم ===== */
-/* بدّلنا مساعد الذكاء الاصطناعي بزر عائم يفتح الملف الشخصي ويعرض صورة المستخدم */
-function refreshFabAv(){
-  const el=document.getElementById('prof-fab-av'); if(!el) return;
-  el.innerHTML = profile.avatar
-    ? `<img src="${esc(profile.avatar)}" alt="">`
-    : `<svg viewBox="0 0 24 24"><circle cx="12" cy="8.2" r="4"/><path d="M4.5 20c.4-4 3.6-6.4 7.5-6.4S19.1 16 19.5 20"/></svg>`;
-}
-const profFab=document.getElementById('prof-fab');
-if(profFab) profFab.onclick=()=>openProfile();
+/* ===== زر ملفي الشخصي بالهيدر ===== */
+const profBtn=document.getElementById('prof-btn');
+if(profBtn) profBtn.onclick=()=>pmOpen();
+const pmX=document.getElementById('pm-close');
+if(pmX) pmX.onclick=pmClose;
+const pmEd=document.getElementById('pm-edit');
+if(pmEd) pmEd.onclick=()=>openProfile();
 refreshFabAv();
 
 
@@ -3517,8 +3665,7 @@ function rlCSS(){
   s.textContent=`
   body.reels .topbar{display:none}
   body.reels main{padding-bottom:0}
-  body.reels .proffab{display:none}
-  #v-reels{padding:0;background:#000}
+  body.reels   #v-reels{padding:0;background:#000}
   .rl-feed{height:calc(100vh - var(--tabh));height:calc(100dvh - var(--tabh));overflow-y:auto;scroll-snap-type:y mandatory;
     -webkit-overflow-scrolling:touch;background:#000;scrollbar-width:none}
   .rl-feed::-webkit-scrollbar{display:none}
