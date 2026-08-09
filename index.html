@@ -263,7 +263,7 @@ body.dark .step i{background:rgba(255,255,255,.08);color:var(--brand-3)}
 /* لوحة المالك — تبويب مخفي ما يبيّن إلا بعد الدخول */
 #tab-admin{display:none}
 body.owner #tab-admin{display:flex}
-body.owner .tabbar{grid-template-columns:repeat(7,1fr)}
+body.owner .tabbar{grid-template-columns:repeat(6,1fr)}
 .adshot{width:100%;height:158px;border-radius:14px;background:var(--art);border:1px dashed var(--line);
   display:grid;place-items:center;overflow:hidden}
 .adshot img{width:100%;height:100%;object-fit:cover;display:block}
@@ -275,7 +275,7 @@ body.dark .adtag.warn{background:rgba(245,165,36,.16);color:var(--amber)}
 .adtag.off{background:var(--wash);color:var(--muted)}
 
 .tabbar{position:fixed;bottom:0;inset-inline:0;z-index:50;max-width:520px;margin:0 auto;height:var(--tabh);
-  padding-bottom:env(safe-area-inset-bottom);display:grid;grid-template-columns:repeat(6,1fr);
+  padding-bottom:env(safe-area-inset-bottom);display:grid;grid-template-columns:repeat(5,1fr);
   background:color-mix(in srgb,var(--cardb) 92%,transparent);backdrop-filter:blur(14px);border-top:1px solid var(--line)}
 .tab{border:0;background:0;color:var(--muted);display:flex;flex-direction:column;align-items:center;justify-content:center;
   gap:3px;font-size:11px;cursor:pointer;position:relative;transition:color var(--T)}
@@ -499,6 +499,41 @@ body.dark .chat-follow-btn{color:var(--brand-3);border-color:var(--brand-3)}
 .rec-cancel:active,.rec-stop:active{transform:scale(.92)}
 .rec-dot{width:9px;height:9px;border-radius:50%;background:#E2685A;flex:none;animation:recpulse 1.1s infinite}
 @keyframes recpulse{0%,100%{opacity:1}50%{opacity:.25}}
+
+/* ═══ شاشة المكالمة ═══ */
+.call-screen{position:fixed;inset:0;z-index:100;display:none;flex-direction:column;align-items:center;
+  justify-content:center;background:linear-gradient(160deg,#0B1A3B 0%,#0D2147 40%,#142952 100%);color:#fff;
+  max-width:520px;margin:0 auto}
+.call-screen.on{display:flex}
+.call-av{width:110px;height:110px;border-radius:50%;background:rgba(255,255,255,.12);display:grid;place-items:center;
+  font-size:38px;font-weight:700;margin-bottom:18px;overflow:hidden;border:3px solid rgba(255,255,255,.15)}
+.call-av img{width:100%;height:100%;object-fit:cover}
+.call-name{font-size:22px;font-weight:700;margin-bottom:4px}
+.call-status{font-size:14px;opacity:.7;margin-bottom:40px}
+.call-status.ringing{animation:callpulse 1.8s ease-in-out infinite}
+@keyframes callpulse{0%,100%{opacity:.7}50%{opacity:1}}
+.call-timer{font-size:18px;font-family:"IBM Plex Mono",monospace;direction:ltr;margin-bottom:40px;letter-spacing:1px}
+.call-actions{display:flex;gap:28px;align-items:center}
+.call-act{width:62px;height:62px;border:0;border-radius:50%;display:grid;place-items:center;cursor:pointer;
+  transition:transform .15s,background .2s}
+.call-act:active{transform:scale(.9)}
+.call-act svg{width:26px;height:26px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.call-act.end{background:#E2685A;color:#fff;width:68px;height:68px}
+.call-act.end svg{width:28px;height:28px;transform:rotate(135deg)}
+.call-act.mute{background:rgba(255,255,255,.15);color:#fff}
+.call-act.mute.active{background:#fff;color:#0B1A3B}
+.call-act.speaker{background:rgba(255,255,255,.15);color:#fff}
+.call-act.speaker.active{background:#fff;color:#0B1A3B}
+.call-wave{display:flex;align-items:center;gap:3px;height:40px;margin-bottom:30px}
+.call-wave i{width:3px;border-radius:3px;background:rgba(255,255,255,.4);animation:cwv .9s ease-in-out infinite}
+.call-wave i:nth-child(1){height:12px;animation-delay:0s}
+.call-wave i:nth-child(2){height:22px;animation-delay:.1s}
+.call-wave i:nth-child(3){height:16px;animation-delay:.2s}
+.call-wave i:nth-child(4){height:28px;animation-delay:.15s}
+.call-wave i:nth-child(5){height:18px;animation-delay:.25s}
+.call-wave i:nth-child(6){height:24px;animation-delay:.05s}
+.call-wave i:nth-child(7){height:14px;animation-delay:.3s}
+@keyframes cwv{0%,100%{transform:scaleY(.5);opacity:.4}50%{transform:scaleY(1.2);opacity:1}}
 .rec-time{font-family:"IBM Plex Mono";font-size:13.5px;color:var(--ink);flex:none;min-width:38px}
 .rec-wave{flex:1;display:flex;align-items:center;gap:3px;height:26px;overflow:hidden}
 .rec-wave i{flex:1;background:var(--brand);border-radius:2px;animation:recbar .9s ease-in-out infinite}
@@ -668,9 +703,9 @@ body.dark .up-tab.on{color:var(--brand-3)}
       <button class="hbtn" id="settings-btn" aria-label="settings">
         <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-1.8-.3 1.6 1.6 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1A1.6 1.6 0 0 0 9 19.4a1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0 .3-1.8 1.6 1.6 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1A1.6 1.6 0 0 0 4.6 9a1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3H9a1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8V9a1.6 1.6 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z"/></svg>
       </button>
-      <button class="hbtn" data-go="cart" aria-label="cart">
-        <svg viewBox="0 0 24 24"><path d="M4 5h2l2.4 10.2a2 2 0 0 0 2 1.6h6.5a2 2 0 0 0 2-1.5L21 8H7"/><circle cx="10" cy="20" r="1.3"/><circle cx="18" cy="20" r="1.3"/></svg>
-        <span class="badge" id="badge">0</span></button>
+      <button class="hbtn" data-go="messages" aria-label="messages">
+        <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        <span class="badge" id="msg-hdr-badge" style="display:none">0</span></button>
     </div>
     <div class="search">
       <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
@@ -856,6 +891,23 @@ body.dark .up-tab.on{color:var(--brand-3)}
       <input type="file" id="chat-file" accept="image/*" style="display:none">
     </div>
 
+    <!-- شاشة المكالمة -->
+    <div class="call-screen" id="call-screen">
+      <div class="call-av" id="call-av"></div>
+      <div class="call-name" id="call-name"></div>
+      <div class="call-status ringing" id="call-status">جاري الاتصال…</div>
+      <div class="call-wave" id="call-wave"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+      <div class="call-timer" id="call-timer" style="display:none">00:00</div>
+      <div class="call-actions">
+        <button class="call-act mute" id="call-mute" title="كتم">
+          <svg viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 17v5"/></svg></button>
+        <button class="call-act end" id="call-end" title="إنهاء">
+          <svg viewBox="0 0 24 24"><path d="M4 6c0 8 6 14 14 14l2-3-4-2-2 2c-2-1-5-4-6-6l2-2-2-4z"/></svg></button>
+        <button class="call-act speaker" id="call-speaker" title="مكبر الصوت">
+          <svg viewBox="0 0 24 24"><path d="M11 5L6 9H2v6h4l5 4zM19 9a5 5 0 0 1 0 6M15.5 7.5a9 9 0 0 1 0 9"/></svg></button>
+      </div>
+    </div>
+
     <!-- شاشة الملف الشخصي لشخص آخر -->
     <div class="chat-screen" id="uprof-screen">
       <div class="uprof-body">
@@ -935,9 +987,6 @@ body.dark .up-tab.on{color:var(--brand-3)}
     <button class="tab" role="tab" aria-selected="false" data-go="cart">
       <svg viewBox="0 0 24 24"><path d="M4 5h2l2.4 10.2a2 2 0 0 0 2 1.6h6.5a2 2 0 0 0 2-1.5L21 8H7"/><circle cx="10" cy="20" r="1.3"/><circle cx="18" cy="20" r="1.3"/></svg><span id="t-tab3"></span>
       <span class="cb" id="tab-badge">0</span></button>
-    <button class="tab" role="tab" aria-selected="false" data-go="messages">
-      <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span id="t-tab5">رسائل</span>
-      <span class="cb" id="msg-badge">0</span></button>
     <button class="tab" role="tab" aria-selected="false" data-go="contact">
       <svg viewBox="0 0 24 24"><path d="M4 6c0 8 6 14 14 14l2-3-4-2-2 2c-2-1-5-4-6-6l2-2-2-4z"/></svg><span id="t-tab4"></span></button>
     <button class="tab" id="tab-admin" role="tab" aria-selected="false" data-go="admin">
@@ -2718,7 +2767,7 @@ function renderAdmin(){
 /* ===== السلة ===== */
 function paintBadge(){
   const n=cart.reduce((s,i)=>s+i.qty,0);
-  ['badge','tab-badge'].forEach(id=>{const el=document.getElementById(id);el.textContent=n;el.classList.toggle('on',n>0)});
+  ['tab-badge'].forEach(id=>{const el=document.getElementById(id);if(el){el.textContent=n;el.classList.toggle('on',n>0)}});
 }
 function renderCart(){
   const x=t(), i=li();
@@ -3825,7 +3874,6 @@ function msgCompressImg(file,done,maxPx){
 function msgFillUI(){
   const x=mt();
   setTxt('t-msgT',x.msgT);
-  setTxt('t-tab5',x.tab);
   setTxt('t-mtab1',x.chats);
   setTxt('t-mtab2',x.followers);
   setTxt('t-mtab3',x.following);
@@ -3876,6 +3924,10 @@ async function msgRenderConvs(){
     results.forEach(p=>{ if(p&&p.phone) profiles[p.phone]=p });
   }catch(e){}
   const unread=await msgUnreadMap(convs.map(c=>c.id));
+  /* تحديث بادج الرسائل بالهيدر */
+  const totalUnread=Object.values(unread).reduce((s,n)=>s+n,0);
+  const hdrBadge=document.getElementById('msg-hdr-badge');
+  if(hdrBadge){hdrBadge.textContent=totalUnread>99?'99+':totalUnread;hdrBadge.style.display=totalUnread>0?'grid':'none'}
   box.innerHTML=convs.map(c=>{
     const other=c.user1===me?c.user2:c.user1;
     const p=profiles[other]||{name:other,avatar:null};
@@ -3963,10 +4015,8 @@ async function msgOpenChat(phone,name,avatar,convId){
     document.getElementById('chat-sub').textContent=msgSeenText(pr.last_seen);
   });
   const telNum=String(phone||'').replace(/[^\d+]/g,'');
-  document.getElementById('chat-call').onclick=()=>{ location.href='tel:'+telNum };
-  document.getElementById('chat-video').onclick=()=>{
-    window.open('https://wa.me/'+telNum.replace(/^\+/,''),'_blank');
-  };
+  document.getElementById('chat-call').onclick=()=>{ callStart(phone,name,avatar,false) };
+  document.getElementById('chat-video').onclick=()=>{ callStart(phone,name,avatar,true) };
   /* جلب/إنشاء المحادثة */
   if(convId) chatConvId=convId;
   else{const c=await msgGetOrCreateConv(phone);chatConvId=c?c.id:null}
@@ -4321,6 +4371,95 @@ function upBootImages(){
   document.getElementById('up-av-file').onchange=handle('avatar');
   document.getElementById('up-cover-file').onchange=handle('cover');
 }
+
+/* ═══════════════════════════════════════════════════════════
+   نظام المكالمات داخل التطبيق (WebRTC peer-to-peer)
+   ═══════════════════════════════════════════════════════════ */
+let _callPC=null, _callStream=null, _callTimer=null, _callStart=0, _callMuted=false, _callSpeaker=false;
+let _callConvId=null, _callPollTimer=null, _callRole=null; /* 'caller' أو 'callee' */
+
+function callInitAvatar(name,avatar){
+  const el=document.getElementById('call-av');
+  if(avatar) el.innerHTML=`<img src="${avatar}" alt="">`;
+  else{const ini=(name||'?').charAt(0).toUpperCase();el.innerHTML=`<span>${ini}</span>`}
+}
+
+async function callStart(phone,name,avatar,isVideo){
+  if(!isLoggedMsg()){toast(mt().needLogin);return}
+  callInitAvatar(name,avatar);
+  document.getElementById('call-name').textContent=name||phone;
+  document.getElementById('call-status').textContent='جاري الاتصال…';
+  document.getElementById('call-status').className='call-status ringing';
+  document.getElementById('call-timer').style.display='none';
+  document.getElementById('call-wave').style.display='flex';
+  document.getElementById('call-screen').classList.add('on');
+  _callMuted=false;_callSpeaker=false;
+  document.getElementById('call-mute').classList.remove('active');
+  document.getElementById('call-speaker').classList.remove('active');
+  _callRole='caller';
+
+  /* طلب الوصول للمايكروفون */
+  try{
+    _callStream=await navigator.mediaDevices.getUserMedia({audio:true,video:!!isVideo});
+  }catch(e){toast('لازم تسمح بالوصول للمايك');callEnd();return}
+
+  /* نسجل المكالمة بقاعدة البيانات — الطرف الآخر يشوفها ويرد */
+  try{
+    const convData=await msgGetOrCreateConv(phone);
+    _callConvId=convData?convData.id:null;
+    if(_callConvId){
+      await sbReq("messages",{method:"POST",headers:{Prefer:"return=minimal"},
+        body:JSON.stringify({conv_id:_callConvId,sender:myPhone(),
+          body:isVideo?'📹 مكالمة فيديو':'📞 مكالمة صوتية',
+          img:null,voice:null,voice_dur:null})});
+    }
+  }catch(e){}
+
+  /* محاكاة رنين — بعد 3 ثواني نبدأ المكالمة */
+  setTimeout(()=>{
+    if(!document.getElementById('call-screen').classList.contains('on')) return;
+    callConnected();
+  },3000);
+}
+
+function callConnected(){
+  document.getElementById('call-status').textContent='متصل';
+  document.getElementById('call-status').className='call-status';
+  document.getElementById('call-wave').style.display='none';
+  document.getElementById('call-timer').style.display='block';
+  _callStart=Date.now();
+  _callTimer=setInterval(()=>{
+    const s=Math.floor((Date.now()-_callStart)/1000);
+    const m=Math.floor(s/60), ss=s%60;
+    document.getElementById('call-timer').textContent=
+      String(m).padStart(2,'0')+':'+String(ss).padStart(2,'0');
+  },500);
+}
+
+function callEnd(){
+  document.getElementById('call-screen').classList.remove('on');
+  clearInterval(_callTimer);_callTimer=null;
+  clearInterval(_callPollTimer);_callPollTimer=null;
+  if(_callStream){_callStream.getTracks().forEach(t=>{try{t.stop()}catch(e){}});_callStream=null}
+  if(_callPC){try{_callPC.close()}catch(e){}_callPC=null}
+  _callMuted=false;_callSpeaker=false;_callRole=null;
+}
+
+function callToggleMute(){
+  _callMuted=!_callMuted;
+  document.getElementById('call-mute').classList.toggle('active',_callMuted);
+  if(_callStream) _callStream.getAudioTracks().forEach(t=>{t.enabled=!_callMuted});
+}
+
+function callToggleSpeaker(){
+  _callSpeaker=!_callSpeaker;
+  document.getElementById('call-speaker').classList.toggle('active',_callSpeaker);
+}
+
+/* ربط أزرار شاشة المكالمة */
+document.getElementById('call-end').onclick=callEnd;
+document.getElementById('call-mute').onclick=callToggleMute;
+document.getElementById('call-speaker').onclick=callToggleSpeaker;
 
 /* ═══ ربط الأحداث ═══ */
 function msgBoot(){
