@@ -534,6 +534,23 @@ body.dark .chat-follow-btn{color:var(--brand-3);border-color:var(--brand-3)}
 .call-wave i:nth-child(6){height:24px;animation-delay:.05s}
 .call-wave i:nth-child(7){height:14px;animation-delay:.3s}
 @keyframes cwv{0%,100%{transform:scaleY(.5);opacity:.4}50%{transform:scaleY(1.2);opacity:1}}
+.call-inner{position:relative;z-index:2;display:flex;flex-direction:column;align-items:center}
+#call-audio{display:none}
+.call-remote-video,.call-local-video{display:none;background:#000}
+.call-screen.video .call-remote-video{display:block;position:absolute;inset:0;width:100%;height:100%;
+  object-fit:cover;z-index:0}
+.call-screen.video .call-local-video{display:block;position:absolute;top:calc(env(safe-area-inset-top,0px) + 16px);
+  inset-inline-end:16px;width:104px;height:150px;object-fit:cover;border-radius:14px;z-index:3;
+  border:2px solid rgba(255,255,255,.25);box-shadow:0 6px 18px rgba(0,0,0,.45)}
+.call-screen.video .call-inner{justify-content:flex-end;height:100%;padding-bottom:34px}
+.call-screen.video .call-av,.call-screen.video .call-wave{display:none}
+.call-screen.video .call-inner{background:linear-gradient(180deg,transparent 55%,rgba(0,0,0,.65) 100%)}
+.call-act.accept{background:#12A150;color:#fff;width:68px;height:68px;animation:accPulse 1.6s ease-in-out infinite}
+.call-act.accept svg{width:28px;height:28px}
+@keyframes accPulse{0%,100%{box-shadow:0 0 0 0 rgba(18,161,80,.55)}70%{box-shadow:0 0 0 18px rgba(18,161,80,0)}}
+.inc-bounce{animation:incBounce 1.8s ease-in-out infinite}
+@keyframes incBounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-9px)}}
+.call-screen.inc{background:linear-gradient(160deg,#0A1F1A 0%,#0D2E24 45%,#123A2C 100%)}
 .rec-time{font-family:"IBM Plex Mono";font-size:13.5px;color:var(--ink);flex:none;min-width:38px}
 .rec-wave{flex:1;display:flex;align-items:center;gap:3px;height:26px;overflow:hidden}
 .rec-wave i{flex:1;background:var(--brand);border-radius:2px;animation:recbar .9s ease-in-out infinite}
@@ -891,20 +908,43 @@ body.dark .up-tab.on{color:var(--brand-3)}
       <input type="file" id="chat-file" accept="image/*" style="display:none">
     </div>
 
-    <!-- شاشة المكالمة -->
+    <!-- صوت الطرف الآخر -->
+    <audio id="call-audio" autoplay playsinline></audio>
+
+    <!-- شاشة المكالمة الجارية -->
     <div class="call-screen" id="call-screen">
-      <div class="call-av" id="call-av"></div>
-      <div class="call-name" id="call-name"></div>
-      <div class="call-status ringing" id="call-status">جاري الاتصال…</div>
-      <div class="call-wave" id="call-wave"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
-      <div class="call-timer" id="call-timer" style="display:none">00:00</div>
-      <div class="call-actions">
-        <button class="call-act mute" id="call-mute" title="كتم">
-          <svg viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 17v5"/></svg></button>
-        <button class="call-act end" id="call-end" title="إنهاء">
-          <svg viewBox="0 0 24 24"><path d="M4 6c0 8 6 14 14 14l2-3-4-2-2 2c-2-1-5-4-6-6l2-2-2-4z"/></svg></button>
-        <button class="call-act speaker" id="call-speaker" title="مكبر الصوت">
-          <svg viewBox="0 0 24 24"><path d="M11 5L6 9H2v6h4l5 4zM19 9a5 5 0 0 1 0 6M15.5 7.5a9 9 0 0 1 0 9"/></svg></button>
+      <video id="call-remote-video" class="call-remote-video" autoplay playsinline></video>
+      <video id="call-local-video" class="call-local-video" autoplay playsinline muted></video>
+      <div class="call-inner">
+        <div class="call-av" id="call-av"></div>
+        <div class="call-name" id="call-name"></div>
+        <div class="call-status ringing" id="call-status">جاري الاتصال…</div>
+        <div class="call-wave" id="call-wave"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+        <div class="call-timer" id="call-timer" style="display:none">00:00</div>
+        <div class="call-actions">
+          <button class="call-act mute" id="call-mute" title="كتم">
+            <svg viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 17v5"/></svg></button>
+          <button class="call-act end" id="call-end" title="إنهاء">
+            <svg viewBox="0 0 24 24"><path d="M4 6c0 8 6 14 14 14l2-3-4-2-2 2c-2-1-5-4-6-6l2-2-2-4z"/></svg></button>
+          <button class="call-act speaker" id="call-speaker" title="مكبر الصوت">
+            <svg viewBox="0 0 24 24"><path d="M11 5L6 9H2v6h4l5 4zM19 9a5 5 0 0 1 0 6M15.5 7.5a9 9 0 0 1 0 9"/></svg></button>
+        </div>
+      </div>
+    </div>
+
+    <!-- شاشة المكالمة الواردة -->
+    <div class="call-screen inc" id="incoming-screen">
+      <div class="call-inner">
+        <div class="call-av inc-bounce" id="inc-av"></div>
+        <div class="call-name" id="inc-name"></div>
+        <div class="call-status ringing" id="inc-type">مكالمة واردة</div>
+        <div class="call-wave"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+        <div class="call-actions">
+          <button class="call-act end" id="inc-decline" title="رفض">
+            <svg viewBox="0 0 24 24"><path d="M4 6c0 8 6 14 14 14l2-3-4-2-2 2c-2-1-5-4-6-6l2-2-2-4z"/></svg></button>
+          <button class="call-act accept" id="inc-accept" title="رد">
+            <svg viewBox="0 0 24 24"><path d="M4 6c0 8 6 14 14 14l2-3-4-2-2 2c-2-1-5-4-6-6l2-2-2-4z"/></svg></button>
+        </div>
       </div>
     </div>
 
@@ -4014,7 +4054,6 @@ async function msgOpenChat(phone,name,avatar,convId){
     if(chatWith!==phone) return;
     document.getElementById('chat-sub').textContent=msgSeenText(pr.last_seen);
   });
-  const telNum=String(phone||'').replace(/[^\d+]/g,'');
   document.getElementById('chat-call').onclick=()=>{ callStart(phone,name,avatar,false) };
   document.getElementById('chat-video').onclick=()=>{ callStart(phone,name,avatar,true) };
   /* جلب/إنشاء المحادثة */
@@ -4373,93 +4412,316 @@ function upBootImages(){
 }
 
 /* ═══════════════════════════════════════════════════════════
-   نظام المكالمات داخل التطبيق (WebRTC peer-to-peer)
+   نظام المكالمات الحقيقي — WebRTC نداً لند (peer-to-peer)
+   الإشارات (signaling) تمرّ عبر جدولَي calls و call_ice بـ Supabase.
+   لازم تنشئ الجدولين بلوحة Supabase (شوف SQL بالشرح).
    ═══════════════════════════════════════════════════════════ */
-let _callPC=null, _callStream=null, _callTimer=null, _callStart=0, _callMuted=false, _callSpeaker=false;
-let _callConvId=null, _callPollTimer=null, _callRole=null; /* 'caller' أو 'callee' */
+const RTC_CFG={iceServers:[
+  {urls:["stun:stun.l.google.com:19302","stun:stun1.l.google.com:19302"]},
+  {urls:["stun:stun2.l.google.com:19302","stun:stun3.l.google.com:19302"]},
+  {urls:["stun:stun4.l.google.com:19302"]}
+]};
 
-function callInitAvatar(name,avatar){
-  const el=document.getElementById('call-av');
-  if(avatar) el.innerHTML=`<img src="${avatar}" alt="">`;
-  else{const ini=(name||'?').charAt(0).toUpperCase();el.innerHTML=`<span>${ini}</span>`}
+let _pc=null,_localStream=null,_remoteStream=null;
+let _callId=null,_callRole=null,_callPeer=null,_callVideo=false;
+let _callWatch=null,_iceWatch=null,_ringWatch=null,_callTimer=null,_callTO=null;
+let _seenIce={},_pendingIce=[],_ignoredCalls={};
+let _callStart=0,_callMuted=false,_callSpeaker=false,_callLive=false;
+let _incoming=null,_incName="",_incAv="";
+let _ringCtx=null,_ringInt=null,_vibInt=null;
+
+/* ───── نغمة الرنين (تتولّد بالمتصفح — بدون ملفات صوت) ───── */
+function ringStart(outgoing){
+  ringStop();
+  try{
+    const AC=window.AudioContext||window.webkitAudioContext;
+    if(!AC) return;
+    _ringCtx=new AC();
+    if(_ringCtx.state==="suspended") _ringCtx.resume().catch(()=>{});
+    const tone=(freq,at,len)=>{
+      if(!_ringCtx) return;
+      const o=_ringCtx.createOscillator(),g=_ringCtx.createGain(),t=_ringCtx.currentTime+at;
+      o.type="sine";o.frequency.value=freq;
+      g.gain.setValueAtTime(0,t);
+      g.gain.linearRampToValueAtTime(outgoing?.16:.28,t+.04);
+      g.gain.setValueAtTime(outgoing?.16:.28,t+len-.06);
+      g.gain.linearRampToValueAtTime(0,t+len);
+      o.connect(g);g.connect(_ringCtx.destination);
+      o.start(t);o.stop(t+len+.02);
+    };
+    const ring=()=>{
+      if(outgoing){ tone(425,0,1.0); }            /* نغمة انتظار للمتصل */
+      else{ tone(520,0,.42); tone(660,.5,.42); }  /* رنّة مزدوجة للمستقبِل */
+    };
+    ring();
+    _ringInt=setInterval(ring,outgoing?3200:1900);
+    if(!outgoing&&navigator.vibrate){
+      const buzz=()=>{try{navigator.vibrate([420,220,420])}catch(e){}};
+      buzz();_vibInt=setInterval(buzz,1900);
+    }
+  }catch(e){}
+}
+function ringStop(){
+  clearInterval(_ringInt);_ringInt=null;
+  clearInterval(_vibInt);_vibInt=null;
+  if(navigator.vibrate){try{navigator.vibrate(0)}catch(e){}}
+  if(_ringCtx){try{_ringCtx.close()}catch(e){}_ringCtx=null}
 }
 
-async function callStart(phone,name,avatar,isVideo){
-  if(!isLoggedMsg()){toast(mt().needLogin);return}
-  callInitAvatar(name,avatar);
-  document.getElementById('call-name').textContent=name||phone;
-  document.getElementById('call-status').textContent='جاري الاتصال…';
+/* ───── أدوات العرض ───── */
+function callAvHTML(el,name,avatar){
+  if(avatar) el.innerHTML='<img src="'+esc(avatar)+'" alt="">';
+  else el.innerHTML='<span>'+esc((name||"?").trim().charAt(0).toUpperCase())+'</span>';
+}
+function callShowScreen(name,avatar,status){
+  callAvHTML(document.getElementById('call-av'),name,avatar);
+  document.getElementById('call-name').textContent=name||_callPeer||"";
+  document.getElementById('call-status').textContent=status;
   document.getElementById('call-status').className='call-status ringing';
   document.getElementById('call-timer').style.display='none';
   document.getElementById('call-wave').style.display='flex';
-  document.getElementById('call-screen').classList.add('on');
-  _callMuted=false;_callSpeaker=false;
   document.getElementById('call-mute').classList.remove('active');
   document.getElementById('call-speaker').classList.remove('active');
-  _callRole='caller';
-
-  /* طلب الوصول للمايكروفون */
-  try{
-    _callStream=await navigator.mediaDevices.getUserMedia({audio:true,video:!!isVideo});
-  }catch(e){toast('لازم تسمح بالوصول للمايك');callEnd();return}
-
-  /* نسجل المكالمة بقاعدة البيانات — الطرف الآخر يشوفها ويرد */
-  try{
-    const convData=await msgGetOrCreateConv(phone);
-    _callConvId=convData?convData.id:null;
-    if(_callConvId){
-      await sbReq("messages",{method:"POST",headers:{Prefer:"return=minimal"},
-        body:JSON.stringify({conv_id:_callConvId,sender:myPhone(),
-          body:isVideo?'📹 مكالمة فيديو':'📞 مكالمة صوتية',
-          img:null,voice:null,voice_dur:null})});
-    }
-  }catch(e){}
-
-  /* محاكاة رنين — بعد 3 ثواني نبدأ المكالمة */
-  setTimeout(()=>{
-    if(!document.getElementById('call-screen').classList.contains('on')) return;
-    callConnected();
-  },3000);
+  document.getElementById('call-screen').classList.toggle('video',_callVideo);
+  document.getElementById('call-screen').classList.add('on');
 }
-
-function callConnected(){
+function callOnLive(){
+  if(_callLive) return;
+  _callLive=true;
+  ringStop();
+  clearTimeout(_callTO);
   document.getElementById('call-status').textContent='متصل';
   document.getElementById('call-status').className='call-status';
   document.getElementById('call-wave').style.display='none';
   document.getElementById('call-timer').style.display='block';
   _callStart=Date.now();
+  clearInterval(_callTimer);
   _callTimer=setInterval(()=>{
     const s=Math.floor((Date.now()-_callStart)/1000);
-    const m=Math.floor(s/60), ss=s%60;
     document.getElementById('call-timer').textContent=
-      String(m).padStart(2,'0')+':'+String(ss).padStart(2,'0');
+      String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');
   },500);
 }
 
-function callEnd(){
-  document.getElementById('call-screen').classList.remove('on');
-  clearInterval(_callTimer);_callTimer=null;
-  clearInterval(_callPollTimer);_callPollTimer=null;
-  if(_callStream){_callStream.getTracks().forEach(t=>{try{t.stop()}catch(e){}});_callStream=null}
-  if(_callPC){try{_callPC.close()}catch(e){}_callPC=null}
-  _callMuted=false;_callSpeaker=false;_callRole=null;
+/* ───── إنشاء اتصال الند ───── */
+async function callSetupPC(){
+  _pc=new RTCPeerConnection(RTC_CFG);
+  _remoteStream=new MediaStream();
+  _pc.ontrack=e=>{
+    (e.streams[0]?e.streams[0].getTracks():[e.track]).forEach(t=>{
+      if(!_remoteStream.getTracks().includes(t)) _remoteStream.addTrack(t);
+    });
+    const a=document.getElementById('call-audio');
+    if(a&&a.srcObject!==_remoteStream){a.srcObject=_remoteStream;a.play().catch(()=>{})}
+    const rv=document.getElementById('call-remote-video');
+    if(_callVideo&&rv&&rv.srcObject!==_remoteStream){rv.srcObject=_remoteStream;rv.play().catch(()=>{})}
+  };
+  _pc.onicecandidate=e=>{ if(e.candidate) callSendIce(e.candidate) };
+  _pc.onconnectionstatechange=()=>{
+    if(!_pc) return;
+    const s=_pc.connectionState;
+    if(s==="connected") callOnLive();
+    else if(s==="failed"){ toast('انقطع الاتصال'); callHangup(true) }
+  };
+  if(_callVideo){
+    const lv=document.getElementById('call-local-video');
+    if(lv){lv.srcObject=_localStream;lv.play().catch(()=>{})}
+  }
+  _localStream.getTracks().forEach(t=>_pc.addTrack(t,_localStream));
 }
 
+/* ───── تبادل مرشّحات ICE ───── */
+async function callSendIce(cand){
+  if(!_callId) return;
+  const c=cand.toJSON?cand.toJSON():cand;
+  try{ await sbReq("call_ice",{method:"POST",headers:{Prefer:"return=minimal"},
+    body:JSON.stringify({call_id:_callId,sender:myPhone(),candidate:c})}) }catch(e){}
+}
+async function callFlushIce(){
+  while(_pendingIce.length){
+    const c=_pendingIce.shift();
+    try{ await _pc.addIceCandidate(new RTCIceCandidate(c)) }catch(e){}
+  }
+}
+function callWatchIce(){
+  clearInterval(_iceWatch);
+  _iceWatch=setInterval(async()=>{
+    if(!_callId||!_pc) return;
+    let rows;
+    try{ rows=await sbSelect("call_ice","select=id,candidate&call_id=eq."+_callId
+      +"&sender=neq."+encodeURIComponent(myPhone())+"&order=id.asc") }catch(e){ return }
+    for(const r of (rows||[])){
+      if(_seenIce[r.id]) continue;
+      _seenIce[r.id]=1;
+      if(_pc.remoteDescription) { try{ await _pc.addIceCandidate(new RTCIceCandidate(r.candidate)) }catch(e){} }
+      else _pendingIce.push(r.candidate);
+    }
+  },1200);
+}
+
+/* ───── مراقبة حالة المكالمة (الطرفين) ───── */
+function callWatchState(){
+  clearInterval(_callWatch);
+  _callWatch=setInterval(async()=>{
+    if(!_callId) return;
+    let r;
+    try{ const rows=await sbSelect("calls","select=*&id=eq."+_callId+"&limit=1"); r=rows&&rows[0] }
+    catch(e){ return }
+    if(!r) return;
+    if(r.status==="declined"){ toast('ما رد عليك'); callCleanup(); return }
+    if(r.status==="ended"){ toast('انتهت المكالمة'); callCleanup(); return }
+    if(_callRole==="caller"&&r.status==="accepted"&&r.answer&&_pc&&!_pc.currentRemoteDescription){
+      ringStop();
+      document.getElementById('call-status').textContent='يتم الربط…';
+      try{
+        await _pc.setRemoteDescription(new RTCSessionDescription(r.answer));
+        await callFlushIce();
+      }catch(e){ console.warn("[call] answer:",e) }
+    }
+  },1200);
+}
+
+/* ───── بدء مكالمة صادرة ───── */
+async function callStart(phone,name,avatar,isVideo){
+  if(!isLoggedMsg()){toast(mt().needLogin);return}
+  if(_callId||_incoming){toast('عندك مكالمة شغالة');return}
+  if(!navigator.mediaDevices||!window.RTCPeerConnection){toast('جهازك ما يدعم المكالمات');return}
+  phone=msgNormPhone(phone);
+  if(phone===myPhone()){toast('ما تكدر تتصل بنفسك');return}
+  _callVideo=!!isVideo;_callRole="caller";_callPeer=phone;_callLive=false;
+  _seenIce={};_pendingIce=[];
+  try{ _localStream=await navigator.mediaDevices.getUserMedia({audio:true,video:_callVideo}) }
+  catch(e){ toast(_callVideo?'لازم تسمح بالكاميرا والمايك':'لازم تسمح بالوصول للمايك'); return }
+  callShowScreen(name,avatar,'جاري الاتصال…');
+  try{
+    await callSetupPC();
+    const offer=await _pc.createOffer({offerToReceiveAudio:true,offerToReceiveVideo:_callVideo});
+    await _pc.setLocalDescription(offer);
+    const rows=await sbReq("calls",{method:"POST",headers:{Prefer:"return=representation"},
+      body:JSON.stringify({caller:myPhone(),callee:phone,is_video:_callVideo,status:"ringing",
+        offer:{type:offer.type,sdp:offer.sdp}})});
+    _callId=rows&&rows[0]&&rows[0].id;
+    if(!_callId) throw new Error("no-id");
+  }catch(e){
+    console.warn("[call] start:",e);
+    toast('تعذّر بدء المكالمة — تأكد من جدول calls');
+    callCleanup();return;
+  }
+  ringStart(true);
+  callWatchIce();
+  callWatchState();
+  /* ما رد خلال 45 ثانية → إلغاء */
+  _callTO=setTimeout(()=>{ if(!_callLive){ toast('ما رد عليك'); callHangup(true) } },45000);
+}
+
+/* ───── مكالمة واردة: شاشة الرد ───── */
+async function callShowIncoming(row){
+  _incoming=row;
+  let p={};
+  try{ p=await msgGetProfile(row.caller)||{} }catch(e){}
+  _incName=msgDisplayName(p)||row.caller;_incAv=p.avatar||"";
+  callAvHTML(document.getElementById('inc-av'),_incName,_incAv);
+  document.getElementById('inc-name').textContent=_incName;
+  document.getElementById('inc-type').textContent=row.is_video?'مكالمة فيديو واردة':'مكالمة صوتية واردة';
+  document.getElementById('incoming-screen').classList.add('on');
+  ringStart(false);
+}
+
+async function callAccept(){
+  const c=_incoming;if(!c) return;
+  ringStop();_incoming=null;
+  _callId=c.id;_callRole="callee";_callPeer=c.caller;_callVideo=!!c.is_video;_callLive=false;
+  _seenIce={};_pendingIce=[];
+  try{ _localStream=await navigator.mediaDevices.getUserMedia({audio:true,video:_callVideo}) }
+  catch(e){ toast('لازم تسمح بالوصول للمايك'); _incoming=c; callDecline(); return }
+  document.getElementById('incoming-screen').classList.remove('on');
+  callShowScreen(_incName,_incAv,'يتم الربط…');
+  try{
+    await callSetupPC();
+    await _pc.setRemoteDescription(new RTCSessionDescription(c.offer));
+    await callFlushIce();
+    const ans=await _pc.createAnswer();
+    await _pc.setLocalDescription(ans);
+    await sbReq("calls?id=eq."+_callId,{method:"PATCH",headers:{Prefer:"return=minimal"},
+      body:JSON.stringify({status:"accepted",answer:{type:ans.type,sdp:ans.sdp}})});
+  }catch(e){
+    console.warn("[call] accept:",e);
+    toast('تعذّر الرد على المكالمة');callCleanup();return;
+  }
+  callWatchIce();
+  callWatchState();
+}
+
+async function callDecline(){
+  const c=_incoming;if(!c) return;
+  ringStop();_incoming=null;_ignoredCalls[c.id]=1;
+  document.getElementById('incoming-screen').classList.remove('on');
+  try{ await sbReq("calls?id=eq."+c.id,{method:"PATCH",headers:{Prefer:"return=minimal"},
+    body:JSON.stringify({status:"declined"})}) }catch(e){}
+}
+
+/* ───── إنهاء / تنظيف ───── */
+async function callHangup(notify){
+  const id=_callId;
+  callCleanup();
+  if(notify!==false&&id){
+    try{ await sbReq("calls?id=eq."+id,{method:"PATCH",headers:{Prefer:"return=minimal"},
+      body:JSON.stringify({status:"ended"})}) }catch(e){}
+  }
+}
+function callCleanup(){
+  ringStop();
+  clearInterval(_callWatch);_callWatch=null;
+  clearInterval(_iceWatch);_iceWatch=null;
+  clearInterval(_callTimer);_callTimer=null;
+  clearTimeout(_callTO);_callTO=null;
+  if(_localStream){_localStream.getTracks().forEach(t=>{try{t.stop()}catch(e){}});_localStream=null}
+  if(_pc){try{_pc.close()}catch(e){}_pc=null}
+  const a=document.getElementById('call-audio');if(a) a.srcObject=null;
+  ['call-remote-video','call-local-video'].forEach(id=>{
+    const v=document.getElementById(id);if(v) v.srcObject=null;
+  });
+  if(_callId) _ignoredCalls[_callId]=1;
+  _remoteStream=null;_callId=null;_callRole=null;_callPeer=null;_callVideo=false;_callLive=false;
+  _seenIce={};_pendingIce=[];_incoming=null;
+  _callMuted=false;_callSpeaker=false;
+  document.getElementById('call-screen').classList.remove('on','video');
+  document.getElementById('incoming-screen').classList.remove('on');
+}
+
+/* ───── كتم / مكبر الصوت ───── */
 function callToggleMute(){
   _callMuted=!_callMuted;
   document.getElementById('call-mute').classList.toggle('active',_callMuted);
-  if(_callStream) _callStream.getAudioTracks().forEach(t=>{t.enabled=!_callMuted});
+  if(_localStream) _localStream.getAudioTracks().forEach(t=>{t.enabled=!_callMuted});
 }
-
-function callToggleSpeaker(){
+async function callToggleSpeaker(){
   _callSpeaker=!_callSpeaker;
   document.getElementById('call-speaker').classList.toggle('active',_callSpeaker);
+  const a=document.getElementById('call-audio');
+  if(a&&a.setSinkId){ try{ await a.setSinkId(_callSpeaker?"":"default") }catch(e){} }
 }
 
-/* ربط أزرار شاشة المكالمة */
-document.getElementById('call-end').onclick=callEnd;
+/* ───── مراقبة المكالمات الواردة (تشتغل دائماً وأنت مسجّل) ───── */
+function callWatchIncoming(){
+  clearInterval(_ringWatch);
+  _ringWatch=setInterval(async()=>{
+    if(!isLoggedMsg()||_callId||_incoming) return;
+    const since=new Date(Date.now()-50000).toISOString();
+    let rows;
+    try{ rows=await sbSelect("calls","select=*&callee=eq."+encodeURIComponent(myPhone())
+      +"&status=eq.ringing&created_at=gte."+since+"&order=created_at.desc&limit=3") }catch(e){ return }
+    const c=(rows||[]).find(r=>!_ignoredCalls[r.id]);
+    if(c) callShowIncoming(c);
+  },2500);
+}
+
+/* ربط أزرار شاشتَي المكالمة */
+document.getElementById('call-end').onclick=()=>callHangup(true);
 document.getElementById('call-mute').onclick=callToggleMute;
 document.getElementById('call-speaker').onclick=callToggleSpeaker;
+document.getElementById('inc-accept').onclick=callAccept;
+document.getElementById('inc-decline').onclick=callDecline;
 
 /* ═══ ربط الأحداث ═══ */
 function msgBoot(){
@@ -4588,6 +4850,7 @@ logVisit();       /* يسجّل الزيارة بجدول visits */
 reelsBoot();      /* يهيّئ نظام الريلز ويربطه بالتنقّل */
 msgBoot();        /* يهيّئ نظام المراسلات والمتابعة */
 msgStartPresence(); /* نبضة الحضور: تخلي "متصل الآن" تشتغل */
+callWatchIncoming(); /* يراقب المكالمات الواردة ويرنّ */
 setTimeout(()=>{ if(typeof msgSyncProfile==="function") msgSyncProfile() },2000); /* يرفع الصورة والاسم أول ما يفتح الموقع */
 
 /* يمنع قائمة الضغط الطويل (نسخ/مشاركة/بحث الويب) — يستثني حقول الكتابة */
