@@ -598,9 +598,15 @@ body.dark .wp-mash{background-image:url("data:image/svg+xml,%3Csvg xmlns='http:/
   background-size:104px 104px,104px 104px,26px 26px,26px 26px}
 
 /* صورة المستخدم */
+/* كل عناصر شاشة المحادثة فوق طبقة الخلفية */
+.chat-screen>*{position:relative;z-index:1}
+.chat-screen>.chat-wall{position:absolute;inset:0;z-index:0;pointer-events:none;
+  background-color:var(--m-bg);transition:background-color var(--T)}
+.chat-msgs{background:transparent!important}
+/* صورة المستخدم: حجمها الطبيعي، بلا زوم ولا قص، وثابتة ما تتحرك */
 .wp-custom{background-image:linear-gradient(var(--wp-scrim),var(--wp-scrim)),var(--wp-url);
-  background-size:cover,cover;background-position:center,center;background-repeat:no-repeat,no-repeat;
-  background-attachment:local,local}
+  background-size:auto,contain;background-position:center,center;
+  background-repeat:repeat,no-repeat}
 
 /* لوحة الاختيار */
 .wp-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:11px;margin:6px 0 4px}
@@ -615,6 +621,79 @@ body.dark .wp-mash{background-image:url("data:image/svg+xml,%3Csvg xmlns='http:/
 .wp-name{font-size:11.5px;padding:7px 4px;text-align:center;color:var(--ink);font-weight:600;
   background:var(--card)}
 body.dark .wp-name{background:var(--cardb)}
+
+/* ═══ بطاقة الملف بالرسالة ═══ */
+.file-card{display:flex;align-items:center;gap:10px;padding:9px 11px;border-radius:14px;
+  background:rgba(0,0,0,.10);cursor:pointer;margin-bottom:4px;min-width:190px}
+.chat-bubble.me .file-card{background:rgba(255,255,255,.18)}
+body.dark .chat-bubble.them .file-card{background:rgba(255,255,255,.08)}
+.fc-ico{flex:none;display:grid;place-items:center;width:30px;height:30px}
+.fc-in{flex:1;min-width:0;display:flex;flex-direction:column}
+.fc-name{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fc-size{font-size:10.5px;opacity:.7;font-family:"IBM Plex Mono",monospace}
+.fc-dl{flex:none;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;
+  background:rgba(0,0,0,.14)}
+.chat-bubble.me .fc-dl{background:rgba(255,255,255,.24)}
+.fc-dl svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.file-card:active{transform:scale(.98)}
+
+/* معاينة الملف قبل الإرسال */
+.chat-doc-preview{display:none;align-items:center;gap:10px;margin:8px 12px 0;padding:9px 11px;
+  border-radius:13px;background:var(--m-surface);border:1px solid var(--line)}
+.chat-doc-preview.on{display:flex}
+.chat-doc-preview .cdp-x{width:28px;height:28px;border:0;border-radius:50%;background:transparent;
+  color:var(--muted);font-size:15px;cursor:pointer;flex:none}
+
+/* شريط التنبيه من فوق */
+.top-warn{position:fixed;top:0;inset-inline:0;z-index:120;display:flex;align-items:center;gap:10px;
+  padding:calc(env(safe-area-inset-top,0px) + 12px) 16px 13px;max-width:520px;margin:0 auto;
+  background:linear-gradient(135deg,#B4532F,#8C3D22);color:#fff;
+  box-shadow:0 8px 26px rgba(0,0,0,.32);transform:translateY(-110%);
+  transition:transform .34s cubic-bezier(.2,1,.3,1)}
+.top-warn.on{transform:none}
+.top-warn .tw-ico{width:26px;height:26px;border-radius:50%;background:rgba(255,255,255,.22);
+  display:grid;place-items:center;flex:none;font-size:15px}
+.top-warn .tw-in{flex:1;min-width:0}
+.top-warn b{display:block;font-size:13.5px;margin-bottom:1px}
+.top-warn span{font-size:12px;opacity:.9;line-height:1.5}
+
+/* صفوف الخيارات */
+.opt-list{display:flex;flex-direction:column;gap:2px}
+.opt-row{display:flex;align-items:center;gap:10px;width:100%;padding:13px 12px;border:0;
+  background:transparent;color:var(--ink);text-align:start;font-size:14.5px;font-weight:600;
+  font-family:var(--font);cursor:pointer;border-radius:12px}
+.opt-row:active{background:var(--art)}
+.opt-row.danger{color:#D9543F}
+body.dark .opt-row.danger{color:#F08A76}
+
+/* شريط "محظور" بدل حقل الكتابة */
+.chat-blocked{display:none;align-items:center;gap:10px;justify-content:center;flex-wrap:wrap;
+  padding:14px 16px calc(env(safe-area-inset-bottom,0px) + 16px);
+  background:var(--m-surface);border-top:1px solid var(--line);text-align:center}
+.chat-blocked.on{display:flex}
+.chat-blocked span{font-size:13px;color:var(--muted)}
+.chat-blocked button{border:1px solid var(--line);background:var(--card);color:var(--brand);
+  border-radius:11px;padding:7px 15px;font-size:12.5px;font-weight:700;cursor:pointer;
+  font-family:var(--font)}
+
+/* ═══ أيقونات الواجهة ═══ */
+.ui-ic{width:19px;height:19px;flex:none;stroke:currentColor;fill:none;stroke-width:1.75;
+  stroke-linecap:round;stroke-linejoin:round}
+.rx-svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2;
+  stroke-linecap:round;stroke-linejoin:round}
+.fc-svg{width:26px;height:26px;stroke:currentColor;fill:none;stroke-width:1.6;
+  stroke-linecap:round;stroke-linejoin:round;opacity:.9}
+.fc-dlsvg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2;
+  stroke-linecap:round;stroke-linejoin:round}
+.tw-ico .ui-ic{width:16px;height:16px;stroke-width:2}
+.push-btn{display:flex;align-items:center;justify-content:center;gap:8px}
+.cdp-x .ui-ic,.rb-x .ui-ic,.chat-img-x .ui-ic{width:15px;height:15px;stroke-width:2.1}
+.rm-svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2.1;stroke-linecap:round}
+.rl-plus{width:24px;height:24px;stroke:currentColor;fill:none;stroke-width:2.2;stroke-linecap:round}
+#ad-new{display:inline-flex;align-items:center;justify-content:center;gap:7px}
+.chat-img-x,.rm{display:grid;place-items:center}
+
+
 .uprof-av-lg{width:92px!important;height:92px!important}
 .uprof-av-lg .ini{font-size:32px!important}
 
@@ -1107,7 +1186,7 @@ body.dark .up-tab.on{color:var(--brand-3)}
     </div>
     <div class="view" id="v-messages">
       <section class="sec"><div class="sechead"><h2 id="t-msgT">المراسلات</h2><span class="sub" id="msg-status"></span></div></section>
-      <div style="padding:0 var(--pad) 10px"><button class="push-btn" id="push-btn">🔕 فعّل الإشعارات</button></div>
+      <div style="padding:0 var(--pad) 10px"><button class="push-btn" id="push-btn"></button></div>
       <div class="user-search" id="msg-search-box">
         <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
         <input id="msg-q" type="search" placeholder="ابحث عن شخص…">
@@ -1141,18 +1220,28 @@ body.dark .up-tab.on{color:var(--brand-3)}
         <button class="chat-ic" id="chat-video" title="مكالمة فيديو"><svg viewBox="0 0 24 24"><rect x="2.5" y="6" width="13" height="12" rx="2.4"/><path d="M15.5 10.5l6-3.2v9.4l-6-3.2z"/></svg></button>
         <button class="chat-ic" id="chat-call" title="مكالمة"><svg viewBox="0 0 24 24"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.3-1.2a2 2 0 0 1 2.1-.5c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2z"/></svg></button>
         <button class="chat-follow-btn" id="chat-follow">متابعة</button>
+        <button class="chat-ic" id="chat-menu" title="خيارات"><svg viewBox="0 0 24 24"><circle cx="12" cy="5" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="12" cy="19" r="1.6"/></svg></button>
       </div>
+      <div class="chat-wall" id="chat-wall"></div>
       <div class="chat-msgs" id="chat-msgs"></div>
+      <div class="chat-doc-preview" id="chat-doc-preview">
+        <span id="cdp-ico" style="display:grid;place-items:center;width:30px;height:30px"></span>
+        <div style="flex:1;min-width:0">
+          <div id="cdp-name" style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>
+          <div id="cdp-size" style="font-size:10.5px;color:var(--muted)"></div>
+        </div>
+        <button class="cdp-x" id="cdp-x" aria-label="إلغاء"></button>
+      </div>
       <div class="reply-bar" id="reply-bar">
         <div class="rb-in">
           <div class="rb-who" id="rb-who"></div>
           <div class="rb-txt" id="rb-txt"></div>
         </div>
-        <button class="rb-x" id="rb-x" aria-label="إلغاء الرد">✕</button>
+        <button class="rb-x" id="rb-x" aria-label="إلغاء الرد"></button>
       </div>
       <div class="chat-img-preview" id="chat-img-preview">
         <img id="chat-img-pre-src" alt="">
-        <button class="chat-img-x" id="chat-img-x">✕</button>
+        <button class="chat-img-x" id="chat-img-x" aria-label="إلغاء"></button>
       </div>
       <!-- شريط التسجيل الصوتي -->
       <div class="rec-bar" id="rec-bar">
@@ -1169,6 +1258,16 @@ body.dark .up-tab.on{color:var(--brand-3)}
         <button class="chat-send-btn" id="chat-send"><svg viewBox="0 0 24 24"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4z"/></svg></button>
       </div>
       <input type="file" id="chat-file" accept="image/*" style="display:none">
+      <input type="file" id="chat-doc" style="display:none">
+      <div class="chat-blocked" id="chat-blocked">
+        <span id="cb-txt"></span><button id="cb-un">رفع الحظر</button>
+      </div>
+    </div>
+
+    <!-- تنبيه علوي -->
+    <div class="top-warn" id="top-warn">
+      <span class="tw-ico"></span>
+      <span class="tw-in"><b>تنبيه</b><span id="tw-msg"></span></span>
     </div>
 
     <!-- لوحة تفاعلات الرسائل -->
@@ -3104,7 +3203,7 @@ function renderAdmin(){
     <div class="note" style="margin-top:0">${AD.formD}</div>
     <div style="padding:0 var(--pad)">
       <div class="acts" style="margin-top:14px">
-        <button class="btn btn-p" id="ad-new">＋ ${AD.newT}</button></div></div>
+        <button class="btn btn-p" id="ad-new">${ic('plus')} <span>${AD.newT}</span></button></div></div>
     <section class="sec" style="padding-top:22px"><div class="sechead"><h2 style="font-size:16px">${AD.fixedT}</h2></div></section>
     <div class="info">
       <div class="item"><div class="ic">◧</div><div><b>${AD.colors}</b>
@@ -3167,7 +3266,7 @@ function renderCart(){
     return `<div class="line"><div class="thumb">${art(m)}</div>
       <div class="body"><b>${m.n[i]}</b><div class="spec">${esc(dimsOf(it))} · ${esc(it.glass)} · ${esc(it.color)}</div>
         <div class="ft"><span class="qty"><button data-dec="${k}">−</button><span class="mono">${it.qty}</span><button data-inc="${k}">+</button></span>
-          <button class="rm" data-rm="${k}">✕</button></div></div></div>`;
+          <button class="rm" data-rm="${k}">${ic('x','rm-svg')}</button></div></div></div>`;
   }).join('');
   persist();
   document.getElementById('sum-qty').textContent=cart.reduce((s,z)=>s+z.qty,0);
@@ -3497,7 +3596,7 @@ function rlEnsureView(){
       <button class="rl-back" id="rl-back" aria-label="رجوع">
         <svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
       <b class="rl-ttl">ريلز</b>
-      <button class="rl-add" id="rl-add" aria-label="ريل جديد">＋</button>
+      <button class="rl-add" id="rl-add" aria-label="ريل جديد"></button>
       <button class="rl-mng" id="rl-mng" aria-label="إدارة">⚙</button>
     </div>`;
   const cart=document.getElementById("v-cart");
@@ -4213,22 +4312,27 @@ async function msgMyConvs(){
 }
 
 /* ═══ الرسائل ═══ */
-async function msgSend(convId,body,imgData,voiceData,voiceDur,replyToId){
+async function msgSend(convId,body,imgData,voiceData,voiceDur,replyToId,fileObj){
   if(!isLoggedMsg()||!convId) return null;
   const row={conv_id:convId,sender:myPhone(),body:body||null,img:imgData||null,
     voice:voiceData||null,voice_dur:voiceDur||null};
   if(_replyCol&&replyToId) row.reply_to=replyToId;
+  if(_fileCol&&fileObj) row.file=fileObj;
   try{
     try{
       await sbReq("messages",{method:"POST",headers:{Prefer:"return=minimal"},body:JSON.stringify(row)});
     }catch(e1){
       /* عمود reply_to مو موجود بعد → نرسل بدونه ونوقف محاولته لاحقاً */
-      if(row.reply_to!==undefined){
-        _replyCol=false; delete row.reply_to;
-        await sbReq("messages",{method:"POST",headers:{Prefer:"return=minimal"},body:JSON.stringify(row)});
-      }else throw e1;
+      if(row.file!==undefined){
+        _fileCol=false; delete row.file;
+        toast("عمود الملفات مو مضاف بالقاعدة — انبعثت بدون ملف");
+      }
+      if(row.reply_to!==undefined){ _replyCol=false; delete row.reply_to }
+      if(row.file===undefined&&row.reply_to===undefined&&!fileObj&&!replyToId) throw e1;
+      await sbReq("messages",{method:"POST",headers:{Prefer:"return=minimal"},body:JSON.stringify(row)});
     }
-    const preview=voiceData?mt().voiceSent:(imgData?mt().imgSent:(body||"").slice(0,60));
+    const preview=voiceData?mt().voiceSent:(imgData?mt().imgSent:
+      (fileObj?("ملف: "+(fileObj.name||"")):(body||"").slice(0,60)));
     await sbReq("conversations?id=eq."+convId,{method:"PATCH",headers:{Prefer:"return=minimal"},
       body:JSON.stringify({last_msg:preview,last_at:new Date().toISOString()})});
     return true;
@@ -4302,7 +4406,7 @@ async function msgRenderConvs(){
     document.getElementById('msg-empty-box').hidden=false;
     setTxt('t-msgEmpty',mt().needLogin);setTxt('t-msgEmptyD','');return;
   }
-  const convs=await msgMyConvs();
+  let convs=await msgMyConvs();
   const box=document.getElementById('msg-conv-list');
   const empty=document.getElementById('msg-empty-box');
   if(!convs.length){box.innerHTML='';empty.hidden=false;setTxt('t-msgEmpty',mt().emptyT);setTxt('t-msgEmptyD',mt().emptyD);return}
@@ -4316,6 +4420,11 @@ async function msgRenderConvs(){
     const results=await Promise.all(phones.map(ph=>msgGetProfile(ph)));
     results.forEach(p=>{ if(p&&p.phone) profiles[p.phone]=p });
   }catch(e){}
+  convs=convs.filter(c=>{
+    if(isHiddenConv(c.id)) return false;
+    const other=c.user1===myPhone()?c.user2:c.user1;
+    return !iBlocked(other);
+  });
   const unread=await msgUnreadMap(convs.map(c=>c.id));
   /* تحديث بادج الرسائل بالهيدر */
   const totalUnread=Object.values(unread).reduce((s,n)=>s+n,0);
@@ -4390,7 +4499,8 @@ async function msgOpenChat(phone,name,avatar,convId){
   box.innerHTML='<div class="chat-loading"><span class="cl-dot"></span><span class="cl-dot"></span><span class="cl-dot"></span></div>';
   document.getElementById('chat-screen').classList.add('on');
   chatImgData=null;document.getElementById('chat-img-preview').style.display='none';
-  replyClear(); wallApply();
+  replyClear(); wallApply(); fileClear();
+  blockRefresh().then(msgUpdateBlockUI);
   /* زر المتابعة — بدون await حتى ما نأخر عرض الرسائل */
   const fb=document.getElementById('chat-follow');
   fb.textContent=mt().follow;fb.classList.remove('following');
@@ -4434,6 +4544,7 @@ async function msgRefreshChat(){
   if(msgs===null && box.querySelector('.chat-loading')) return;
   if(!msgs) msgs=[];
   msgMarkRead(chatConvId);
+  msgs=msgs.filter(m=>!isHiddenMsg(m.id));
   chatMsgs=msgs;
   await rxFetch(msgs.map(m=>m.id));
   const me=myPhone();
@@ -4457,6 +4568,7 @@ async function msgRefreshChat(){
         <span class="voice-dur">${msgFmtDur(m.voice_dur||0)}</span>
       </div></div>`;
     if(m.img) content+=`<div class="chat-img-wrap"><img class="chat-img" src="${esc(m.img)}" alt="صورة"><button class="chat-img-dl" data-src="${esc(m.img)}" title="حفظ الصورة"><svg viewBox="0 0 24 24"><path d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14"/></svg></button></div>`;
+    if(m.file) content+=fileCardHTML(m.file);
     if(m.body) content+=`<div>${esc(m.body)}</div>`;
     const ticks=isMe?`<span class="chat-ticks${m.read?' read':''}">${m.read
       ?'<svg viewBox="0 0 24 24"><path d="M1.5 12.5l4 4L14 8"/><path d="M9 16.5l1 1L22.5 5"/></svg>'
@@ -4474,6 +4586,10 @@ async function msgRefreshChat(){
   /* تشغيل الرسائل الصوتية */
   box.querySelectorAll('.voice-msg').forEach(vm=>{
     vm.querySelector('.voice-play').onclick=e=>{ e.stopPropagation(); msgPlayVoice(vm); };
+  });
+  /* تحميل الملفات */
+  box.querySelectorAll('.file-card').forEach(fc=>{
+    fc.onclick=e=>{ e.stopPropagation(); fileDownload(fc.dataset.file,fc.dataset.fname) };
   });
   /* الضغطة المطوّلة → لوحة الإيموجي، والسحب → الرد */
   rxBindBubbles();
@@ -4745,7 +4861,7 @@ const WALLS=[
 let chatWall=lsGet(LS_WALL)||{k:"none",img:null};
 
 function wallApply(){
-  const box=document.getElementById('chat-msgs'); if(!box) return;
+  const box=document.getElementById('chat-wall'); if(!box) return;
   WALLS.forEach(w=>box.classList.remove('wp-'+w.k));
   box.classList.remove('wp-custom');
   box.style.removeProperty('--wp-url');
@@ -4807,6 +4923,312 @@ function wallOpenPicker(){
     toast("رجعت الخلفية الأصلية");
     wallOpenPicker();
   };
+}
+
+/* ═══════════════════════════════════════════════════════════
+   ١) إرسال الملفات عبر الدردشة
+   ═══════════════════════════════════════════════════════════ */
+
+/* ═══════════════════════════════════════════════════════════
+   أيقونات الواجهة — SVG بدل الإيموجي
+   شكل موحّد بكل الأجهزة، وتاخذ لون النص تلقائياً.
+   ═══════════════════════════════════════════════════════════ */
+const UI_ICONS={
+  image:'<rect x="3" y="4" width="18" height="16" rx="2.5"/><circle cx="8.4" cy="9.4" r="1.7"/><path d="M3 16.6l4.6-4.1 3.4 3 3.6-3.6L21 16.2"/>',
+  share:'<circle cx="18" cy="5" r="2.6"/><circle cx="6" cy="12" r="2.6"/><circle cx="18" cy="19" r="2.6"/><path d="M8.3 10.8l7.4-4.3M8.3 13.2l7.4 4.3"/>',
+  trash:'<path d="M3.5 6h17"/><path d="M9 6V4.2A1.2 1.2 0 0 1 10.2 3h3.6A1.2 1.2 0 0 1 15 4.2V6"/><path d="M5.9 6l.9 13.1A1.9 1.9 0 0 0 8.7 21h6.6a1.9 1.9 0 0 0 1.9-1.9L18.1 6"/><path d="M10.2 10.4v6.2M13.8 10.4v6.2"/>',
+  trashAll:'<path d="M3.5 6h17"/><path d="M9 6V4.2A1.2 1.2 0 0 1 10.2 3h3.6A1.2 1.2 0 0 1 15 4.2V6"/><path d="M5.9 6l.9 13.1A1.9 1.9 0 0 0 8.7 21h6.6a1.9 1.9 0 0 0 1.9-1.9L18.1 6"/><path d="M9.9 10.9l4.2 4.6M14.1 10.9l-4.2 4.6"/>',
+  ban:'<circle cx="12" cy="12" r="8.6"/><path d="M5.9 5.9l12.2 12.2"/>',
+  check:'<circle cx="12" cy="12" r="8.6"/><path d="M8 12.4l2.8 2.8L16.1 9.6"/>',
+  reply:'<path d="M9 14L4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 6 6v4"/>',
+  copy:'<rect x="9" y="9" width="12" height="12" rx="2.4"/><path d="M15.2 5.6A2.6 2.6 0 0 0 12.6 3H5.6A2.6 2.6 0 0 0 3 5.6v7a2.6 2.6 0 0 0 2.6 2.6"/>',
+  dots:'<circle cx="5.2" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="18.8" cy="12" r="1.5"/>',
+  plus:'<path d="M12 5.5v13M5.5 12h13"/>',
+  x:'<path d="M6.2 6.2l11.6 11.6M17.8 6.2L6.2 17.8"/>',
+  bell:'<path d="M18 8.6a6 6 0 1 0-12 0c0 5.9-2.1 7.4-2.1 7.4h16.2S18 14.5 18 8.6"/><path d="M13.7 19.9a2 2 0 0 1-3.4 0"/>',
+  bellOff:'<path d="M17.9 8.6a6 6 0 0 0-8.8-5.3M6.2 6.5A6 6 0 0 0 6 8.6c0 5.9-2.1 7.4-2.1 7.4h12.9"/><path d="M13.7 19.9a2 2 0 0 1-3.4 0"/><path d="M3.2 3.2l17.6 17.6"/>',
+  alert:'<path d="M12.9 4.2l8 13.9a1 1 0 0 1-.9 1.5H4a1 1 0 0 1-.9-1.5l8-13.9a1 1 0 0 1 1.8 0z"/><path d="M12 9.6v4.1"/><circle cx="12" cy="16.7" r=".9" fill="currentColor" stroke="none"/>',
+  download:'<path d="M12 3.5v11.4M12 14.9l-4-4M12 14.9l4-4"/><path d="M4.5 20.5h15"/>',
+  /* أنواع الملفات */
+  fDoc:'<path d="M14 2.5H7A2 2 0 0 0 5 4.5v15a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7.5z"/><path d="M14 2.5v5h5"/><path d="M8.5 12.5h7M8.5 16h5"/>',
+  fSheet:'<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M4 9h16M4 15h16M10 3v18"/>',
+  fSlide:'<rect x="3" y="4" width="18" height="12.5" rx="2"/><path d="M12 16.5v4M8.5 20.5h7"/>',
+  fZip:'<path d="M14 2.5H7A2 2 0 0 0 5 4.5v15a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7.5z"/><path d="M14 2.5v5h5"/><path d="M10.6 3.2v2.2M12.4 5.4v2.2M10.6 7.6v2.2"/><rect x="10.2" y="12" width="3.4" height="4" rx="1"/>',
+  fAudio:'<path d="M9.5 18.2V6.4l9-1.8v11.4"/><circle cx="7" cy="18.4" r="2.6"/><circle cx="16" cy="16.4" r="2.6"/>',
+  fVideo:'<rect x="2.5" y="5" width="14" height="14" rx="2.4"/><path d="M16.5 10l5-2.7v9.4l-5-2.7z"/>',
+  fImage:'<rect x="3" y="4" width="18" height="16" rx="2.5"/><circle cx="8.4" cy="9.4" r="1.7"/><path d="M3 16.6l4.6-4.1 3.4 3 3.6-3.6L21 16.2"/>',
+  fClip:'<path d="M20.4 11.6l-8.5 8.5a5.2 5.2 0 0 1-7.4-7.4l8.5-8.5a3.5 3.5 0 0 1 4.9 4.9l-8.5 8.5a1.7 1.7 0 0 1-2.5-2.4l7.9-7.9"/>'
+};
+const ic=(n,cls)=>`<svg class="${cls||'ui-ic'}" viewBox="0 0 24 24" aria-hidden="true">${UI_ICONS[n]||''}</svg>`;
+
+/* أيقونة حسب امتداد الملف */
+function fileIconName(name){
+  const e=(name||"").split('.').pop().toLowerCase();
+  if(["pdf","doc","docx","rtf","odt","txt"].includes(e)) return "fDoc";
+  if(["xls","xlsx","csv"].includes(e)) return "fSheet";
+  if(["ppt","pptx","key"].includes(e)) return "fSlide";
+  if(["zip","rar","7z","tar","gz"].includes(e)) return "fZip";
+  if(["mp3","wav","m4a","ogg","aac"].includes(e)) return "fAudio";
+  if(["mp4","mov","avi","mkv","webm"].includes(e)) return "fVideo";
+  if(["png","jpg","jpeg","gif","webp","svg","heic"].includes(e)) return "fImage";
+  return "fClip";
+}
+
+const FILE_MAX=4*1024*1024;          /* 4 ميجا — الملف ينحفظ داخل الرسالة */
+let chatFileData=null;               /* {name,size,type,data} */
+let _fileCol=true;                   /* هل عمود file موجود بالقاعدة؟ */
+
+function fmtBytes(b){
+  if(!b) return "";
+  if(b<1024) return b+" بايت";
+  if(b<1048576) return (b/1024).toFixed(0)+" كيلو";
+  return (b/1048576).toFixed(1)+" ميجا";
+}
+function fileIcon(name){ return ic(fileIconName(name),"fc-svg") }
+function filePick(){
+  const inp=document.getElementById('chat-doc'); if(inp) inp.click();
+}
+function fileStage(file){
+  if(!file) return;
+  if(file.size>FILE_MAX){ toast("الملف كبير — الحد ٤ ميجا"); return }
+  const fr=new FileReader();
+  fr.onerror=()=>toast("ما قدرت أقرأ الملف");
+  fr.onload=()=>{
+    chatFileData={name:file.name,size:file.size,type:file.type||"",data:fr.result};
+    const p=document.getElementById('chat-doc-preview');
+    document.getElementById('cdp-ico').innerHTML=fileIcon(file.name);
+    setTxt('cdp-name',file.name);
+    setTxt('cdp-size',fmtBytes(file.size));
+    p.classList.add('on');
+  };
+  fr.readAsDataURL(file);
+}
+function fileClear(){
+  chatFileData=null;
+  const p=document.getElementById('chat-doc-preview'); if(p) p.classList.remove('on');
+  const inp=document.getElementById('chat-doc'); if(inp) inp.value='';
+}
+function fileCardHTML(f){
+  if(!f) return "";
+  let o; try{ o=typeof f==="string"?JSON.parse(f):f }catch(e){ return "" }
+  if(!o||!o.data) return "";
+  return `<div class="file-card" data-file="${esc(o.data)}" data-fname="${esc(o.name||'ملف')}">
+    <span class="fc-ico">${fileIcon(o.name)}</span>
+    <span class="fc-in"><span class="fc-name">${esc(o.name||'ملف')}</span>
+      <span class="fc-size">${esc(fmtBytes(o.size))}</span></span>
+    <span class="fc-dl">${ic('download','fc-dlsvg')}</span></div>`;
+}
+function fileDownload(data,name){
+  try{
+    const a=document.createElement('a');
+    a.href=data; a.download=name||"ملف"; document.body.appendChild(a); a.click(); a.remove();
+    toast("ينحفظ…");
+  }catch(e){ toast("ما قدرت أحفظ الملف") }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   ٢) تصفية الكلام البذيء — تنشال الكلمة ويطلع تنبيه، بلا حظر
+   ═══════════════════════════════════════════════════════════ */
+const BAD_WORDS=[
+  /* عربي */
+  "كس","كسم","كسمك","طيز","زب","زبي","خرا","خره","خراء","شرموط","شرموطه","شرموطة",
+  "قحبه","قحبة","عرص","معرص","منيوك","منيوج","لعين","خول","نيك","ينيك","انيك","متناك",
+  "زانيه","زانية","واطي","حقير","كلب","كلبه","حمار","غبي","تفو","يلعن","العن","لعنه",
+  "قواد","ديوث","زفت","وسخ","نجس","خنزير","حيوان","بهيمه","بهيمة","جحش","تيس",
+  /* إنجليزي */
+  "fuck","fucking","fucker","shit","bitch","bastard","asshole","dick","pussy","cunt",
+  "whore","slut","motherfucker","nigga","nigger","retard","faggot"
+];
+const BAD_RE=new RegExp("(?:^|[\\s\\p{P}])("+BAD_WORDS.map(w=>
+  w.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")).join("|")+")(?=$|[\\s\\p{P}])","giu");
+
+/* ينظّف النص ويرجّع {clean, hits} */
+function cleanBad(txt){
+  if(!txt) return {clean:txt,hits:0};
+  let hits=0;
+  const clean=txt.replace(BAD_RE,(m,w)=>{ hits++; return m.replace(w,"■".repeat(Math.min(w.length,5))) });
+  return {clean,hits};
+}
+
+/* شريط التنبيه اللي ينزل من فوق */
+let _warnT=null;
+function warnTop(msg){
+  const el=document.getElementById('top-warn'); if(!el) return;
+  setTxt('tw-msg',msg);
+  el.classList.add('on');
+  clearTimeout(_warnT);
+  _warnT=setTimeout(()=>el.classList.remove('on'),4200);
+  if(navigator.vibrate){try{navigator.vibrate([40,60,40])}catch(e){}}
+}
+
+/* ═══════════════════════════════════════════════════════════
+   ٣) حذف الرسائل والمحادثات
+   ═══════════════════════════════════════════════════════════ */
+const LS_HIDE_M="ha_hide_msgs_v1", LS_HIDE_C="ha_hide_convs_v1";
+let hiddenMsgs=lsGet(LS_HIDE_M)||[];
+let hiddenConvs=lsGet(LS_HIDE_C)||[];
+const isHiddenMsg=id=>hiddenMsgs.indexOf(String(id))>-1;
+const isHiddenConv=id=>hiddenConvs.indexOf(String(id))>-1;
+
+function hideMsgLocal(id){
+  const s=String(id);
+  if(!isHiddenMsg(s)){ hiddenMsgs.push(s); lsSet(LS_HIDE_M,hiddenMsgs) }
+}
+
+/* حذف رسالة — عندي أو عند الطرفين */
+async function msgDelete(msgId,forAll){
+  if(forAll){
+    try{
+      await sbReq("msg_reactions?msg_id=eq."+encodeURIComponent(msgId),
+        {method:"DELETE",headers:{Prefer:"return=minimal"}});
+    }catch(e){}
+    try{
+      await sbReq("messages?id=eq."+encodeURIComponent(msgId),
+        {method:"DELETE",headers:{Prefer:"return=minimal"}});
+      toast("انحذفت الرسالة عند الطرفين");
+    }catch(e){ toast("ما قدرت أحذفها"); return }
+  }else{
+    hideMsgLocal(msgId);
+    toast("انحذفت عندك");
+  }
+  await msgRefreshChat();
+}
+
+/* لوحة خيارات الرسالة */
+function msgOptions(msgId){
+  const m=chatMsgs.find(x=>String(x.id)===String(msgId));
+  const mine=m&&m.sender===myPhone();
+  openSheet(`
+    <h3 style="font-size:17px;margin-bottom:12px">خيارات الرسالة</h3>
+    <div class="opt-list">
+      <button class="opt-row" id="mo-reply">${ic('reply')}<span>رد على الرسالة</span></button>
+      <button class="opt-row" id="mo-copy">${ic('copy')}<span>نسخ النص</span></button>
+      <button class="opt-row" id="mo-share">${ic('share')}<span>مشاركة</span></button>
+      <button class="opt-row danger" id="mo-del-me">${ic('trash')}<span>حذف عندي</span></button>
+      ${mine?`<button class="opt-row danger" id="mo-del-all">${ic('trashAll')}<span>حذف عند الطرفين</span></button>`:''}
+    </div>`);
+  const on=(id,fn)=>{const e=document.getElementById(id); if(e) e.onclick=fn};
+  on('mo-reply',()=>{ closeSheet(); replySet(msgId) });
+  on('mo-copy',()=>{ closeSheet(); shareCopy(m?msgSnippet(m):"","انتسخ ✓") });
+  on('mo-share',()=>{ closeSheet(); shareMessage(msgId) });
+  on('mo-del-me',()=>{ closeSheet(); msgDelete(msgId,false) });
+  on('mo-del-all',()=>{ closeSheet(); confirmAsk("تنحذف عند الطرفين ونهائياً. أكيد؟",()=>msgDelete(msgId,true)) });
+}
+
+/* حذف المحادثة كاملة */
+async function convDelete(convId,forAll){
+  if(forAll){
+    try{
+      await sbReq("messages?conv_id=eq."+encodeURIComponent(convId),
+        {method:"DELETE",headers:{Prefer:"return=minimal"}});
+      await sbReq("conversations?id=eq."+encodeURIComponent(convId),
+        {method:"DELETE",headers:{Prefer:"return=minimal"}});
+      toast("انحذفت المحادثة عند الطرفين");
+    }catch(e){ toast("ما قدرت أحذفها"); return }
+  }else{
+    const s=String(convId);
+    if(!isHiddenConv(s)){ hiddenConvs.push(s); lsSet(LS_HIDE_C,hiddenConvs) }
+    toast("انحذفت المحادثة عندك");
+  }
+  msgCloseChat();
+  msgRenderConvs();
+}
+
+/* تأكيد بسيط */
+function confirmAsk(text,onYes){
+  openSheet(`
+    <h3 style="font-size:17px;margin-bottom:6px">تأكيد</h3>
+    <p class="sub" style="font-size:13px;margin-bottom:14px">${esc(text)}</p>
+    <div class="acts"><button class="btn btn-p" id="cf-yes" style="background:#E2685A">اي، احذف</button>
+      <button class="btn btn-o" id="cf-no">تراجع</button></div>`);
+  document.getElementById('cf-yes').onclick=()=>{ closeSheet(); onYes&&onYes() };
+  document.getElementById('cf-no').onclick=closeSheet;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   ٤) نظام الحظر
+   ═══════════════════════════════════════════════════════════ */
+let blockedOut=[];   /* أنا حاظرهم */
+let blockedIn=[];    /* هم حاظريني */
+const iBlocked=ph=>blockedOut.indexOf(msgNormPhone(ph))>-1;
+const blockedMe=ph=>blockedIn.indexOf(msgNormPhone(ph))>-1;
+
+async function blockRefresh(){
+  const me=myPhone(); if(!me) return;
+  try{
+    const out=await sbSelect("blocks","select=blocked&blocker=eq."+encodeURIComponent(me));
+    blockedOut=(out||[]).map(r=>msgNormPhone(r.blocked));
+  }catch(e){ blockedOut=[] }
+  try{
+    const inn=await sbSelect("blocks","select=blocker&blocked=eq."+encodeURIComponent(me));
+    blockedIn=(inn||[]).map(r=>msgNormPhone(r.blocker));
+  }catch(e){ blockedIn=[] }
+}
+async function blockUser(ph){
+  const me=myPhone(); if(!me) return;
+  ph=msgNormPhone(ph);
+  try{
+    await sbReq("blocks",{method:"POST",headers:{Prefer:"return=minimal"},
+      body:JSON.stringify({blocker:me,blocked:ph})});
+    if(!iBlocked(ph)) blockedOut.push(ph);
+    toast("انحظر ✓ ما راح يوصلك منه شي");
+  }catch(e){ toast("ما قدرت أحظره") }
+  msgUpdateBlockUI();
+}
+async function unblockUser(ph){
+  const me=myPhone(); if(!me) return;
+  ph=msgNormPhone(ph);
+  try{
+    await sbReq("blocks?blocker=eq."+encodeURIComponent(me)+"&blocked=eq."+encodeURIComponent(ph),
+      {method:"DELETE",headers:{Prefer:"return=minimal"}});
+    blockedOut=blockedOut.filter(z=>z!==ph);
+    toast("انرفع الحظر");
+  }catch(e){ toast("ما قدرت أرفع الحظر") }
+  msgUpdateBlockUI();
+}
+
+/* يقفل حقل الكتابة إذا في حظر */
+function msgUpdateBlockUI(){
+  const bar=document.getElementById('chat-input-bar');
+  const note=document.getElementById('chat-blocked');
+  if(!bar||!note) return;
+  const out=chatWith&&iBlocked(chatWith), inn=chatWith&&blockedMe(chatWith);
+  if(out||inn){
+    bar.style.display='none'; note.classList.add('on');
+    setTxt('cb-txt', out?"انت حاظر هذا الشخص — ما تكدر تراسله":"ما تكدر تراسل هذا الشخص");
+    const btn=document.getElementById('cb-un');
+    btn.style.display=out?'':'none';
+    btn.onclick=()=>unblockUser(chatWith);
+  }else{
+    bar.style.display=''; note.classList.remove('on');
+  }
+}
+
+/* قائمة خيارات المحادثة (زر النقاط بالهيدر) */
+function chatMenuOpen(){
+  if(!chatWith) return;
+  const blocked=iBlocked(chatWith);
+  openSheet(`
+    <h3 style="font-size:17px;margin-bottom:12px">${esc(document.getElementById('chat-name').textContent||'')}</h3>
+    <div class="opt-list">
+      <button class="opt-row" id="cm-wall">${ic('image')}<span>خلفية المراسلات</span></button>
+      <button class="opt-row" id="cm-share">${ic('share')}<span>شارك رابط المحادثة</span></button>
+      <button class="opt-row danger" id="cm-del-me">${ic('trash')}<span>حذف المحادثة عندي</span></button>
+      <button class="opt-row danger" id="cm-del-all">${ic('trashAll')}<span>حذف المحادثة عند الطرفين</span></button>
+      <button class="opt-row ${blocked?'':'danger'}" id="cm-block">${
+        blocked?ic('check')+'<span>رفع الحظر</span>':ic('ban')+'<span>حظر هذا الشخص</span>'}</button>
+    </div>`);
+  const on=(id,fn)=>{const e=document.getElementById(id); if(e) e.onclick=fn};
+  on('cm-wall',()=>{ closeSheet(); wallOpenPicker() });
+  on('cm-share',()=>{ closeSheet(); shareOpen("راسلني هنا",shareLink("chat",chatWith),"محادثة") });
+  on('cm-del-me',()=>{ closeSheet(); confirmAsk("تنشال المحادثة من عندك بس. أكيد؟",
+    ()=>convDelete(chatConvId,false)) });
+  on('cm-del-all',()=>{ closeSheet(); confirmAsk("تنحذف كل الرسائل عند الطرفين ونهائياً. أكيد؟",
+    ()=>convDelete(chatConvId,true)) });
+  on('cm-block',()=>{ closeSheet();
+    if(blocked) unblockUser(chatWith);
+    else confirmAsk("ما راح توصلك رسائل ولا مكالمات منه. أكيد؟",()=>blockUser(chatWith));
+  });
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -4897,8 +5319,9 @@ function rxOpenPicker(bubble,msgId){
   const r=bubble.getBoundingClientRect();
   v.innerHTML=`<div class="rx-bar" id="rx-bar">${
     RX_QUICK.map(e=>`<button class="rx-emo${mineNow&&mineNow.emoji===e?' on':''}" data-e="${e}">${e}</button>`).join('')
-  }<button class="rx-more" id="rx-more" aria-label="المزيد">＋</button>
-  <button class="rx-more" id="rx-share" aria-label="مشاركة"><svg viewBox="0 0 24 24" style="width:17px;height:17px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><circle cx="18" cy="5" r="2.6"/><circle cx="6" cy="12" r="2.6"/><circle cx="18" cy="19" r="2.6"/><path d="M8.3 10.8l7.4-4.3M8.3 13.2l7.4 4.3"/></svg></button></div>`;
+  }<button class="rx-more" id="rx-more" aria-label="المزيد">${ic('plus','rx-svg')}</button>
+  <button class="rx-more" id="rx-opts" aria-label="خيارات">${ic('dots','rx-svg')}</button>
+  <button class="rx-more" id="rx-share" aria-label="مشاركة">${ic('share','rx-svg')}</button></div>`;
   v.classList.add('on');
   /* نضع الشريط فوق الفقاعة، ونمنعه من الخروج عن الشاشة */
   const bar=document.getElementById('rx-bar');
@@ -4914,6 +5337,7 @@ function rxOpenPicker(bubble,msgId){
   });
   document.getElementById('rx-more').onclick=ev=>{ ev.stopPropagation(); rxOpenGrid(bubble,msgId) };
   document.getElementById('rx-share').onclick=ev=>{ ev.stopPropagation(); rxCloseVeil(); shareMessage(msgId) };
+  document.getElementById('rx-opts').onclick=ev=>{ ev.stopPropagation(); rxCloseVeil(); msgOptions(msgId) };
   v.onclick=rxCloseVeil;
 }
 function rxOpenGrid(bubble,msgId){
@@ -5426,6 +5850,8 @@ async function callStart(phone,name,avatar,isVideo){
   if(!navigator.mediaDevices||!window.RTCPeerConnection){toast('جهازك ما يدعم المكالمات');return}
   phone=msgNormPhone(phone);
   if(phone===myPhone()){toast('ما تكدر تتصل بنفسك');return}
+  if(iBlocked(phone)){ warnTop("انت حاظر هذا الشخص — ارفع الحظر أول"); return }
+  if(blockedMe(phone)){ warnTop("ما تكدر تتصل بهذا الشخص"); return }
   _callVideo=!!isVideo;_callRole="caller";_callPeer=phone;_callLive=false;
   _seenIce={};_pendingIce=[];
   try{ _localStream=await navigator.mediaDevices.getUserMedia({audio:true,video:_callVideo}) }
@@ -5549,7 +5975,7 @@ function callWatchIncoming(){
     let rows;
     try{ rows=await sbSelect("calls","select=*&callee=eq."+encodeURIComponent(myPhone())
       +"&status=eq.ringing&created_at=gte."+since+"&order=created_at.desc&limit=3") }catch(e){ return }
-    const c=(rows||[]).find(r=>!_ignoredCalls[r.id]);
+    const c=(rows||[]).find(r=>!_ignoredCalls[r.id]&&!iBlocked(r.caller));
     if(c) callShowIncoming(c);
   },2500);
 }
@@ -5653,7 +6079,8 @@ function pushPaintBtn(){
   if(!pushSupported()){ b.style.display='none'; return }
   b.style.display='';
   b.classList.toggle('on',_pushOn);
-  b.textContent=_pushOn?'🔔 الإشعارات مفعّلة':'🔕 فعّل الإشعارات';
+  b.innerHTML=(_pushOn?ic('bell'):ic('bellOff'))+
+    '<span>'+(_pushOn?'الإشعارات مفعّلة':'فعّل الإشعارات')+'</span>';
 }
 
 /* ───── فحص الحالة عند الإقلاع ───── */
@@ -5801,16 +6228,28 @@ function msgBoot(){
   /* الرجوع من المحادثة */
   document.getElementById('chat-back').onclick=msgCloseChat;
   const rbx=document.getElementById('rb-x'); if(rbx) rbx.onclick=replyClear;
+  const cdx=document.getElementById('cdp-x'); if(cdx) cdx.onclick=fileClear;
+  const cdoc=document.getElementById('chat-doc');
+  if(cdoc) cdoc.onchange=e=>{ fileStage(e.target.files&&e.target.files[0]) };
+  const cmenu=document.getElementById('chat-menu'); if(cmenu) cmenu.onclick=chatMenuOpen;
   /* إرسال رسالة */
   const sendMsg=async()=>{
-    const txt=document.getElementById('chat-text').value.trim();
-    if(!txt&&!chatImgData) return;
+    let txt=document.getElementById('chat-text').value.trim();
+    if(!txt&&!chatImgData&&!chatFileData) return;
     if(!chatConvId) return;
+    if(chatWith&&iBlocked(chatWith)){ warnTop("انت حاظر هذا الشخص — ارفع الحظر حتى تراسله"); return }
+    if(chatWith&&blockedMe(chatWith)){ warnTop("ما تكدر تراسل هذا الشخص"); return }
+    /* تنظيف الكلام البذيء — ننشل الكلمة وننبّه، والرسالة تنبعث */
+    const r=cleanBad(txt);
+    if(r.hits){ txt=r.clean;
+      warnTop("انشالت "+(r.hits===1?"كلمة غير لائقة":r.hits+" كلمات غير لائقة")+" من رسالتك. خلّي كلامك محترم.");
+    }
     document.getElementById('chat-text').value='';
     const img=chatImgData;chatImgData=null;
     document.getElementById('chat-img-preview').style.display='none';
+    const f=chatFileData; fileClear();
     const rp=replyTo?replyTo.id:null; replyClear();
-    await msgSend(chatConvId,txt,img,null,null,rp);
+    await msgSend(chatConvId,txt,img,null,null,rp,f);
     await msgRefreshChat();
   };
   document.getElementById('chat-send').onclick=sendMsg;
@@ -5818,7 +6257,18 @@ function msgBoot(){
     if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMsg()}
   });
   /* اختيار صورة */
-  document.getElementById('chat-img-btn').onclick=()=>document.getElementById('chat-file').click();
+  const imgBtn=document.getElementById('chat-img-btn');
+  let _imgHold=null,_imgLong=false;
+  imgBtn.onclick=()=>{ if(_imgLong){_imgLong=false;return} document.getElementById('chat-file').click() };
+  const holdStart=()=>{ clearTimeout(_imgHold); _imgHold=setTimeout(()=>{ _imgLong=true; filePick() },420) };
+  const holdEnd=()=>clearTimeout(_imgHold);
+  imgBtn.addEventListener('touchstart',holdStart,{passive:true});
+  imgBtn.addEventListener('touchend',holdEnd);
+  imgBtn.addEventListener('touchcancel',holdEnd);
+  imgBtn.addEventListener('mousedown',holdStart);
+  imgBtn.addEventListener('mouseup',holdEnd);
+  imgBtn.addEventListener('mouseleave',holdEnd);
+  imgBtn.addEventListener('contextmenu',e=>{e.preventDefault();_imgLong=true;filePick()});
   document.getElementById('chat-file').onchange=e=>{
     const f=e.target.files&&e.target.files[0];
     if(!f) return;
@@ -5879,6 +6329,12 @@ pushBoot();          /* يسجّل service worker ويفحص حالة الإشع
 notifWatchMessages();/* يراقب الرسائل الجديدة ويشعّرك */
 notifHandleHash();   /* يفتح المحادثة/المكالمة إذا جيت من إشعار */
 wallApply();         /* يرجّع خلفية المراسلات المحفوظة */
+blockRefresh();      /* يجيب قوائم الحظر */
+/* أيقونات ثابتة بالواجهة */
+(()=>{ const set=(id,n,c)=>{const e=document.getElementById(id); if(e) e.innerHTML=ic(n,c)};
+  const tw=document.querySelector('.tw-ico'); if(tw) tw.innerHTML=ic('alert');
+  set('cdp-x','x'); set('rb-x','x'); set('chat-img-x','x'); set('rl-add','plus','rl-plus');
+})();
 const _pb=document.getElementById('push-btn');
 if(_pb) _pb.onclick=()=>{ _pushOn?pushDisable():pushEnable(false) };
 setTimeout(()=>{ if(typeof msgSyncProfile==="function") msgSyncProfile() },2000); /* يرفع الصورة والاسم أول ما يفتح الموقع */
