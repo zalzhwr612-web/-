@@ -566,6 +566,55 @@ body.dark .chat-bubble.them .q-box{background:rgba(255,255,255,.08)}
   cursor:pointer;z-index:3;opacity:.92}
 .p-share svg{width:15px;height:15px;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .p-share:active{transform:scale(.88)}
+
+/* ═══════════ خلفيات المراسلات ═══════════
+   أربع خلفيات مرسومة بالكود (CSS/SVG) — بلا صور ولا تحميل.
+   كلها مستوحاة من شغل المعرض: مقاطع، مشربية، زجاج، ومخطط ورشة. */
+:root{--wp-ink:rgba(15,23,42,.09); --wp-ink2:rgba(15,23,42,.055); --wp-scrim:rgba(255,255,255,.66)}
+body.dark{--wp-ink:rgba(255,255,255,.075); --wp-ink2:rgba(255,255,255,.045); --wp-scrim:rgba(11,16,24,.74)}
+
+/* ١ — مقاطع ألمنيوم مسحوبة */
+.wp-ext{background-image:
+  repeating-linear-gradient(90deg,var(--wp-ink) 0 1px,transparent 1px 7px,
+    var(--wp-ink2) 7px 8px,transparent 8px 22px)}
+
+/* ٢ — مشربية (نجمة ثمانية متشابكة) */
+.wp-mash{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64' viewBox='0 0 64 64'%3E%3Cg fill='none' stroke='%230F172A' stroke-opacity='.10' stroke-width='1.3'%3E%3Cpath d='M32 3 L61 32 L32 61 L3 32 Z'/%3E%3Crect x='11.5' y='11.5' width='41' height='41'/%3E%3Ccircle cx='32' cy='32' r='7.5'/%3E%3Cpath d='M0 0 L11.5 11.5 M64 0 L52.5 11.5 M0 64 L11.5 52.5 M64 64 L52.5 52.5'/%3E%3C/g%3E%3C/svg%3E");
+  background-size:64px 64px}
+body.dark .wp-mash{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64' viewBox='0 0 64 64'%3E%3Cg fill='none' stroke='%23FFFFFF' stroke-opacity='.085' stroke-width='1.3'%3E%3Cpath d='M32 3 L61 32 L32 61 L3 32 Z'/%3E%3Crect x='11.5' y='11.5' width='41' height='41'/%3E%3Ccircle cx='32' cy='32' r='7.5'/%3E%3Cpath d='M0 0 L11.5 11.5 M64 0 L52.5 11.5 M0 64 L11.5 52.5 M64 64 L52.5 52.5'/%3E%3C/g%3E%3C/svg%3E")}
+
+/* ٣ — زجاج مثلج */
+.wp-frost{background-image:
+  repeating-linear-gradient(115deg,var(--wp-ink2) 0 2px,transparent 2px 9px),
+  radial-gradient(ellipse 55% 40% at 18% 12%,var(--wp-ink) 0,transparent 62%),
+  radial-gradient(ellipse 50% 38% at 84% 68%,var(--wp-ink) 0,transparent 62%)}
+
+/* ٤ — مخطط ورشة */
+.wp-blue{background-image:
+  linear-gradient(var(--wp-ink) 1px,transparent 1px),
+  linear-gradient(90deg,var(--wp-ink) 1px,transparent 1px),
+  linear-gradient(var(--wp-ink2) 1px,transparent 1px),
+  linear-gradient(90deg,var(--wp-ink2) 1px,transparent 1px);
+  background-size:104px 104px,104px 104px,26px 26px,26px 26px}
+
+/* صورة المستخدم */
+.wp-custom{background-image:linear-gradient(var(--wp-scrim),var(--wp-scrim)),var(--wp-url);
+  background-size:cover,cover;background-position:center,center;background-repeat:no-repeat,no-repeat;
+  background-attachment:local,local}
+
+/* لوحة الاختيار */
+.wp-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:11px;margin:6px 0 4px}
+.wp-opt{border:2px solid var(--line);border-radius:15px;overflow:hidden;cursor:pointer;background:var(--m-bg);
+  padding:0;display:flex;flex-direction:column;transition:border-color .18s,transform .15s}
+.wp-opt:active{transform:scale(.95)}
+.wp-opt.on{border-color:var(--brand)}
+.wp-thumb{height:78px;background-color:var(--m-bg);position:relative}
+.wp-thumb .b{position:absolute;border-radius:8px;height:13px}
+.wp-thumb .b.a{top:15px;inset-inline-end:10px;width:46%;background:var(--m-bubble-them)}
+.wp-thumb .b.b2{top:34px;inset-inline-start:10px;width:52%;background:var(--m-bubble-me)}
+.wp-name{font-size:11.5px;padding:7px 4px;text-align:center;color:var(--ink);font-weight:600;
+  background:var(--card)}
+body.dark .wp-name{background:var(--cardb)}
 .uprof-av-lg{width:92px!important;height:92px!important}
 .uprof-av-lg .ini{font-size:32px!important}
 
@@ -2586,6 +2635,7 @@ const PM_ICONS={
   bell:'<path d="M18 8.5a6 6 0 1 0-12 0c0 6-2.2 7.5-2.2 7.5h16.4S18 14.5 18 8.5"/><path d="M13.7 20a2 2 0 0 1-3.4 0"/>',
   theme:'<circle cx="12" cy="12" r="4.2"/><path d="M12 2v2.4M12 19.6V22M2 12h2.4M19.6 12H22M4.9 4.9l1.7 1.7M17.4 17.4l1.7 1.7M19.1 4.9l-1.7 1.7M6.6 17.4l-1.7 1.7"/>',
   gear:'<circle cx="12" cy="12" r="3"/><path d="M19.2 14.8a1.5 1.5 0 0 0 .3 1.7l.1.1a1.9 1.9 0 1 1-2.7 2.7l-.1-.1a1.5 1.5 0 0 0-2.6 1.1v.2a1.9 1.9 0 1 1-3.8 0v-.1a1.5 1.5 0 0 0-2.6-1.2l-.1.1a1.9 1.9 0 1 1-2.7-2.7l.1-.1a1.5 1.5 0 0 0-1.1-2.6h-.2a1.9 1.9 0 1 1 0-3.8h.1a1.5 1.5 0 0 0 1.2-2.6l-.1-.1a1.9 1.9 0 1 1 2.7-2.7l.1.1a1.5 1.5 0 0 0 1.7.3h.1a1.5 1.5 0 0 0 .9-1.4v-.2a1.9 1.9 0 1 1 3.8 0v.1a1.5 1.5 0 0 0 2.6 1.2l.1-.1a1.9 1.9 0 1 1 2.7 2.7l-.1.1a1.5 1.5 0 0 0 1.1 2.6h.2a1.9 1.9 0 1 1 0 3.8h-.1a1.5 1.5 0 0 0-1.4.9z"/>',
+  wall:'<rect x="3" y="4" width="18" height="16" rx="2.6"/><circle cx="8.5" cy="9.5" r="1.6"/><path d="M3 16.5l4.5-4 3.5 3 3.5-3.5L21 16"/>',
   share:'<circle cx="18" cy="5" r="2.6"/><circle cx="6" cy="12" r="2.6"/><circle cx="18" cy="19" r="2.6"/><path d="M8.3 10.8l7.4-4.3M8.3 13.2l7.4 4.3"/>',
   out:'<path d="M15 17l5-5-5-5"/><path d="M20 12H9"/><path d="M11 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h5"/>'
 };
@@ -2638,6 +2688,7 @@ function renderAcct(){
     </div>
     <div class="pm-eyebrow">المشاركة</div>
     <div class="pm-group">
+      ${pmRow('pm-wall','wall','خلفية المراسلات')}
       ${pmRow('pm-share','share','شارك رابط محادثتي')}
     </div>
     ${member
@@ -2663,6 +2714,7 @@ function renderAcct(){
   });
   on('pm-set',()=>{ pmClose(); document.getElementById('settings-btn').click() });
   on('pm-share',()=>{ pmClose(); shareMyChat() });
+  on('pm-wall',()=>{ pmClose(); wallOpenPicker() });
   on('pm-out',()=>{ memberOut(); });
   on('pm-reg',()=>{ pmClose(); openMember("reg") });
   on('pm-log',()=>{ pmClose(); openMember("log") });
@@ -4338,7 +4390,7 @@ async function msgOpenChat(phone,name,avatar,convId){
   box.innerHTML='<div class="chat-loading"><span class="cl-dot"></span><span class="cl-dot"></span><span class="cl-dot"></span></div>';
   document.getElementById('chat-screen').classList.add('on');
   chatImgData=null;document.getElementById('chat-img-preview').style.display='none';
-  replyClear();
+  replyClear(); wallApply();
   /* زر المتابعة — بدون await حتى ما نأخر عرض الرسائل */
   const fb=document.getElementById('chat-follow');
   fb.textContent=mt().follow;fb.classList.remove('following');
@@ -4676,6 +4728,85 @@ function shareHandleHash(){
     },400);
   }
   return true;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   خلفية المراسلات — أربع خلفيات جاهزة + صورة من معرض المستخدم
+   الاختيار ينحفظ محلياً بالجهاز (ما يروح للقاعدة).
+   ═══════════════════════════════════════════════════════════ */
+const LS_WALL="ha_wall_v1";
+const WALLS=[
+  {k:"none", n:"بدون"},
+  {k:"ext",  n:"مقاطع"},
+  {k:"mash", n:"مشربية"},
+  {k:"frost",n:"زجاج مثلج"},
+  {k:"blue", n:"مخطط ورشة"}
+];
+let chatWall=lsGet(LS_WALL)||{k:"none",img:null};
+
+function wallApply(){
+  const box=document.getElementById('chat-msgs'); if(!box) return;
+  WALLS.forEach(w=>box.classList.remove('wp-'+w.k));
+  box.classList.remove('wp-custom');
+  box.style.removeProperty('--wp-url');
+  if(chatWall.k==="custom"&&chatWall.img){
+    box.style.setProperty('--wp-url','url("'+chatWall.img+'")');
+    box.classList.add('wp-custom');
+  }else if(chatWall.k&&chatWall.k!=="none"){
+    box.classList.add('wp-'+chatWall.k);
+  }
+}
+function wallSet(k,img){
+  chatWall={k,img:img||(k==="custom"?chatWall.img:null)};
+  lsSet(LS_WALL,chatWall);
+  wallApply();
+}
+
+/* معاينة مصغّرة لكل خيار */
+function wallThumb(k){
+  const cls=k==="custom"?"wp-custom":(k==="none"?"":"wp-"+k);
+  const style=k==="custom"&&chatWall.img?` style="--wp-url:url('${chatWall.img}')"`:"";
+  return `<span class="wp-thumb ${cls}"${style}><span class="b a"></span><span class="b b2"></span></span>`;
+}
+
+function wallOpenPicker(){
+  const opts=WALLS.map(w=>`<button class="wp-opt${chatWall.k===w.k?' on':''}" data-wall="${w.k}">
+      ${wallThumb(w.k)}<span class="wp-name">${w.n}</span></button>`).join('');
+  const mine=chatWall.img?`<button class="wp-opt${chatWall.k==='custom'?' on':''}" data-wall="custom">
+      ${wallThumb('custom')}<span class="wp-name">صورتي</span></button>`:'';
+  openSheet(`
+    <h3 style="font-size:17px;margin-bottom:4px">خلفية المراسلات</h3>
+    <p class="sub" style="font-size:12.5px;margin-bottom:12px">اختر خلفية جاهزة أو حط صورة من معرضك</p>
+    <div class="wp-grid">${opts}${mine}</div>
+    <div class="acts" style="margin-top:14px">
+      <button class="btn btn-p" id="wp-pick">صورة من معرضي</button>
+      <button class="btn btn-o" id="wp-clear">رجّع الأصلية</button>
+    </div>
+    <input type="file" id="wp-file" accept="image/*" style="display:none">`);
+
+  document.querySelectorAll('[data-wall]').forEach(b=>{
+    b.onclick=()=>{
+      wallSet(b.dataset.wall);
+      document.querySelectorAll('[data-wall]').forEach(z=>z.classList.toggle('on',z===b));
+    };
+  });
+  const f=document.getElementById('wp-file');
+  document.getElementById('wp-pick').onclick=()=>f.click();
+  f.onchange=e=>{
+    const file=e.target.files&&e.target.files[0]; if(!file) return;
+    /* دقّة أعلى من صور الشات لأنها تملأ الشاشة */
+    msgCompressImg(file,data=>{
+      wallSet("custom",data);
+      toast("انحطّت الخلفية ✓");
+      wallOpenPicker();
+    },1400);
+    f.value='';
+  };
+  document.getElementById('wp-clear').onclick=()=>{
+    wallSet("none"); chatWall.img=null; lsSet(LS_WALL,chatWall);
+    toast("رجعت الخلفية الأصلية");
+    wallOpenPicker();
+  };
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -5747,6 +5878,7 @@ callWatchIncoming(); /* يراقب المكالمات الواردة ويرنّ 
 pushBoot();          /* يسجّل service worker ويفحص حالة الإشعارات */
 notifWatchMessages();/* يراقب الرسائل الجديدة ويشعّرك */
 notifHandleHash();   /* يفتح المحادثة/المكالمة إذا جيت من إشعار */
+wallApply();         /* يرجّع خلفية المراسلات المحفوظة */
 const _pb=document.getElementById('push-btn');
 if(_pb) _pb.onclick=()=>{ _pushOn?pushDisable():pushEnable(false) };
 setTimeout(()=>{ if(typeof msgSyncProfile==="function") msgSyncProfile() },2000); /* يرفع الصورة والاسم أول ما يفتح الموقع */
