@@ -551,6 +551,12 @@ body.dark .chat-follow-btn{color:var(--brand-3);border-color:var(--brand-3)}
 .inc-bounce{animation:incBounce 1.8s ease-in-out infinite}
 @keyframes incBounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-9px)}}
 .call-screen.inc{background:linear-gradient(160deg,#0A1F1A 0%,#0D2E24 45%,#123A2C 100%)}
+.push-btn{width:100%;border:1px solid var(--line);background:var(--m-surface);color:var(--ink);
+  border-radius:13px;padding:11px 14px;font-size:13.5px;font-weight:700;cursor:pointer;
+  transition:background .2s,border-color .2s,color .2s}
+.push-btn:active{transform:scale(.985)}
+.push-btn.on{background:color-mix(in srgb,var(--green) 14%,transparent);
+  border-color:color-mix(in srgb,var(--green) 45%,transparent);color:var(--green)}
 .rec-time{font-family:"IBM Plex Mono";font-size:13.5px;color:var(--ink);flex:none;min-width:38px}
 .rec-wave{flex:1;display:flex;align-items:center;gap:3px;height:26px;overflow:hidden}
 .rec-wave i{flex:1;background:var(--brand);border-radius:2px;animation:recbar .9s ease-in-out infinite}
@@ -852,6 +858,7 @@ body.dark .up-tab.on{color:var(--brand-3)}
     </div>
     <div class="view" id="v-messages">
       <section class="sec"><div class="sechead"><h2 id="t-msgT">المراسلات</h2><span class="sub" id="msg-status"></span></div></section>
+      <div style="padding:0 var(--pad) 10px"><button class="push-btn" id="push-btn">🔕 فعّل الإشعارات</button></div>
       <div class="user-search" id="msg-search-box">
         <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
         <input id="msg-q" type="search" placeholder="ابحث عن شخص…">
@@ -4723,6 +4730,189 @@ document.getElementById('call-speaker').onclick=callToggleSpeaker;
 document.getElementById('inc-accept').onclick=callAccept;
 document.getElementById('inc-decline').onclick=callDecline;
 
+/* ═══════════════════════════════════════════════════════════
+   نظام الإشعارات (Web Push) — يشتغل حتى والموقع مسكّر
+   يحتاج: ملف sw.js بجذر الموقع + مفتاح VAPID + Edge Function
+   ═══════════════════════════════════════════════════════════ */
+
+/* ⬇⬇ بدّل هذا بالمفتاح العام الذي ولّدته (VAPID public key) ⬇⬇ */
+const VAPID_PUBLIC_KEY = "ضع_المفتاح_العام_هنا";
+
+let _swReg=null, _pushOn=false;
+
+function b64ToU8(base64){
+  const pad="=".repeat((4-base64.length%4)%4);
+  const raw=atob((base64+pad).replace(/-/g,"+").replace(/_/g,"/"));
+  return Uint8Array.from([...raw].map(c=>c.charCodeAt(0)));
+}
+const pushSupported=()=>("serviceWorker" in navigator)&&("PushManager" in window)&&("Notification" in window);
+
+/* ───── تسجيل الـ service worker ───── */
+async function pushRegisterSW(){
+  if(!pushSupported()) return null;
+  try{
+    _swReg=await navigator.serviceWorker.register("./sw.js");
+    await navigator.serviceWorker.ready;
+    return _swReg;
+  }catch(e){ console.warn("[push] sw:",e); return null }
+}
+
+/* ───── طلب الإذن + الاشتراك ───── */
+async function pushEnable(silent){
+  if(!pushSupported()){ if(!silent) toast("متصفحك ما يدعم الإشعارات"); return false }
+  if(!isLoggedMsg()){ if(!silent) toast(mt().needLogin); return false }
+  if(!VAPID_PUBLIC_KEY||VAPID_PUBLIC_KEY.indexOf("ضع_")===0){
+    if(!silent) toast("ماكو مفتاح VAPID — راجع خطوات الإعداد");
+    return false;
+  }
+  let perm=Notification.permission;
+  if(perm==="default"){
+    try{ perm=await Notification.requestPermission() }catch(e){ perm="denied" }
+  }
+  if(perm!=="granted"){ if(!silent) toast("الإشعارات مرفوضة — فعّلها من إعدادات المتصفح"); return false }
+
+  const reg=_swReg||await pushRegisterSW();
+  if(!reg){ if(!silent) toast("تعذّر تشغيل الإشعارات"); return false }
+
+  let sub=null;
+  try{
+    sub=await reg.pushManager.getSubscription();
+    if(!sub) sub=await reg.pushManager.subscribe({
+      userVisibleOnly:true,
+      applicationServerKey:b64ToU8(VAPID_PUBLIC_KEY)
+    });
+  }catch(e){ console.warn("[push] subscribe:",e); if(!silent) toast("تعذّر الاشتراك بالإشعارات"); return false }
+
+  const j=sub.toJSON();
+  try{
+    await sbReq("push_subs?on_conflict=endpoint",{method:"POST",
+      headers:{Prefer:"resolution=merge-duplicates,return=minimal"},
+      body:JSON.stringify({
+        phone:myPhone(),
+        endpoint:j.endpoint,
+        p256dh:j.keys&&j.keys.p256dh,
+        auth:j.keys&&j.keys.auth,
+        ua:navigator.userAgent.slice(0,180)
+      })});
+  }catch(e){ console.warn("[push] save:",e); if(!silent) toast("تعذّر حفظ الاشتراك"); return false }
+
+  _pushOn=true; pushPaintBtn();
+  if(!silent) toast("انفعّلت الإشعارات ✅");
+  return true;
+}
+
+async function pushDisable(){
+  try{
+    const reg=_swReg||await navigator.serviceWorker.getRegistration();
+    const sub=reg&&await reg.pushManager.getSubscription();
+    if(sub){
+      const ep=sub.endpoint;
+      await sub.unsubscribe();
+      try{ await sbReq("push_subs?endpoint=eq."+encodeURIComponent(ep),{method:"DELETE",
+        headers:{Prefer:"return=minimal"}}) }catch(e){}
+    }
+  }catch(e){}
+  _pushOn=false; pushPaintBtn();
+  toast("انطفت الإشعارات");
+}
+
+function pushPaintBtn(){
+  const b=document.getElementById('push-btn');
+  if(!b) return;
+  if(!pushSupported()){ b.style.display='none'; return }
+  b.style.display='';
+  b.classList.toggle('on',_pushOn);
+  b.textContent=_pushOn?'🔔 الإشعارات مفعّلة':'🔕 فعّل الإشعارات';
+}
+
+/* ───── فحص الحالة عند الإقلاع ───── */
+async function pushBoot(){
+  if(!pushSupported()){ pushPaintBtn(); return }
+  await pushRegisterSW();
+  try{
+    const sub=_swReg&&await _swReg.pushManager.getSubscription();
+    _pushOn=!!sub&&Notification.permission==="granted";
+  }catch(e){ _pushOn=false }
+  pushPaintBtn();
+  /* إذا سبق وفعّلها — نجدّد الاشتراك بصمت (الاشتراك ينتهي أحياناً) */
+  if(_pushOn&&isLoggedMsg()) pushEnable(true);
+
+  /* رسائل جاية من الـ service worker */
+  navigator.serviceWorker.addEventListener('message',ev=>{
+    const d=ev.data||{};
+    if(d.type==='push'&&d.payload){
+      const p=d.payload;
+      if(p.type==='call'){ /* شاشة المكالمة تنفتح من المراقب أصلاً */ }
+      else{ notifBump(); toast('📩 '+(p.title||'رسالة جديدة')); }
+    }
+    if(d.type==='notif-click'){
+      const p=d.data||{};
+      if(p.type==='call'&&d.action==='decline'){ callDecline(); return }
+      if(p.from) msgOpenChat(p.from,p.name||'',p.avatar||'');
+      else go('messages');
+    }
+  });
+}
+
+/* ───── إشعار محلي (والموقع مفتوح) ───── */
+async function notifLocal(title,body,data){
+  try{
+    if(Notification.permission!=="granted") return;
+    const reg=_swReg||await navigator.serviceWorker.getRegistration();
+    if(reg) reg.showNotification(title,{body:body||'',dir:'rtl',lang:'ar',
+      icon:'./icon-192.png',badge:'./icon-192.png',
+      tag:'msg-'+(data&&data.conv||'x'),renotify:true,
+      vibrate:[200,100,200],data:data||{}});
+  }catch(e){}
+}
+
+/* ───── مراقب الرسائل الجديدة عام (بأي صفحة بالموقع) ───── */
+let _notifSeen=null,_notifWatch=null;
+function notifBump(){ if(typeof msgRenderConvs==="function") msgRenderConvs(); }
+
+function notifWatchMessages(){
+  clearInterval(_notifWatch);
+  _notifWatch=setInterval(async()=>{
+    if(!isLoggedMsg()) return;
+    if(document.getElementById('chat-screen').classList.contains('on')) return;
+    let rows;
+    try{
+      rows=await sbSelect("conversations","select=id,last_msg,last_at,user1,user2&or=(user1.eq."
+        +encodeURIComponent(myPhone())+",user2.eq."+encodeURIComponent(myPhone())
+        +")&order=last_at.desc&limit=5");
+    }catch(e){ return }
+    if(!rows||!rows.length) return;
+    const top=rows[0];
+    const stamp=top.id+"|"+(top.last_at||"");
+    if(_notifSeen===null){ _notifSeen=stamp; return }   /* أول دورة: نسجّل بس */
+    if(stamp===_notifSeen) return;
+    _notifSeen=stamp;
+    const other=top.user1===myPhone()?top.user2:top.user1;
+    let name=other;
+    try{ const p=await msgGetProfile(other); name=msgDisplayName(p)||other }catch(e){}
+    /* الصفحة مخفية → إشعار نظام. ظاهرة → توست */
+    if(document.hidden) notifLocal(name,top.last_msg||'رسالة جديدة',{conv:top.id,from:other,name:name});
+    else toast('📩 '+name+': '+(top.last_msg||''));
+    notifBump();
+    /* بادج الهيدر */
+    if(typeof msgRenderConvs==="function") msgRenderConvs();
+  },7000);
+}
+
+/* ───── فتح المحادثة/المكالمة من رابط الإشعار ───── */
+function notifHandleHash(){
+  const h=location.hash||"";
+  if(h.indexOf("#chat=")===0){
+    const ph=decodeURIComponent(h.slice(6));
+    history.replaceState(null,"",location.pathname+location.search);
+    if(ph) setTimeout(()=>msgOpenChat(ph,"",""),600);
+  }else if(h.indexOf("#call=")===0){
+    history.replaceState(null,"",location.pathname+location.search);
+    /* مراقب المكالمات الواردة راح يلتقطها خلال ثانيتين */
+    go('messages');
+  }
+}
+
 /* ═══ ربط الأحداث ═══ */
 function msgBoot(){
   msgFillUI();
@@ -4851,6 +5041,11 @@ reelsBoot();      /* يهيّئ نظام الريلز ويربطه بالتنق�
 msgBoot();        /* يهيّئ نظام المراسلات والمتابعة */
 msgStartPresence(); /* نبضة الحضور: تخلي "متصل الآن" تشتغل */
 callWatchIncoming(); /* يراقب المكالمات الواردة ويرنّ */
+pushBoot();          /* يسجّل service worker ويفحص حالة الإشعارات */
+notifWatchMessages();/* يراقب الرسائل الجديدة ويشعّرك */
+notifHandleHash();   /* يفتح المحادثة/المكالمة إذا جيت من إشعار */
+const _pb=document.getElementById('push-btn');
+if(_pb) _pb.onclick=()=>{ _pushOn?pushDisable():pushEnable(false) };
 setTimeout(()=>{ if(typeof msgSyncProfile==="function") msgSyncProfile() },2000); /* يرفع الصورة والاسم أول ما يفتح الموقع */
 
 /* يمنع قائمة الضغط الطويل (نسخ/مشاركة/بحث الويب) — يستثني حقول الكتابة */
