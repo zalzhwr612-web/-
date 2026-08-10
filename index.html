@@ -1040,6 +1040,204 @@ body.dark .up-tab.on{color:var(--brand-3)}
   box-shadow:0 2px 8px rgba(0,0,0,.3);transition:transform .15s}
 .rl-msg-btn:active{transform:translateX(-50%) scale(.9)}
 .rl-logo-wrap{position:relative;display:inline-block}
+
+/* ═══════════════════════════════════════════════════════════════
+   واجهة المراسلات الفاخرة — أسود وذهبي
+   تعيد تلوين قسم المراسلات كله عبر تبديل متغيّرات اللون داخل
+   نطاقه فقط، فباقي الموقع يبقى مثل ما هو.
+   ═══════════════════════════════════════════════════════════════ */
+#v-messages, .chat-screen, .pm-screen{
+  --gold:#C9A227; --gold-2:#E8C766; --gold-3:#7E6320;
+  --ink:#EFE8D8; --muted:#8F8878;
+  --card:#15140F; --cardb:#15140F; --art:rgba(201,162,39,.08);
+  --line:rgba(201,162,39,.16);
+  --brand:#C9A227; --brand-2:#E8C766; --brand-3:#E8C766;
+  --m-bg:#0A0908; --m-surface:#1A1913; --m-sep:rgba(201,162,39,.12);
+  --m-bubble-them:#1C1B16; --m-bubble-me:#B8952F;
+  color:var(--ink);
+}
+body:not(.dark) #v-messages, body:not(.dark) .chat-screen{ color:var(--ink) }
+#v-messages{background:#0A0908;min-height:100dvh}
+
+/* ── ترويسة "المراسلات" مع زر الريشة ── */
+#v-messages .sechead h2{color:var(--gold-2);font-family:"Reem Kufi",var(--font);
+  font-size:24px;letter-spacing:.3px}
+.lux-quill{width:46px;height:46px;border-radius:14px;border:1px solid rgba(201,162,39,.4);
+  background:linear-gradient(150deg,#3A2E12,#6E561B);display:grid;place-items:center;
+  cursor:pointer;flex:none;box-shadow:0 4px 14px rgba(0,0,0,.5)}
+.lux-quill svg{width:22px;height:22px;stroke:var(--gold-2);fill:none;stroke-width:1.7;
+  stroke-linecap:round;stroke-linejoin:round}
+.lux-quill:active{transform:scale(.93)}
+#v-messages .sechead{display:flex;align-items:center;justify-content:space-between;gap:12px}
+
+/* ── البحث ── */
+#v-messages .user-search{background:#14130E;border:1px solid var(--line);border-radius:15px}
+#v-messages .user-search input{color:var(--ink)}
+#v-messages .user-search input::placeholder{color:#6E685C}
+#v-messages .user-search svg{stroke:var(--gold)}
+
+/* ── شرائح التصفية ── */
+.lux-chips{display:flex;gap:8px;padding:12px var(--pad) 6px;overflow-x:auto;
+  scrollbar-width:none}
+.lux-chips::-webkit-scrollbar{display:none}
+.lux-chip{border:1px solid var(--line);background:#14130E;color:#A79E8B;border-radius:12px;
+  padding:8px 16px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;flex:none;
+  font-family:var(--font);transition:background .2s,color .2s,border-color .2s}
+.lux-chip.on{background:linear-gradient(150deg,#4A3A14,#7E6320);color:#F3E7C4;
+  border-color:rgba(201,162,39,.55)}
+.lux-chip:active{transform:scale(.96)}
+
+/* ── صفوف المحادثات ── */
+#v-messages .msg-conv{background:#111008;border:1px solid rgba(201,162,39,.10);
+  border-radius:18px;margin-bottom:9px;padding:13px 13px}
+#v-messages .msg-conv::after{display:none}
+#v-messages .msg-conv:active{background:#181610}
+#v-messages .msg-conv.on{border-color:rgba(201,162,39,.5);
+  box-shadow:0 0 0 1px rgba(201,162,39,.18),0 6px 20px rgba(0,0,0,.5)}
+#v-messages .msg-body b{color:var(--ink);font-size:15px}
+#v-messages .msg-preview{color:#8A8271}
+#v-messages .on-dot{background:#35C759;box-shadow:0 0 0 2.5px #0A0908}
+.lux-star{border:0;background:transparent;padding:0;cursor:pointer;margin-top:4px}
+.lux-star svg{width:17px;height:17px;stroke:#5E594D;fill:none;stroke-width:1.7;
+  stroke-linejoin:round;transition:stroke .2s,fill .2s}
+.lux-star.on svg{stroke:#E8C766;fill:#C9A227}
+.lux-star:active{transform:scale(.85)}
+#v-messages .msg-right{display:flex;flex-direction:column;align-items:center;gap:5px}
+#v-messages .msg-time{color:#6E685C;font-size:11.5px}
+#v-messages .msg-av{background:#1C1B14;box-shadow:0 0 0 1px rgba(201,162,39,.22)}
+.msg-unread{background:linear-gradient(150deg,#C9A227,#E8C766)!important;color:#1A1508!important;
+  font-weight:800;box-shadow:0 3px 10px rgba(201,162,39,.35)}
+
+/* نقطة الاتصال */
+.lux-dot{position:absolute;bottom:1px;inset-inline-end:1px;width:12px;height:12px;border-radius:50%;
+  background:#35C759;border:2.5px solid #0A0908}
+
+/* ── بطاقة البريميوم ── */
+.lux-prem{margin:16px var(--pad) 10px;border-radius:20px;padding:16px;display:flex;
+  align-items:center;gap:13px;cursor:pointer;position:relative;overflow:hidden;
+  background:linear-gradient(140deg,#241C0A 0%,#3E3111 55%,#221A08 100%);
+  border:1px solid rgba(201,162,39,.34)}
+.lux-prem::after{content:"";position:absolute;top:-60%;bottom:-60%;width:34%;
+  background:linear-gradient(90deg,transparent,rgba(232,199,102,.14),transparent);
+  transform:skewX(-14deg);animation:luxSheen 6.5s ease-in-out infinite;pointer-events:none}
+@keyframes luxSheen{0%{inset-inline-start:-40%}60%,100%{inset-inline-start:118%}}
+.lux-prem .lp-gem{width:52px;height:52px;flex:none;display:grid;place-items:center}
+.lux-prem .lp-gem svg{width:42px;height:42px;filter:drop-shadow(0 3px 8px rgba(201,162,39,.4))}
+.lux-prem .lp-in{flex:1;min-width:0;position:relative;z-index:2}
+.lux-prem b{display:block;font-size:15px;color:var(--gold-2);margin-bottom:2px;
+  font-family:"Reem Kufi",var(--font)}
+.lux-prem span{font-size:12px;color:#9A917D}
+.lux-prem .lp-btn{margin-top:9px;border:1px solid rgba(201,162,39,.5);background:transparent;
+  color:var(--gold-2);border-radius:11px;padding:7px 18px;font-size:12.5px;font-weight:700;
+  cursor:pointer;font-family:var(--font)}
+
+/* ═══ شاشة المحادثة ═══ */
+.chat-screen{background:#0A0908}
+.chat-top{background:#100F0A;border-bottom:1px solid rgba(201,162,39,.14)}
+.chat-top-info b{color:var(--ink);font-size:15.5px}
+.chat-top-info small{color:#35C759;font-size:11.5px}
+.chat-back svg,.chat-ic svg{stroke:var(--gold-2)}
+.chat-ic:active{background:rgba(201,162,39,.12)}
+#chat-av{position:relative;box-shadow:0 0 0 1.5px rgba(201,162,39,.45)}
+.chat-follow-btn{border-color:rgba(201,162,39,.5)!important;color:var(--gold-2)!important;
+  background:transparent!important}
+
+/* خلفية زخرفية خفيفة */
+.chat-screen>.chat-wall{background-color:#0A0908}
+.wp-lux{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='150' viewBox='0 0 150 150'%3E%3Cg fill='none' stroke='%23C9A227' stroke-opacity='.07' stroke-width='1.1'%3E%3Ccircle cx='75' cy='75' r='17'/%3E%3Ccircle cx='75' cy='75' r='31'/%3E%3Ccircle cx='75' cy='75' r='45'/%3E%3Cpath d='M75 12v126M12 75h126M30 30l90 90M120 30l-90 90'/%3E%3Cpath d='M75 30c9 12 9 24 0 34-9-10-9-22 0-34zM75 120c9-12 9-24 0-34-9 10-9 22 0 34zM30 75c12 9 24 9 34 0-10-9-22-9-34 0zM120 75c-12 9-24 9-34 0 10-9 22-9 34 0z'/%3E%3C/g%3E%3C/svg%3E");
+  background-size:150px 150px}
+
+/* ── الفقاعات مع الذيل ── */
+.chat-screen .chat-bubble{border-radius:20px;padding:11px 14px 9px;position:relative;
+  box-shadow:0 3px 12px rgba(0,0,0,.4);max-width:80%}
+/* رسائلي: ذهبي على اليمين (مثل التصميم) */
+html[dir="rtl"] .chat-screen .chat-bubble.me{align-self:flex-start}
+html[dir="rtl"] .chat-screen .chat-bubble.them{align-self:flex-end}
+.chat-screen .chat-bubble.me{
+  background:linear-gradient(145deg,#8A6D22 0%,#B8952F 55%,#9C7C26 100%);
+  color:#FFF9EA;border-end-end-radius:6px}
+.chat-screen .chat-bubble.me::before{content:"";position:absolute;bottom:0;inset-inline-end:-7px;
+  width:14px;height:16px;background:#9C7C26;
+  clip-path:polygon(0 0,100% 100%,0 100%);border-end-start-radius:3px}
+.chat-screen .chat-bubble.them{background:#1C1B16;color:#EAE3D3;border-end-start-radius:6px;
+  border:1px solid rgba(201,162,39,.08)}
+.chat-screen .chat-bubble.them::before{content:"";position:absolute;bottom:0;inset-inline-start:-7px;
+  width:14px;height:16px;background:#1C1B16;
+  clip-path:polygon(100% 0,100% 100%,0 100%);border-end-end-radius:3px}
+.chat-screen .chat-ts{color:rgba(255,255,255,.55);font-size:10.5px}
+.chat-screen .chat-bubble.me .chat-ts{color:rgba(255,249,234,.72)}
+.chat-screen .chat-date{background:#1A1913;color:#9A917D;border:1px solid rgba(201,162,39,.12)}
+
+/* ── بطاقة الملف ── */
+.chat-screen .file-card{flex-direction:column;align-items:stretch;gap:0;background:transparent;
+  padding:0;min-width:210px}
+.lux-file-top{display:flex;align-items:center;gap:11px;padding:2px 2px 10px}
+.lux-file-ico{width:46px;height:46px;border-radius:13px;flex:none;display:grid;place-items:center;
+  background:linear-gradient(150deg,#6E561B,#C9A227)}
+.lux-file-ico svg{width:24px;height:24px;stroke:#1A1508;fill:none;stroke-width:1.8;
+  stroke-linecap:round;stroke-linejoin:round}
+.lux-file-dl{display:flex;align-items:center;justify-content:center;gap:8px;
+  border:1px solid rgba(255,255,255,.28);background:rgba(255,255,255,.12);color:#FFF6E2;
+  border-radius:13px;padding:11px;font-size:13.5px;font-weight:700;cursor:pointer;
+  font-family:var(--font)}
+.chat-bubble.them .lux-file-dl{border-color:rgba(201,162,39,.35);background:rgba(201,162,39,.1);
+  color:var(--gold-2)}
+.lux-file-dl:active{transform:scale(.98)}
+.lux-file-dl svg{width:17px;height:17px;stroke:currentColor;fill:none;stroke-width:2;
+  stroke-linecap:round;stroke-linejoin:round}
+
+/* ── شريط الكتابة ── */
+.chat-screen .chat-input{background:#100F0A;border-top:1px solid rgba(201,162,39,.14);
+  gap:9px;align-items:center}
+.chat-screen #chat-text{background:#1B1A13;border:1px solid rgba(201,162,39,.16);
+  color:var(--ink);border-radius:22px;padding:12px 16px}
+.chat-screen #chat-text::placeholder{color:#6E685C}
+.chat-screen .chat-mic-btn,.chat-screen .chat-send-btn,.chat-screen .chat-send{
+  background:linear-gradient(150deg,#C9A227,#E8C766)!important;border:0!important;color:#1A1508!important}
+.chat-screen .chat-mic-btn svg,.chat-screen .chat-send-btn svg,.chat-screen .chat-send svg{
+  stroke:#1A1508!important;fill:none}
+.chat-screen .chat-img-btn{background:#1B1A13;border:1px solid rgba(201,162,39,.2)}
+.chat-screen .chat-img-btn svg{stroke:var(--gold-2)}
+.lux-plus{width:44px;height:44px;border-radius:50%;flex:none;border:1.5px solid rgba(201,162,39,.5);
+  background:transparent;display:grid;place-items:center;cursor:pointer}
+.lux-plus svg{width:21px;height:21px;stroke:var(--gold-2);fill:none;stroke-width:2;stroke-linecap:round}
+.lux-plus:active{transform:scale(.92)}
+
+/* شارة التوثيق الذهبية */
+.chat-screen .vbadge,#v-messages .vbadge{filter:hue-rotate(18deg) saturate(1.5)}
+
+
+/* ── تعميم الثيم الذهبي على الهيدر والتاب بار وقت المراسلات ── */
+body.msgview{background:#0A0908}
+body.msgview .topbar{background:linear-gradient(160deg,#151309 0%,#221B0B 55%,#12100A 100%);
+  border-bottom:1px solid rgba(201,162,39,.18)}
+body.msgview .topbar .tt b{color:#E8C766}
+body.msgview .topbar .tt span{color:#9A917D}
+body.msgview .hbtn{background:rgba(201,162,39,.13);border:1px solid rgba(201,162,39,.22)}
+body.msgview .hbtn svg{stroke:#E8C766}
+body.msgview .search{background:#14130E;border:1px solid rgba(201,162,39,.2)}
+body.msgview .search input{color:#EFE8D8}
+body.msgview .search input::placeholder{color:#6E685C}
+body.msgview .search svg{stroke:#C9A227}
+body.msgview .tabbar{background:rgba(12,11,8,.96);border-top:1px solid rgba(201,162,39,.16)}
+body.msgview .blob{background-color:#5A4412!important;opacity:.22}
+body.msgview #sky{opacity:.25}
+body.msgview .tab{color:#7E7869}
+body.msgview .tab svg{stroke:#7E7869}
+body.msgview .tab[aria-selected="true"]{color:#E8C766}
+body.msgview .tab[aria-selected="true"] svg{stroke:#E8C766}
+
+/* تبويبات المحادثات/المتابعون */
+#v-messages .msg-tabs{background:#14130E;border:1px solid rgba(201,162,39,.16);
+  border-radius:15px;padding:4px}
+#v-messages .msg-tab{color:#8F8878;background:transparent;border-radius:12px}
+#v-messages .msg-tab.on{background:linear-gradient(150deg,#4A3A14,#7E6320);color:#F3E7C4}
+
+/* ترتيب العمود الأيسر بالصف */
+#v-messages .msg-right{flex-direction:row-reverse;align-items:center;gap:8px}
+#v-messages .msg-right .msg-time{order:3;margin-inline-start:2px}
+#v-messages .msg-conv{align-items:center}
+
 </style>
 </head>
 <body>
@@ -1185,7 +1383,12 @@ body.dark .up-tab.on{color:var(--brand-3)}
       <p class="foot" style="padding-top:14px">© <span id="t-foot4"></span></p>
     </div>
     <div class="view" id="v-messages">
-      <section class="sec"><div class="sechead"><h2 id="t-msgT">المراسلات</h2><span class="sub" id="msg-status"></span></div></section>
+      <section class="sec"><div class="sechead">
+        <h2 id="t-msgT">المراسلات</h2>
+        <button class="lux-quill" id="lux-new" aria-label="محادثة جديدة">
+          <svg viewBox="0 0 24 24"><path d="M20.5 3.5c-3.4 0-7.6 1.5-10.4 4.6C7.6 10.8 6.6 14 6.2 16.6c2.6-.4 5.8-1.4 8.5-3.9 3.1-2.8 4.6-7 4.6-10.4z"/><path d="M6.2 16.6L3.5 20.5"/><path d="M9.6 13.2c1.6-.4 3.4-1.3 4.9-2.7"/></svg>
+        </button>
+      </div></section>
       <div style="padding:0 var(--pad) 10px"><button class="push-btn" id="push-btn"></button></div>
       <div class="user-search" id="msg-search-box">
         <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
@@ -1193,6 +1396,12 @@ body.dark .up-tab.on{color:var(--brand-3)}
       </div>
       <!-- شريط الوصول السريع: أشخاص تتابعهم (بيانات حقيقية فقط) -->
       <div class="story-row" id="story-row" hidden></div>
+      <div class="lux-chips" id="lux-chips">
+        <button class="lux-chip on" data-filter="all">الكل</button>
+        <button class="lux-chip" data-filter="unread">غير مقروء</button>
+        <button class="lux-chip" data-filter="fav">المفضلة</button>
+        <button class="lux-chip" data-filter="online">متصل الآن</button>
+      </div>
       <div class="msg-tabs" id="msg-tabs">
         <button class="msg-tab on" data-mtab="chats" id="t-mtab1">المحادثات</button>
         <button class="msg-tab" data-mtab="followers" id="t-mtab2">المتابعون</button>
@@ -1205,6 +1414,14 @@ body.dark .up-tab.on{color:var(--brand-3)}
           <b id="t-msgEmpty">ما في رسائل لهسه</b>
           <span id="t-msgEmptyD">ابحث عن شخص وابدأ محادثة</span>
         </div>
+      </div>
+      <div class="lux-prem" id="lux-prem">
+        <span class="lp-gem"><svg viewBox="0 0 24 24"><defs><linearGradient id="gemg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#F3DC94"/><stop offset=".5" stop-color="#C9A227"/><stop offset="1" stop-color="#8A6D22"/></linearGradient></defs><path d="M6 3h12l4 6-10 12L2 9z" fill="url(#gemg)"/><path d="M2 9h20M9.5 3L7 9l5 12M14.5 3L17 9l-5 12" fill="none" stroke="rgba(0,0,0,.28)" stroke-width="1"/></svg></span>
+        <span class="lp-in">
+          <b>ترقية إلى البريميوم</b>
+          <span>استمتع بمزايا حصرية</span>
+          <button class="lp-btn" id="lux-prem-btn">ترقية الآن</button>
+        </span>
       </div>
       <div id="msg-search-results" hidden></div>
     </div>
@@ -1252,7 +1469,7 @@ body.dark .up-tab.on{color:var(--brand-3)}
         <button class="rec-stop" id="rec-stop"><svg viewBox="0 0 24 24"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4z"/></svg></button>
       </div>
       <div class="chat-input" id="chat-input-bar">
-        <button class="chat-img-btn" id="chat-img-btn"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5-8 8"/></svg></button>
+        <button class="lux-plus" id="lux-plus" aria-label="إرفاق"></button><button class="chat-img-btn" id="chat-img-btn"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5-8 8"/></svg></button>
         <textarea id="chat-text" rows="1" placeholder="اكتب رسالة…"></textarea>
         <button class="chat-mic-btn" id="chat-mic"><svg viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 17v5"/></svg></button>
         <button class="chat-send-btn" id="chat-send"><svg viewBox="0 0 24 24"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4z"/></svg></button>
@@ -2132,6 +2349,7 @@ function fillUI(){
 
 /* ===== التنقل ===== */
 function go(view){
+  try{ document.body.classList.toggle('msgview', view==='messages') }catch(e){}
   if(view==='admin'&&!owner) view='home';           /* الصفحة ما تنفتح إلا للمالك */
   document.querySelectorAll('.view').forEach(v=>v.classList.toggle('on',v.id==='v-'+view));
   document.querySelectorAll('.tab').forEach(tb=>tb.setAttribute('aria-selected',tb.dataset.go===view));
@@ -4272,6 +4490,84 @@ function rlBindActions(){
   rlPaintStats(); rlPaintFollow();
 }
 
+/* ═══════════════════════════════════════════════════════════
+   سلوك واجهة المراسلات الفاخرة
+   ═══════════════════════════════════════════════════════════ */
+const LS_FAV="ha_fav_convs_v1";
+let favConvs=lsGet(LS_FAV)||[];
+let luxFilter="all";
+const isFav=id=>favConvs.indexOf(String(id))>-1;
+function toggleFav(id){
+  const s=String(id);
+  if(isFav(s)) favConvs=favConvs.filter(z=>z!==s); else favConvs.push(s);
+  lsSet(LS_FAV,favConvs);
+  msgRenderConvs();
+}
+
+/* بطاقة ملف بالشكل الفاخر: أيقونة + اسم + زر تحميل عريض */
+function luxFileCard(f){
+  if(!f) return "";
+  let o; try{ o=typeof f==="string"?JSON.parse(f):f }catch(e){ return "" }
+  if(!o||!o.data) return "";
+  return `<div class="file-card" data-file="${esc(o.data)}" data-fname="${esc(o.name||'ملف')}">
+    <span class="lux-file-top">
+      <span class="lux-file-ico">${ic(fileIconName(o.name),'')}</span>
+      <span class="fc-in"><span class="fc-name">${esc(o.name||'ملف')}</span>
+        <span class="fc-size">${esc(fmtBytes(o.size))}</span></span>
+    </span>
+    <span class="lux-file-dl">${ic('download','')}<span>تحميل</span></span></div>`;
+}
+
+/* تطبيق الشرائح على قائمة المحادثات */
+function luxApplyFilter(convs,unread){
+  if(luxFilter==="unread") return convs.filter(c=>(unread[c.id]||0)>0);
+  if(luxFilter==="fav")    return convs.filter(c=>isFav(c.id));
+  if(luxFilter==="online") return convs.filter(c=>c._online);
+  return convs;
+}
+
+function luxBind(){
+  /* الشرائح */
+  document.querySelectorAll('.lux-chip').forEach(b=>{
+    b.onclick=()=>{
+      luxFilter=b.dataset.filter;
+      document.querySelectorAll('.lux-chip').forEach(z=>z.classList.toggle('on',z===b));
+      msgRenderConvs();
+    };
+  });
+  /* زر الريشة = محادثة جديدة (يركّز البحث) */
+  const q=document.getElementById('lux-new');
+  if(q) q.onclick=()=>{
+    const i=document.getElementById('msg-q');
+    if(i){ i.focus(); i.scrollIntoView({behavior:'smooth',block:'center'}) }
+  };
+  /* بطاقة البريميوم */
+  const pb=document.getElementById('lux-prem-btn'), pc=document.getElementById('lux-prem');
+  const openPrem=e=>{ e&&e.stopPropagation(); luxPremSheet() };
+  if(pb) pb.onclick=openPrem;
+  if(pc) pc.onclick=openPrem;
+  /* زر + بشريط الكتابة → إرفاق ملف */
+  const lp=document.getElementById('lux-plus');
+  if(lp) lp.onclick=()=>filePick();
+  /* خلفية المحادثة الافتراضية: الزخرفة الذهبية */
+  if(!lsGet(LS_WALL)){ chatWall={k:"lux",img:null}; lsSet(LS_WALL,chatWall) }
+}
+
+function luxPremSheet(){
+  openSheet(`
+    <h3 style="font-size:18px;margin-bottom:6px">ترقية إلى البريميوم</h3>
+    <p class="sub" style="font-size:13px;margin-bottom:14px">
+      مزايا إضافية للمعرض — تواصل ويانا ونرتّبها إلك.</p>
+    <div class="acts">
+      <button class="btn btn-p" id="lx-wa">راسلنا واتساب</button>
+      <button class="btn btn-o" id="lx-call">اتصل بينا</button>
+    </div>`);
+  const w=document.getElementById('lx-wa');
+  if(w) w.onclick=()=>window.open(waURL("مرحبا، أريد أعرف عن البريميوم"),"_blank");
+  const c=document.getElementById('lx-call');
+  if(c) c.onclick=()=>{ location.href="tel:"+PHONE };
+}
+
 function reelsBoot(){
   rlCSS();
   rlEnsureView();
@@ -4684,7 +4980,12 @@ async function msgRenderConvs(){
     const other=c.user1===myPhone()?c.user2:c.user1;
     return !iBlocked(other);
   });
+  convs.forEach(c=>{
+    const other=c.user1===me?c.user2:c.user1;
+    c._online=msgIsOnline((profiles[other]||{}).last_seen);
+  });
   const unread=await msgUnreadMap(convs.map(c=>c.id));
+  convs=luxApplyFilter(convs,unread);
   /* تحديث بادج الرسائل بالهيدر */
   const totalUnread=Object.values(unread).reduce((s,n)=>s+n,0);
   const hdrBadge=document.getElementById('msg-hdr-badge');
@@ -4698,11 +4999,17 @@ async function msgRenderConvs(){
     return `<div class="msg-conv" data-conv='${esc(JSON.stringify({id:c.id,phone:other,name:p.name,avatar:p.avatar}))}'>
       <div class="msg-av-wrap">${msgAvHTML(p.name,p.avatar)}${dot}</div>
       <div class="msg-body"><b>${esc(msgDisplayName(p)||other)}</b><span class="msg-preview">${esc(c.last_msg||"")}</span></div>
-      <div class="msg-right"><span class="msg-time">${timeAgo(c.last_at)}</span>${badge}</div>
+      <div class="msg-right"><span class="msg-time">${timeAgo(c.last_at)}</span>${badge}
+        <button class="lux-star${isFav(c.id)?' on':''}" data-fav="${esc(c.id)}" aria-label="مفضلة">
+          <svg viewBox="0 0 24 24"><path d="M12 3.6l2.6 5.3 5.8.85-4.2 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8-4.2-4.1 5.8-.85z"/></svg>
+        </button></div>
     </div>`;
   }).join('');
   box.querySelectorAll('.msg-conv').forEach(el=>{
     el.onclick=()=>{try{const d=JSON.parse(el.dataset.conv);msgOpenChat(d.phone,d.name,d.avatar,d.id)}catch(e){}}
+  });
+  box.querySelectorAll('[data-fav]').forEach(b=>{
+    b.onclick=e=>{ e.stopPropagation(); toggleFav(b.dataset.fav) };
   });
 }
 
@@ -5115,7 +5422,8 @@ const WALLS=[
   {k:"ext",  n:"مقاطع"},
   {k:"mash", n:"مشربية"},
   {k:"frost",n:"زجاج مثلج"},
-  {k:"blue", n:"مخطط ورشة"}
+  {k:"blue", n:"مخطط ورشة"},
+  {k:"lux",  n:"زخرفة ذهبية"}
 ];
 let chatWall=lsGet(LS_WALL)||{k:"none",img:null};
 
@@ -5267,7 +5575,7 @@ function fileClear(){
   const p=document.getElementById('chat-doc-preview'); if(p) p.classList.remove('on');
   const inp=document.getElementById('chat-doc'); if(inp) inp.value='';
 }
-function fileCardHTML(f){
+var fileCardHTML=function(f){
   if(!f) return "";
   let o; try{ o=typeof f==="string"?JSON.parse(f):f }catch(e){ return "" }
   if(!o||!o.data) return "";
@@ -5276,7 +5584,7 @@ function fileCardHTML(f){
     <span class="fc-in"><span class="fc-name">${esc(o.name||'ملف')}</span>
       <span class="fc-size">${esc(fmtBytes(o.size))}</span></span>
     <span class="fc-dl">${ic('download','fc-dlsvg')}</span></div>`;
-}
+};
 function fileDownload(data,name){
   try{
     const a=document.createElement('a');
@@ -6589,6 +6897,9 @@ notifWatchMessages();/* يراقب الرسائل الجديدة ويشعّرك 
 notifHandleHash();   /* يفتح المحادثة/المكالمة إذا جيت من إشعار */
 wallApply();         /* يرجّع خلفية المراسلات المحفوظة */
 blockRefresh();      /* يجيب قوائم الحظر */
+fileCardHTML=luxFileCard;   /* بطاقة الملف بالشكل الفاخر */
+luxBind();           /* واجهة المراسلات الفاخرة */
+(()=>{ const lp=document.getElementById('lux-plus'); if(lp) lp.innerHTML=ic('plus',''); })();
 /* أيقونات ثابتة بالواجهة */
 (()=>{ const set=(id,n,c)=>{const e=document.getElementById(id); if(e) e.innerHTML=ic(n,c)};
   const tw=document.querySelector('.tw-ico'); if(tw) tw.innerHTML=ic('alert');
