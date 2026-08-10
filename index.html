@@ -1112,24 +1112,6 @@ body:not(.dark) #v-messages, body:not(.dark) .chat-screen{ color:var(--ink) }
 .lux-dot{position:absolute;bottom:1px;inset-inline-end:1px;width:12px;height:12px;border-radius:50%;
   background:#35C759;border:2.5px solid #0A0908}
 
-/* ── بطاقة البريميوم ── */
-.lux-prem{margin:16px var(--pad) 10px;border-radius:20px;padding:16px;display:flex;
-  align-items:center;gap:13px;cursor:pointer;position:relative;overflow:hidden;
-  background:linear-gradient(140deg,#241C0A 0%,#3E3111 55%,#221A08 100%);
-  border:1px solid rgba(201,162,39,.34)}
-.lux-prem::after{content:"";position:absolute;top:-60%;bottom:-60%;width:34%;
-  background:linear-gradient(90deg,transparent,rgba(232,199,102,.14),transparent);
-  transform:skewX(-14deg);animation:luxSheen 6.5s ease-in-out infinite;pointer-events:none}
-@keyframes luxSheen{0%{inset-inline-start:-40%}60%,100%{inset-inline-start:118%}}
-.lux-prem .lp-gem{width:52px;height:52px;flex:none;display:grid;place-items:center}
-.lux-prem .lp-gem svg{width:42px;height:42px;filter:drop-shadow(0 3px 8px rgba(201,162,39,.4))}
-.lux-prem .lp-in{flex:1;min-width:0;position:relative;z-index:2}
-.lux-prem b{display:block;font-size:15px;color:var(--gold-2);margin-bottom:2px;
-  font-family:"Reem Kufi",var(--font)}
-.lux-prem span{font-size:12px;color:#9A917D}
-.lux-prem .lp-btn{margin-top:9px;border:1px solid rgba(201,162,39,.5);background:transparent;
-  color:var(--gold-2);border-radius:11px;padding:7px 18px;font-size:12.5px;font-weight:700;
-  cursor:pointer;font-family:var(--font)}
 
 /* ═══ شاشة المحادثة ═══ */
 .chat-screen{background:#0A0908}
@@ -1237,6 +1219,77 @@ body.msgview .tab[aria-selected="true"] svg{stroke:#E8C766}
 #v-messages .msg-right{flex-direction:row-reverse;align-items:center;gap:8px}
 #v-messages .msg-right .msg-time{order:3;margin-inline-start:2px}
 #v-messages .msg-conv{align-items:center}
+
+
+/* الأوراق المنبثقة داخل سياق المراسلات تصير داكنة */
+body.msgview .sheet,body.msgview .sheet *{--ink:#EFE8D8;--muted:#8F8878;--line:rgba(201,162,39,.16);
+  --card:#15140F;--cardb:#15140F;--brand:#C9A227;--brand-2:#E8C766;--brand-3:#E8C766;
+  --m-surface:#1A1913;--art:rgba(201,162,39,.08)}
+body.msgview .sheet{background:#100F0A;border-top:1px solid rgba(201,162,39,.2);color:#EFE8D8}
+body.msgview .sheet h3{color:#E8C766}
+body.msgview .sheet .btn-p{background:linear-gradient(150deg,#C9A227,#E8C766);color:#1A1508}
+body.msgview .sheet .btn-o{border-color:rgba(201,162,39,.4);color:#E8C766;background:transparent}
+body.msgview .scrim{background:rgba(0,0,0,.62)}
+
+/* ── ألوان الفقاعة وحجم الخط ── */
+.chat-screen .chat-bubble.me{background:var(--bub-me,linear-gradient(145deg,#8A6D22,#B8952F 55%,#9C7C26))!important;
+  color:var(--bub-me-txt,#FFF9EA)!important}
+.chat-screen .chat-bubble.me::before{background:var(--bub-me-tail,#9C7C26)!important}
+.chat-screen .chat-bubble>div:not(.chat-ts):not(.q-box):not(.file-card):not(.rx-pills){
+  font-size:var(--chat-fs,15px);line-height:1.65}
+.bub-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px}
+.bub-opt{border:2px solid transparent;border-radius:14px;background:transparent;padding:3px;
+  cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:5px}
+.bub-opt.on{border-color:var(--brand)}
+.bub-sw{width:100%;aspect-ratio:1;border-radius:11px;display:block;
+  box-shadow:inset 0 -2px 6px rgba(0,0,0,.28)}
+.bub-nm{font-size:10.5px;color:var(--muted);font-weight:600}
+.bub-opt.on .bub-nm{color:var(--brand)}
+.fs-box{border:1px solid var(--line);border-radius:16px;padding:14px}
+.fs-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;
+  font-size:13.5px;font-weight:700;color:var(--ink)}
+.fs-head b{font-family:"IBM Plex Mono",monospace;color:var(--brand)}
+.fs-row{display:flex;align-items:center;gap:11px}
+.fs-btn{width:38px;height:38px;border:1px solid var(--line);background:var(--m-surface);
+  border-radius:11px;display:grid;place-items:center;cursor:pointer;flex:none;color:var(--ink)}
+.fs-svg{width:17px;height:17px;stroke:currentColor;fill:none;stroke-width:2.2;stroke-linecap:round}
+#fs-range{flex:1;accent-color:var(--brand);height:4px}
+.fs-preview{margin-top:13px;padding:11px 14px;border-radius:16px;border-end-end-radius:6px;
+  line-height:1.65;transition:font-size .12s}
+
+/* ── عارض الصور ── */
+.img-view{position:fixed;inset:0;z-index:130;display:none;flex-direction:column;background:#000}
+.img-view.on{display:flex}
+.iv-top{display:flex;align-items:center;justify-content:space-between;
+  padding:calc(env(safe-area-inset-top,0px) + 12px) 14px 12px;position:relative;z-index:2}
+.iv-x{width:40px;height:40px;border:0;border-radius:50%;background:rgba(255,255,255,.14);
+  color:#fff;display:grid;place-items:center;cursor:pointer}
+.iv-x svg{width:19px;height:19px;stroke:currentColor;fill:none;stroke-width:2.2;stroke-linecap:round}
+.iv-stage{flex:1;display:grid;place-items:center;overflow:auto;padding:8px}
+.iv-stage img{max-width:100%;max-height:100%;object-fit:contain;display:block}
+.iv-acts{display:flex;justify-content:center;gap:26px;
+  padding:16px 16px calc(env(safe-area-inset-bottom,0px) + 20px)}
+.iv-act{border:0;background:transparent;color:#fff;display:flex;flex-direction:column;
+  align-items:center;gap:6px;cursor:pointer;font-size:12px;font-family:var(--font)}
+.iv-act span.ic{width:50px;height:50px;border-radius:50%;background:rgba(255,255,255,.14);
+  display:grid;place-items:center}
+.iv-act svg{width:21px;height:21px;stroke:#fff;fill:none;stroke-width:1.9;
+  stroke-linecap:round;stroke-linejoin:round}
+.iv-act:active span.ic{transform:scale(.9)}
+
+/* ── قائمة إعادة التوجيه ── */
+.fw-list{max-height:52vh;overflow-y:auto;display:flex;flex-direction:column;gap:2px}
+.fw-row{display:flex;align-items:center;gap:11px;width:100%;padding:11px 8px;border:0;
+  background:transparent;cursor:pointer;border-radius:13px;color:var(--ink);text-align:start;
+  font-family:var(--font)}
+.fw-row+.fw-row{border-top:1px solid var(--line)}
+.fw-row:active{background:var(--art)}
+.fw-av{width:42px;height:42px;border-radius:50%;flex:none;overflow:hidden;display:grid;
+  place-items:center;background:var(--m-surface);font-weight:700;color:var(--brand)}
+.fw-av img{width:100%;height:100%;object-fit:cover}
+.fw-nm{flex:1;min-width:0;font-size:14.5px;font-weight:600;white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis}
+.fw-go{flex:none;color:var(--muted)}
 
 </style>
 </head>
@@ -1415,14 +1468,6 @@ body.msgview .tab[aria-selected="true"] svg{stroke:#E8C766}
           <span id="t-msgEmptyD">ابحث عن شخص وابدأ محادثة</span>
         </div>
       </div>
-      <div class="lux-prem" id="lux-prem">
-        <span class="lp-gem"><svg viewBox="0 0 24 24"><defs><linearGradient id="gemg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#F3DC94"/><stop offset=".5" stop-color="#C9A227"/><stop offset="1" stop-color="#8A6D22"/></linearGradient></defs><path d="M6 3h12l4 6-10 12L2 9z" fill="url(#gemg)"/><path d="M2 9h20M9.5 3L7 9l5 12M14.5 3L17 9l-5 12" fill="none" stroke="rgba(0,0,0,.28)" stroke-width="1"/></svg></span>
-        <span class="lp-in">
-          <b>ترقية إلى البريميوم</b>
-          <span>استمتع بمزايا حصرية</span>
-          <button class="lp-btn" id="lux-prem-btn">ترقية الآن</button>
-        </span>
-      </div>
       <div id="msg-search-results" hidden></div>
     </div>
 
@@ -1478,6 +1523,18 @@ body.msgview .tab[aria-selected="true"] svg{stroke:#E8C766}
       <input type="file" id="chat-doc" style="display:none">
       <div class="chat-blocked" id="chat-blocked">
         <span id="cb-txt"></span><button id="cb-un">رفع الحظر</button>
+      </div>
+    </div>
+
+    <!-- عارض الصور -->
+    <div class="img-view" id="img-view">
+      <div class="iv-top"><button class="iv-x" id="iv-x" aria-label="إغلاق">
+        <svg viewBox="0 0 24 24"><path d="M6.2 6.2l11.6 11.6M17.8 6.2L6.2 17.8"/></svg></button></div>
+      <div class="iv-stage"><img id="iv-img" alt="صورة"></div>
+      <div class="iv-acts">
+        <button class="iv-act" id="iv-copy"><span class="ic"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="12" height="12" rx="2.4"/><path d="M15.2 5.6A2.6 2.6 0 0 0 12.6 3H5.6A2.6 2.6 0 0 0 3 5.6v7a2.6 2.6 0 0 0 2.6 2.6"/></svg></span>نسخ</button>
+        <button class="iv-act" id="iv-save"><span class="ic"><svg viewBox="0 0 24 24"><path d="M12 3.5v11.4M12 14.9l-4-4M12 14.9l4-4"/><path d="M4.5 20.5h15"/></svg></span>حفظ</button>
+        <button class="iv-act" id="iv-share"><span class="ic"><svg viewBox="0 0 24 24"><circle cx="18" cy="5" r="2.6"/><circle cx="6" cy="12" r="2.6"/><circle cx="18" cy="19" r="2.6"/><path d="M8.3 10.8l7.4-4.3M8.3 13.2l7.4 4.3"/></svg></span>مشاركة</button>
       </div>
     </div>
 
@@ -4526,6 +4583,191 @@ function luxApplyFilter(convs,unread){
   return convs;
 }
 
+
+/* ═══════════════════════════════════════════════════════════
+   مظهر المحادثة: لون الفقاعة + حجم الخط
+   ═══════════════════════════════════════════════════════════ */
+const LS_LOOK="ha_chat_look_v1";
+const BUBBLES=[
+  {k:"gold",   n:"ذهبي",    g:"linear-gradient(145deg,#8A6D22,#B8952F 55%,#9C7C26)", t:"#FFF9EA", tail:"#9C7C26"},
+  {k:"royal",  n:"ملكي",    g:"linear-gradient(145deg,#4C2A8A,#7B4BD1 55%,#5B33A3)", t:"#F6F0FF", tail:"#5B33A3"},
+  {k:"emerald",n:"زمردي",   g:"linear-gradient(145deg,#0B6B4F,#12A374 55%,#0D7C5C)", t:"#EDFFF8", tail:"#0D7C5C"},
+  {k:"ocean",  n:"بحري",    g:"linear-gradient(145deg,#123E7C,#2374D6 55%,#17529B)", t:"#EFF6FF", tail:"#17529B"},
+  {k:"sunset", n:"غروب",    g:"linear-gradient(145deg,#B03A2E,#E8703A 55%,#C9512F)", t:"#FFF4EC", tail:"#C9512F"},
+  {k:"rose",   n:"وردي",    g:"linear-gradient(145deg,#9C2455,#DC4B84 55%,#B23167)", t:"#FFF0F6", tail:"#B23167"},
+  {k:"teal",   n:"فيروزي",  g:"linear-gradient(145deg,#0A5F66,#12909B 55%,#0C7079)", t:"#EDFDFF", tail:"#0C7079"},
+  {k:"wine",   n:"عنابي",   g:"linear-gradient(145deg,#6B1220,#A82239 55%,#7F1729)", t:"#FFF0F2", tail:"#7F1729"},
+  {k:"indigo", n:"نيلي",    g:"linear-gradient(145deg,#252C77,#4653C4 55%,#2E3691)", t:"#F0F2FF", tail:"#2E3691"},
+  {k:"olive",  n:"زيتوني",  g:"linear-gradient(145deg,#4A5220,#798534 55%,#5A6427)", t:"#F8FBEC", tail:"#5A6427"},
+  {k:"graphite",n:"فحمي",   g:"linear-gradient(145deg,#2A2C31,#4A4E57 55%,#33363C)", t:"#F2F4F7", tail:"#33363C"},
+  {k:"sky",    n:"سماوي",   g:"linear-gradient(145deg,#1E6E8C,#39A8CC 55%,#2481A2)", t:"#EEFAFF", tail:"#2481A2"},
+  {k:"plum",   n:"برقوقي",  g:"linear-gradient(145deg,#5B2160,#96389E 55%,#6D2874)", t:"#FCF0FF", tail:"#6D2874"},
+  {k:"amber",  n:"كهرماني", g:"linear-gradient(145deg,#8A4B10,#D2841F 55%,#A25C15)", t:"#FFF7EC", tail:"#A25C15"},
+  {k:"forest", n:"غابة",    g:"linear-gradient(145deg,#1E4620,#357A38 55%,#255529)", t:"#F0FFF1", tail:"#255529"},
+  {k:"slate",  n:"رصاصي",   g:"linear-gradient(145deg,#334155,#57708F 55%,#3D4F66)", t:"#F1F5FA", tail:"#3D4F66"}
+];
+let chatLook=lsGet(LS_LOOK)||{bub:"gold",fs:15};
+
+function lookApply(){
+  const b=BUBBLES.find(z=>z.k===chatLook.bub)||BUBBLES[0];
+  const r=document.documentElement.style;
+  r.setProperty('--bub-me',b.g);
+  r.setProperty('--bub-me-txt',b.t);
+  r.setProperty('--bub-me-tail',b.tail);
+  r.setProperty('--chat-fs',(chatLook.fs||15)+'px');
+}
+function lookSet(patch){
+  chatLook=Object.assign({},chatLook,patch);
+  lsSet(LS_LOOK,chatLook);
+  lookApply();
+}
+
+function lookSheet(){
+  const opts=BUBBLES.map(b=>`<button class="bub-opt${chatLook.bub===b.k?' on':''}" data-bub="${b.k}"
+      title="${b.n}"><span class="bub-sw" style="background:${b.g}"></span>
+      <span class="bub-nm">${b.n}</span></button>`).join('');
+  openSheet(`
+    <h3 style="font-size:17px;margin-bottom:4px">مظهر المحادثة</h3>
+    <p class="sub" style="font-size:12.5px;margin-bottom:12px">اختر لون رسائلك وحجم الخط</p>
+    <div class="bub-grid">${opts}</div>
+    <div class="fs-box">
+      <div class="fs-head"><span>حجم الخط</span><b id="fs-val">${chatLook.fs||15}</b></div>
+      <div class="fs-row">
+        <button class="fs-btn" id="fs-down">${ic('minus','fs-svg')}</button>
+        <input type="range" id="fs-range" min="12" max="24" step="1" value="${chatLook.fs||15}">
+        <button class="fs-btn" id="fs-up">${ic('plus','fs-svg')}</button>
+      </div>
+      <div class="fs-preview" id="fs-prev" style="font-size:${chatLook.fs||15}px">
+        هيچ راح تطلع رسائلك</div>
+    </div>`);
+  document.querySelectorAll('[data-bub]').forEach(b=>{
+    b.onclick=()=>{
+      lookSet({bub:b.dataset.bub});
+      document.querySelectorAll('[data-bub]').forEach(z=>z.classList.toggle('on',z===b));
+      const pv=document.getElementById('fs-prev');
+      const o=BUBBLES.find(z=>z.k===b.dataset.bub);
+      if(pv&&o){ pv.style.background=o.g; pv.style.color=o.t }
+    };
+  });
+  const rng=document.getElementById('fs-range');
+  const setFS=v=>{
+    v=Math.max(12,Math.min(24,+v||15));
+    rng.value=v; setTxt('fs-val',v);
+    const pv=document.getElementById('fs-prev'); if(pv) pv.style.fontSize=v+'px';
+    lookSet({fs:v});
+  };
+  rng.oninput=()=>setFS(rng.value);
+  document.getElementById('fs-up').onclick=()=>setFS(+rng.value+1);
+  document.getElementById('fs-down').onclick=()=>setFS(+rng.value-1);
+  const cur=BUBBLES.find(z=>z.k===chatLook.bub)||BUBBLES[0];
+  const pv=document.getElementById('fs-prev');
+  if(pv){ pv.style.background=cur.g; pv.style.color=cur.t }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   عارض الصور بملء الشاشة — نسخ / حفظ / مشاركة
+   ═══════════════════════════════════════════════════════════ */
+let _viewSrc=null;
+function imgViewOpen(src){
+  _viewSrc=src;
+  const v=document.getElementById('img-view');
+  document.getElementById('iv-img').src=src;
+  v.classList.add('on');
+}
+function imgViewClose(){
+  document.getElementById('img-view').classList.remove('on');
+  document.getElementById('iv-img').src='';
+  _viewSrc=null;
+}
+async function dataURLtoBlob(d){
+  const r=await fetch(d); return await r.blob();
+}
+async function imgCopy(){
+  if(!_viewSrc) return;
+  try{
+    const blob=await dataURLtoBlob(_viewSrc);
+    /* الحافظة تقبل PNG فقط بأغلب المتصفحات */
+    let out=blob;
+    if(blob.type!=="image/png"){
+      out=await new Promise(res=>{
+        const im=new Image();
+        im.onload=()=>{
+          const c=document.createElement('canvas');
+          c.width=im.naturalWidth; c.height=im.naturalHeight;
+          c.getContext('2d').drawImage(im,0,0);
+          c.toBlob(b=>res(b),'image/png');
+        };
+        im.src=_viewSrc;
+      });
+    }
+    await navigator.clipboard.write([new ClipboardItem({'image/png':out})]);
+    toast("انتسخت الصورة ✓");
+  }catch(e){ toast("متصفحك ما يدعم نسخ الصور — جرّب حفظها") }
+}
+function imgSave(){
+  if(!_viewSrc) return;
+  const name="صورة-"+Date.now()+".jpg";
+  fileDownload(_viewSrc,name);
+}
+async function imgShareIt(){
+  if(!_viewSrc) return;
+  try{
+    const blob=await dataURLtoBlob(_viewSrc);
+    const f=new File([blob],"صورة.jpg",{type:blob.type||"image/jpeg"});
+    if(navigator.canShare&&navigator.canShare({files:[f]})){
+      await navigator.share({files:[f],title:"صورة"});
+      return;
+    }
+  }catch(e){}
+  shareOpen("صورة من "+((t&&t().brand)||""),SHARE_BASE,"صورة");
+}
+
+/* ═══════════════════════════════════════════════════════════
+   إعادة توجيه الرسائل
+   ═══════════════════════════════════════════════════════════ */
+async function msgForward(msgId){
+  const m=chatMsgs.find(x=>String(x.id)===String(msgId));
+  if(!m){ toast("الرسالة مو موجودة"); return }
+  openSheet(`
+    <h3 style="font-size:17px;margin-bottom:4px">إعادة التوجيه</h3>
+    <p class="sub" style="font-size:12.5px;margin-bottom:12px">اختر المحادثة</p>
+    <div class="fw-list" id="fw-list"><div class="rc-load">…</div></div>`);
+  let convs=[];
+  try{ convs=await msgMyConvs() }catch(e){}
+  const me=myPhone();
+  convs=convs.filter(c=>{
+    const other=c.user1===me?c.user2:c.user1;
+    return !isHiddenConv(c.id)&&!iBlocked(other)&&!blockedMe(other);
+  });
+  const box=document.getElementById('fw-list'); if(!box) return;
+  if(!convs.length){ box.innerHTML='<div class="rc-load">ماكو محادثات</div>'; return }
+  const profs={};
+  await Promise.all(convs.map(async c=>{
+    const other=c.user1===me?c.user2:c.user1;
+    try{ profs[other]=await msgGetProfile(other) }catch(e){ profs[other]={} }
+  }));
+  box.innerHTML=convs.map(c=>{
+    const other=c.user1===me?c.user2:c.user1;
+    const p=profs[other]||{}, nm=msgDisplayName(p)||other;
+    const av=p.avatar?`<img src="${esc(p.avatar)}" alt="">`
+      :`<span>${esc((nm||"?").charAt(0).toUpperCase())}</span>`;
+    return `<button class="fw-row" data-fw="${esc(c.id)}" data-ph="${esc(other)}">
+      <span class="fw-av">${av}</span><span class="fw-nm">${esc(nm)}</span>
+      <span class="fw-go">${ic('forward','ui-ic')}</span></button>`;
+  }).join('');
+  box.querySelectorAll('[data-fw]').forEach(b=>{
+    b.onclick=async()=>{
+      b.disabled=true; b.style.opacity=.5;
+      try{
+        await msgSend(b.dataset.fw, m.body||null, m.img||null,
+          m.voice||null, m.voice_dur||null, null, m.file||null);
+        toast("انتوجّهت الرسالة ✓");
+        closeSheet();
+      }catch(e){ toast("ما قدرت أوجّهها"); b.disabled=false; b.style.opacity=1 }
+    };
+  });
+}
+
 function luxBind(){
   /* الشرائح */
   document.querySelectorAll('.lux-chip').forEach(b=>{
@@ -4541,11 +4783,6 @@ function luxBind(){
     const i=document.getElementById('msg-q');
     if(i){ i.focus(); i.scrollIntoView({behavior:'smooth',block:'center'}) }
   };
-  /* بطاقة البريميوم */
-  const pb=document.getElementById('lux-prem-btn'), pc=document.getElementById('lux-prem');
-  const openPrem=e=>{ e&&e.stopPropagation(); luxPremSheet() };
-  if(pb) pb.onclick=openPrem;
-  if(pc) pc.onclick=openPrem;
   /* زر + بشريط الكتابة → إرفاق ملف */
   const lp=document.getElementById('lux-plus');
   if(lp) lp.onclick=()=>filePick();
@@ -4553,20 +4790,6 @@ function luxBind(){
   if(!lsGet(LS_WALL)){ chatWall={k:"lux",img:null}; lsSet(LS_WALL,chatWall) }
 }
 
-function luxPremSheet(){
-  openSheet(`
-    <h3 style="font-size:18px;margin-bottom:6px">ترقية إلى البريميوم</h3>
-    <p class="sub" style="font-size:13px;margin-bottom:14px">
-      مزايا إضافية للمعرض — تواصل ويانا ونرتّبها إلك.</p>
-    <div class="acts">
-      <button class="btn btn-p" id="lx-wa">راسلنا واتساب</button>
-      <button class="btn btn-o" id="lx-call">اتصل بينا</button>
-    </div>`);
-  const w=document.getElementById('lx-wa');
-  if(w) w.onclick=()=>window.open(waURL("مرحبا، أريد أعرف عن البريميوم"),"_blank");
-  const c=document.getElementById('lx-call');
-  if(c) c.onclick=()=>{ location.href="tel:"+PHONE };
-}
 
 function reelsBoot(){
   rlCSS();
@@ -5153,6 +5376,10 @@ async function msgRefreshChat(){
   box.querySelectorAll('.voice-msg').forEach(vm=>{
     vm.querySelector('.voice-play').onclick=e=>{ e.stopPropagation(); msgPlayVoice(vm); };
   });
+  /* النقر على الصورة → ملء الشاشة */
+  box.querySelectorAll('.chat-img').forEach(im=>{
+    im.onclick=e=>{ e.stopPropagation(); imgViewOpen(im.getAttribute('src')) };
+  });
   /* تحميل الملفات */
   box.querySelectorAll('.file-card').forEach(fc=>{
     fc.onclick=e=>{ e.stopPropagation(); fileDownload(fc.dataset.file,fc.dataset.fname) };
@@ -5511,6 +5738,8 @@ const UI_ICONS={
   copy:'<rect x="9" y="9" width="12" height="12" rx="2.4"/><path d="M15.2 5.6A2.6 2.6 0 0 0 12.6 3H5.6A2.6 2.6 0 0 0 3 5.6v7a2.6 2.6 0 0 0 2.6 2.6"/>',
   dots:'<circle cx="5.2" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="18.8" cy="12" r="1.5"/>',
   plus:'<path d="M12 5.5v13M5.5 12h13"/>',
+  minus:'<path d="M5.5 12h13"/>',
+  forward:'<path d="M15 14l5-5-5-5"/><path d="M20 9H10a6 6 0 0 0-6 6v4"/>',
   x:'<path d="M6.2 6.2l11.6 11.6M17.8 6.2L6.2 17.8"/>',
   bell:'<path d="M18 8.6a6 6 0 1 0-12 0c0 5.9-2.1 7.4-2.1 7.4h16.2S18 14.5 18 8.6"/><path d="M13.7 19.9a2 2 0 0 1-3.4 0"/>',
   bellOff:'<path d="M17.9 8.6a6 6 0 0 0-8.8-5.3M6.2 6.5A6 6 0 0 0 6 8.6c0 5.9-2.1 7.4-2.1 7.4h12.9"/><path d="M13.7 19.9a2 2 0 0 1-3.4 0"/><path d="M3.2 3.2l17.6 17.6"/>',
@@ -5671,6 +5900,7 @@ function msgOptions(msgId){
       <button class="opt-row" id="mo-reply">${ic('reply')}<span>رد على الرسالة</span></button>
       <button class="opt-row" id="mo-copy">${ic('copy')}<span>نسخ النص</span></button>
       <button class="opt-row" id="mo-share">${ic('share')}<span>مشاركة</span></button>
+      <button class="opt-row" id="mo-fwd">${ic('forward')}<span>إعادة التوجيه</span></button>
       <button class="opt-row danger" id="mo-del-me">${ic('trash')}<span>حذف عندي</span></button>
       ${mine?`<button class="opt-row danger" id="mo-del-all">${ic('trashAll')}<span>حذف عند الطرفين</span></button>`:''}
     </div>`);
@@ -5678,6 +5908,7 @@ function msgOptions(msgId){
   on('mo-reply',()=>{ closeSheet(); replySet(msgId) });
   on('mo-copy',()=>{ closeSheet(); shareCopy(m?msgSnippet(m):"","انتسخ ✓") });
   on('mo-share',()=>{ closeSheet(); shareMessage(msgId) });
+  on('mo-fwd',()=>{ closeSheet(); msgForward(msgId) });
   on('mo-del-me',()=>{ closeSheet(); msgDelete(msgId,false) });
   on('mo-del-all',()=>{ closeSheet(); confirmAsk("تنحذف عند الطرفين ونهائياً. أكيد؟",()=>msgDelete(msgId,true)) });
 }
@@ -5778,6 +6009,7 @@ function chatMenuOpen(){
   openSheet(`
     <h3 style="font-size:17px;margin-bottom:12px">${esc(document.getElementById('chat-name').textContent||'')}</h3>
     <div class="opt-list">
+      <button class="opt-row" id="cm-look">${ic('theme')}<span>مظهر المحادثة</span></button>
       <button class="opt-row" id="cm-wall">${ic('image')}<span>خلفية المراسلات</span></button>
       <button class="opt-row" id="cm-share">${ic('share')}<span>شارك رابط المحادثة</span></button>
       <button class="opt-row danger" id="cm-del-me">${ic('trash')}<span>حذف المحادثة عندي</span></button>
@@ -5786,6 +6018,7 @@ function chatMenuOpen(){
         blocked?ic('check')+'<span>رفع الحظر</span>':ic('ban')+'<span>حظر هذا الشخص</span>'}</button>
     </div>`);
   const on=(id,fn)=>{const e=document.getElementById(id); if(e) e.onclick=fn};
+  on('cm-look',()=>{ closeSheet(); lookSheet() });
   on('cm-wall',()=>{ closeSheet(); wallOpenPicker() });
   on('cm-share',()=>{ closeSheet(); shareOpen("راسلني هنا",shareLink("chat",chatWith),"محادثة") });
   on('cm-del-me',()=>{ closeSheet(); confirmAsk("تنشال المحادثة من عندك بس. أكيد؟",
@@ -6899,7 +7132,13 @@ wallApply();         /* يرجّع خلفية المراسلات المحفوظ�
 blockRefresh();      /* يجيب قوائم الحظر */
 fileCardHTML=luxFileCard;   /* بطاقة الملف بالشكل الفاخر */
 luxBind();           /* واجهة المراسلات الفاخرة */
-(()=>{ const lp=document.getElementById('lux-plus'); if(lp) lp.innerHTML=ic('plus',''); })();
+lookApply();         /* لون الفقاعة وحجم الخط */
+(()=>{ const lp=document.getElementById('lux-plus'); if(lp) lp.innerHTML=ic('plus','');
+  const x=document.getElementById('iv-x'); if(x) x.onclick=imgViewClose;
+  const c=document.getElementById('iv-copy'); if(c) c.onclick=imgCopy;
+  const sv=document.getElementById('iv-save'); if(sv) sv.onclick=imgSave;
+  const sh=document.getElementById('iv-share'); if(sh) sh.onclick=imgShareIt;
+})();
 /* أيقونات ثابتة بالواجهة */
 (()=>{ const set=(id,n,c)=>{const e=document.getElementById(id); if(e) e.innerHTML=ic(n,c)};
   const tw=document.querySelector('.tw-ico'); if(tw) tw.innerHTML=ic('alert');
