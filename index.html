@@ -7604,12 +7604,15 @@ const BF_HELP =
 /setname - غيّر اسم البوت
 /setabouttext - غيّر نبذة البوت
 /setdescription - غيّر وصف البوت
+/setuserpic - غيّر صورة البوت
 /setcommands - غيّر قائمة أوامر البوت
 /deletebot - احذف بوت
 
 إعدادات البوت
 /token - اطلب توكن البوت
-/revoke - ألغِ التوكن واطلب واحد جديد`;
+/revoke - ألغِ التوكن واطلب واحد جديد
+
+تگدر تضغط الأزرار تحت بدل ما تكتب.`;
 
 const BF_WELCOME =
 `أهلاً! أنا BotFather.
@@ -7660,7 +7663,9 @@ async function bfReply(text){
       if(m.includes("must_end_bot")) return "اليوزر لازم ينتهي بـ bot. أرسل /newbot من جديد.";
       if(m.includes("too_many"))     return "وصلت الحد الأعلى ٢٠ بوت.";
       if(m.includes("bad_username")) return "يوزر مو صالح. أرسل /newbot من جديد.";
-      return "ما گدرت أصنع البوت. تأكد إن SQL البوتات منشغّل.";
+      if(m.includes("404")||m.includes("PGRST202"))
+        return "دوال البوتات مو منصّبة بالقاعدة. شغّل SQL البوتات (الأجزاء الثلاثة) وجرّب مرة ثانية.";
+      return "ما گدرت أصنع البوت.\n\nسبب الخطأ:\n"+m.slice(0,300);
     }
     bfClear();
     return "تم! صنعنا @"+r.username+".\n\nهذا التوكن مالته — خزّنه بمكان آمن ولا تنطيه لأحد:\n\n"+r.token+
@@ -7726,7 +7731,21 @@ async function bfReply(text){
     return "التوكن القديم انلغى. الجديد:\n\n"+tk;
   }
 
-  if(["/setname","/setabouttext","/setdescription","/setcommands","/deletebot"].indexOf(cmd)>-1){
+  /* أوامر المالك: يتحكم بالبوت ماذر نفسه */
+  if(cmd==="/bfname"||cmd==="/bfuser"||cmd==="/bfpic"){
+    if(!owner) return "هذا الأمر للمالك بس.";
+    if(cmd==="/bfpic"){ bfSet({step:"await",act:"bfpic",u:"botfather"});
+      return "ابعثلي الصورة اللي تريدها للبوت ماذر." }
+    if(!rest) return "اكتب القيمة ويّا الأمر. مثال:\n"+cmd+" "+(cmd==="/bfuser"?"botfather":"BotFather");
+    const patch = cmd==="/bfname" ? {name:rest} : {username:bfClean(rest)};
+    try{
+      await sbReq("user_profiles?phone=eq."+BF_PHONE,{method:"PATCH",
+        headers:{Prefer:"return=minimal"},body:JSON.stringify(patch)});
+      return "انحفظ.";
+    }catch(e){ return "ما انحفظ: "+String(e&&e.message||"").slice(0,160) }
+  }
+
+  if(["/setname","/setabouttext","/setdescription","/setcommands","/deletebot","/setuserpic"].indexOf(cmd)>-1){
     const list=await bfMyBots();
     if(!list.length) return "ما عندك بوتات. أرسل /newbot.";
     const u=bfClean(one);
@@ -7737,11 +7756,12 @@ async function bfReply(text){
     if(cmd==="/setabouttext")   return "اكتب نبذة قصيرة عن @"+u+".";
     if(cmd==="/setdescription") return "اكتب وصف @"+u+" — هذا يظهر قبل ما يبدي الحوار.";
     if(cmd==="/setcommands")    return "ابعثلي أوامر @"+u+" بسطر لكل أمر، بهاي الصيغة:\n\nأمر - الرد\n\nمثال:\nstart - أهلاً بيك بمعرضنا\nprice - الأسعار تبدي من ٢٥ ألف\nlocation - بلد، شارع المحيط";
+    if(cmd==="/setuserpic")     return "ابعثلي الصورة اللي تريدها لـ@"+u+" — أرسلها كصورة عادية بالمحادثة.";
     if(cmd==="/deletebot")      return "تأكيد الحذف: اكتب يوزر البوت مرة ثانية بلا @.\n\nهذي خطوة ما ترجع.";
   }
 
-  if(cmd.startsWith("/")) return "ما أعرف هذا الأمر. أرسل /help تشوف الأوامر.";
-  return "أرسل /help تشوف شنو أگدر أسوي، أو /newbot حتى نصنع بوت.";
+  if(cmd.startsWith("/")) return "ما أعرف هذا الأمر. اضغط أحد الأزرار تحت أو أرسل /help.";
+  return BF_WELCOME+"\n\n"+BF_HELP;
 }
 
 /* ── عقل البوتات العادية ── */
@@ -7766,6 +7786,28 @@ async function botUserReply(botPhone, text){
 }
 
 /* ── يشتغل بعد ما يرسل المستخدم رسالة داخل محادثة بوت ── */
+/* المستخدم أرسل صورة للبوت ماذر وهو ينتظر صورة بوت */
+async function bfOnImage(convId, imgUrl){
+  const st=bfState();
+  if(!(st.step==="await"&&(st.act==="setuserpic"||st.act==="bfpic"))) return false;
+  bfClear();
+  let msg;
+  if(st.act==="bfpic"){
+    try{
+      await sbReq("user_profiles?phone=eq."+BF_PHONE,{method:"PATCH",
+        headers:{Prefer:"return=minimal"},body:JSON.stringify({avatar:imgUrl})});
+      msg="انحفظت صورة البوت ماذر.";
+    }catch(e){ msg="ما انحفظت الصورة." }
+  }else{
+    const ok=await sbRpc("bot_set",{p_owner:myPhone(),p_username:st.u,p_field:"avatar",p_value:imgUrl});
+    msg=ok?("انحفظت صورة @"+st.u+"."):"ما لكيت هذا البوت عندك.";
+  }
+  _botCache={};
+  await botSay(convId, BF_PHONE, msg);
+  try{ if(typeof msgRefreshChat==="function") setTimeout(msgRefreshChat,250) }catch(e){}
+  return true;
+}
+
 async function botOnUserMessage(convId, otherPhone, text){
   const ph=msgNormPhone(otherPhone);
   if(!isBotPhone(ph)) return;
@@ -7783,12 +7825,150 @@ if(typeof msgSend==="function" && !msgSend._botWrapped){
   msgSend = async function(convId, body, imgData, voiceData, voiceDur, replyToId, fileObj){
     const r = await _sendOrig.apply(this, arguments);
     try{
-      if(r && body && chatWith && isBotPhone(chatWith)) botOnUserMessage(convId, chatWith, body);
+      if(r && chatWith && isBotPhone(chatWith)){
+        if(imgData && msgNormPhone(chatWith)===BF_PHONE) bfOnImage(convId, imgData);
+        else if(body) botOnUserMessage(convId, chatWith, body);
+      }
     }catch(e){ console.warn("[bot] hook:",e) }
     return r;
   };
   msgSend._botWrapped = true;
 }
+
+
+/* ═══════════════════════════════════════════════════════════════
+   تحسينات البوتات + فتح المحادثة الفوري
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── أزرار أوامر البوت فوق شريط الكتابة ── */
+const BF_MENU = [
+  ["/help","المساعدة"], ["/newbot","بوت جديد"], ["/mybots","بوتاتي"],
+  ["/setname","تغيير الاسم"], ["/setabouttext","النبذة"], ["/setdescription","الوصف"],
+  ["/setuserpic","صورة البوت"], ["/setcommands","الأوامر"],
+  ["/token","التوكن"], ["/revoke","توكن جديد"], ["/deletebot","حذف بوت"]
+];
+
+function botCmdBar(){
+  let bar=document.getElementById('bot-cmds');
+  if(!bar){
+    bar=document.createElement('div');
+    bar.id='bot-cmds';
+    bar.className='bot-cmds';
+    const inp=document.getElementById('chat-input-bar');
+    if(!inp||!inp.parentNode) return null;
+    inp.parentNode.insertBefore(bar,inp);
+  }
+  return bar;
+}
+
+function botSendCmd(cmd){
+  const ta=document.getElementById('chat-text');
+  if(!ta) return;
+  ta.value=cmd;
+  const b=document.getElementById('chat-send');
+  if(b) b.click();
+}
+
+async function botPaintCmds(phone){
+  const bar=botCmdBar();
+  if(!bar) return;
+  const ph=msgNormPhone(phone);
+  if(!isBotPhone(ph)){ bar.style.display='none'; bar.innerHTML=''; return }
+
+  let items;
+  if(ph===BF_PHONE) items=BF_MENU.slice();
+  else{
+    const b=await botInfo(ph);
+    const cs=(b&&Array.isArray(b.commands))?b.commands:[];
+    items=[["/start","بدء"]].concat(cs.map(c=>["/"+c.c,"/"+c.c]));
+  }
+  bar.innerHTML=items.map(([c,l])=>
+    `<button class="bot-cmd" data-cmd="${esc(c)}">${esc(l)}</button>`).join('');
+  bar.style.display='flex';
+  bar.querySelectorAll('.bot-cmd').forEach(b=>{
+    b.onclick=()=>botSendCmd(b.dataset.cmd);
+  });
+}
+
+/* ── نلف حول فتح المحادثة: عرض فوري + سطر "بوت" + أزرار الأوامر ── */
+if(typeof msgOpenChat==="function" && !msgOpenChat._botWrapped){
+  const _openOrig=msgOpenChat;
+  msgOpenChat=async function(phone,name,avatar,convId){
+    const ph=msgNormPhone(phone);
+    const r=_openOrig.apply(this,arguments);
+    try{
+      botPaintCmds(ph);
+      if(isBotPhone(ph)){
+        const sub=document.getElementById('chat-sub');
+        if(sub){ sub.textContent='بوت'; sub.dataset.bot='1' }
+        const fb=document.getElementById('chat-follow');
+        if(fb) fb.style.display='none';
+      }else{
+        const sub=document.getElementById('chat-sub');
+        if(sub) delete sub.dataset.bot;
+        const fb=document.getElementById('chat-follow');
+        if(fb) fb.style.display='';
+      }
+    }catch(e){ console.warn('[bot] open:',e) }
+    return r;
+  };
+  msgOpenChat._botWrapped=true;
+}
+
+/* سطر "بوت" ما ينبدل بحالة الاتصال */
+if(typeof msgSeenText==="function" && !msgSeenText._botWrapped){
+  const _seenOrig=msgSeenText;
+  msgSeenText=function(v){
+    const sub=document.getElementById('chat-sub');
+    if(sub&&sub.dataset&&sub.dataset.bot==='1') return 'بوت';
+    return _seenOrig.apply(this,arguments);
+  };
+  msgSeenText._botWrapped=true;
+}
+
+/* ── ما نخلي مؤشر التحميل يدور للأبد ── */
+if(typeof msgRefreshChat==="function" && !msgRefreshChat._fixWrapped){
+  const _refOrig=msgRefreshChat;
+  msgRefreshChat=async function(){
+    const r=await _refOrig.apply(this,arguments);
+    try{
+      const box=document.getElementById('chat-msgs');
+      if(box && box.querySelector('.chat-loading') && !chatConvId){
+        box.innerHTML='<div class="chat-empty-note">ما گدرت أفتح المحادثة. تأكد من الاتصال وارجع افتحها.</div>';
+      }
+    }catch(e){}
+    return r;
+  };
+  msgRefreshChat._fixWrapped=true;
+}
+
+/* بعد ثانيتين، إذا لسه سبنر وماكو محادثة — نوقف الانتظار */
+setInterval(()=>{
+  try{
+    const box=document.getElementById('chat-msgs');
+    if(!box||!chatWith) return;
+    const sp=box.querySelector('.chat-loading');
+    if(sp && !chatConvId){
+      box.innerHTML='<div class="chat-empty-note">ما گدرت أفتح المحادثة. ارجع افتحها من جديد.</div>';
+    }
+  }catch(e){}
+},2500);
+
+/* ── تنسيق أزرار الأوامر ── */
+(function(){
+  const css=document.createElement('style');
+  css.textContent=`
+.bot-cmds{display:none;gap:7px;padding:9px 12px;overflow-x:auto;flex:none;
+  background:var(--mBg);border-top:1px solid var(--mLine);scrollbar-width:none}
+.bot-cmds::-webkit-scrollbar{display:none}
+.bot-cmd{flex:none;border:1px solid var(--mLine);background:var(--mSurf);color:var(--mInk);
+  border-radius:18px;padding:8px 14px;font-size:13.5px;font-weight:600;cursor:pointer;
+  font-family:var(--font);white-space:nowrap}
+.bot-cmd:active{background:var(--mAcc);color:var(--mAccInk)}
+.chat-empty-note{margin:auto;padding:24px;text-align:center;font-size:13.5px;
+  color:var(--mMuted);line-height:1.7}`;
+  document.head.appendChild(css);
+})();
 
 </script>
 </body>
