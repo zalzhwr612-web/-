@@ -1291,6 +1291,20 @@ body.msgview .scrim{background:rgba(0,0,0,.62)}
   overflow:hidden;text-overflow:ellipsis}
 .fw-go{flex:none;color:var(--muted)}
 
+
+/* زر النزول لأحدث الرسائل */
+.chat-down{position:absolute;inset-inline-end:14px;bottom:96px;z-index:6;width:44px;height:44px;
+  border-radius:50%;border:1px solid var(--line);background:var(--m-surface);color:var(--ink);
+  display:grid;place-items:center;cursor:pointer;opacity:0;pointer-events:none;
+  transform:translateY(12px) scale(.85);transition:opacity .22s,transform .22s;
+  box-shadow:0 6px 20px rgba(0,0,0,.45)}
+.chat-down.on{opacity:1;pointer-events:auto;transform:none}
+.chat-down svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:2;
+  stroke-linecap:round;stroke-linejoin:round}
+.chat-down .cd-n{position:absolute;top:-5px;inset-inline-start:-5px;min-width:19px;height:19px;
+  border-radius:99px;background:var(--brand);color:#1A1508;font-size:10.5px;font-weight:800;
+  display:grid;place-items:center;padding:0 5px;font-family:"IBM Plex Mono",monospace}
+
 </style>
 </head>
 <body>
@@ -1486,6 +1500,10 @@ body.msgview .scrim{background:rgba(0,0,0,.62)}
       </div>
       <div class="chat-wall" id="chat-wall"></div>
       <div class="chat-msgs" id="chat-msgs"></div>
+      <button class="chat-down" id="chat-down" aria-label="أحدث الرسائل">
+        <svg viewBox="0 0 24 24"><path d="M12 5v13M12 18l-5.5-5.5M12 18l5.5-5.5"/></svg>
+        <span class="cd-n" id="cd-n" style="display:none">0</span>
+      </button>
       <div class="chat-doc-preview" id="chat-doc-preview">
         <span id="cdp-ico" style="display:grid;place-items:center;width:30px;height:30px"></span>
         <div style="flex:1;min-width:0">
@@ -4133,20 +4151,30 @@ function rlEditor(draft){
       toast(RL.encFail); return; }
 
     progt.textContent=RL.saving; bari.style.width="100%";
-    const dataURL=await rlBlobToURL(out.blob).catch(()=>null);
-    if(!dataURL){ pub.disabled=sv2.disabled=false; prog.hidden=true; toast(RL.encFail); return; }
+
+    /* نرفع الفيديو للمخزن أول — هيج يوصل لكل الزبائن وما يثقّل القاعدة */
+    const vURL=await sbUpload(out.blob,'reels');
+    let dataURL=null;
+    if(!vURL){
+      dataURL=await rlBlobToURL(out.blob).catch(()=>null);
+      if(!dataURL){ pub.disabled=sv2.disabled=false; prog.hidden=true; toast(RL.encFail); return; }
+    }
 
     const meta2={id,active:true,descr,poster:out.poster||posterQuick||null,
       music:"orig",baked,quality:"",dur:out.dur||s.dur,
       start:baked?0:s.start,end:baked?0:(s.start+ (out.dur||s.dur))};
-    const row=Object.assign({sort:10,video:dataURL},meta2);
+    const row=Object.assign({sort:10,video:vURL||dataURL},meta2);
 
-    let where="local";
-    if(dataURL.length<=RL_MAXPUB){
+    let where="local", tooBig=false;
+    if(vURL){
+      /* الفيديو بالمخزن — الصف صغير جداً وينحفظ دائماً */
       try{ await rlDbSave(row); where="db"; }
       catch(e){ console.warn("[reel] publish",e); where="local"; }
-    } else {
-      where="local"; /* أكبر من حد النشر — بنخزنه بالجهاز ونعلم المالك */
+    }else if(dataURL.length<=RL_MAXPUB){
+      try{ await rlDbSave(row); where="db"; }
+      catch(e){ console.warn("[reel] publish",e); where="local"; }
+    }else{
+      where="local"; tooBig=true;   /* أكبر من حد القاعدة والمخزن مو جاهز */
     }
 
     if(where==="local"){
@@ -4159,7 +4187,7 @@ function rlEditor(draft){
     if(draft){ try{ await idbDel("drafts",draft.id) }catch(e){} }
 
     rlVidCache.delete(id); await rlLoad(); rlRenderFeed(); closeSheet();
-    toast(dataURL.length>RL_MAXPUB?RL.tooBig:(where==="db"?RL.pubDone:RL.pubLocal));
+    toast(tooBig?RL.tooBig:(where==="db"?RL.pubDone:RL.pubLocal));
   };
 }
 /* صورة مصغّرة صغيرة للفهرس */
@@ -4565,8 +4593,8 @@ function toggleFav(id){
 function luxFileCard(f){
   if(!f) return "";
   let o; try{ o=typeof f==="string"?JSON.parse(f):f }catch(e){ return "" }
-  if(!o||!o.data) return "";
-  return `<div class="file-card" data-file="${esc(o.data)}" data-fname="${esc(o.name||'ملف')}">
+  const src=o&&(o.url||o.data); if(!src) return "";
+  return `<div class="file-card" data-file="${esc(src)}" data-fname="${esc(o.name||'ملف')}">
     <span class="lux-file-top">
       <span class="lux-file-ico">${ic(fileIconName(o.name),'')}</span>
       <span class="fc-in"><span class="fc-name">${esc(o.name||'ملف')}</span>
@@ -4583,6 +4611,31 @@ function luxApplyFilter(convs,unread){
   return convs;
 }
 
+
+
+/* ═══ تمرير المحادثة: ما نشدّ المستخدم للأسفل وهو يقرأ القديم ═══ */
+let _lastChatHTML="", _chatForceBottom=true, _newWhileUp=0, _firstMsgId="";
+
+function chatDownBtn(show){
+  const b=document.getElementById('chat-down'); if(!b) return;
+  b.classList.toggle('on',!!show);
+  const n=document.getElementById('cd-n');
+  if(n){ n.textContent=_newWhileUp>99?'99+':_newWhileUp; n.style.display=_newWhileUp?'grid':'none' }
+}
+function chatScrollBottom(){
+  const box=document.getElementById('chat-msgs'); if(!box) return;
+  box.scrollTo({top:box.scrollHeight,behavior:'smooth'});
+  _newWhileUp=0; chatDownBtn(false);
+}
+/* نراقب تمرير المستخدم: إذا رجع للأسفل بنفسه نخفي الزر */
+function chatBindScroll(){
+  const box=document.getElementById('chat-msgs'); if(!box||box.dataset.sb) return;
+  box.dataset.sb="1";
+  box.addEventListener('scroll',()=>{
+    const near=box.scrollHeight-box.scrollTop-box.clientHeight<150;
+    if(near){ _newWhileUp=0; chatDownBtn(false) }
+  },{passive:true});
+}
 
 /* ═══════════════════════════════════════════════════════════
    مظهر المحادثة: لون الفقاعة + حجم الخط
@@ -5123,27 +5176,86 @@ async function msgFetch(convId,limit){
 }
 
 /* ═══ ضغط صورة الشات ═══ */
-function msgCompressImg(file,done,maxPx){
+/* ═══════════════════════════════════════════════════════════
+   ضغط الصور بدقة 2K حقيقية
+   2560 بكسل للضلع الأطول وجودة 0.92 — الصور تنرفع لمخزن
+   Supabase وما تنحفظ داخل الرسالة، حتى ما تثقّل القاعدة.
+   ═══════════════════════════════════════════════════════════ */
+const IMG_2K=2560, IMG_Q=0.92;
+const SB_BASE=SUPABASE.URL.replace(/\/rest\/v1\/?$/,"");
+const SB_BUCKET="media";
+let _storageOK=null;   /* null=ما جرّبنا، true/false=النتيجة */
+
+/* يرجّع {dataURL, blob, w, h} */
+function imgProcess(file,done,maxPx,quality){
   if(!file||!/^image\//i.test(file.type||"")) return;
-  if(file.size>15*1024*1024){toast("الصورة كبيرة");return}
+  if(file.size>25*1024*1024){toast("الصورة كبيرة — الحد 25 ميجا");return}
   const fr=new FileReader();
-  fr.onerror=()=>toast("خطأ");
+  fr.onerror=()=>toast("ما قدرت أقرأ الصورة");
   fr.onload=()=>{
     const img=new Image();
-    img.onerror=()=>toast("خطأ");
+    img.onerror=()=>toast("ملف الصورة تالف");
     img.onload=()=>{
-      const MAX=maxPx||600, sc=Math.min(1,MAX/Math.max(img.width,img.height));
+      const MAX=maxPx||IMG_2K;
+      /* ما نكبّر الصورة الصغيرة — نصغّر الكبيرة بس */
+      const sc=Math.min(1,MAX/Math.max(img.width,img.height));
+      const w=Math.round(img.width*sc), h=Math.round(img.height*sc);
       const c=document.createElement('canvas');
-      c.width=Math.round(img.width*sc);c.height=Math.round(img.height*sc);
-      c.getContext('2d').drawImage(img,0,0,c.width,c.height);
-      let q=.7, out=c.toDataURL("image/jpeg",q);
-      while(out.length>200000&&q>.3){q-=.1;out=c.toDataURL("image/jpeg",q)}
-      done(out);
+      c.width=w; c.height=h;
+      const g=c.getContext('2d');
+      g.imageSmoothingEnabled=true; g.imageSmoothingQuality="high";
+      g.drawImage(img,0,0,w,h);
+      const q=quality||IMG_Q;
+      c.toBlob(blob=>{
+        if(!blob){ done({dataURL:c.toDataURL("image/jpeg",q),blob:null,w,h}); return }
+        const r2=new FileReader();
+        r2.onload=()=>done({dataURL:r2.result,blob,w,h});
+        r2.readAsDataURL(blob);
+      },"image/jpeg",q);
     };
     img.src=fr.result;
   };
   fr.readAsDataURL(file);
 }
+
+/* يرفع الصورة للمخزن ويرجّع رابطها العام — أو null إذا المخزن مو جاهز */
+async function sbUpload(blob,folder){
+  if(!blob||_storageOK===false) return null;
+  const ext=(blob.type||"image/jpeg").split("/")[1].replace("jpeg","jpg");
+  const path=(folder||"img")+"/"+Date.now()+"-"+Math.random().toString(36).slice(2,9)+"."+ext;
+  try{
+    const r=await fetch(SB_BASE+"/storage/v1/object/"+SB_BUCKET+"/"+path,{
+      method:"POST",
+      headers:{apikey:SUPABASE.KEY,Authorization:"Bearer "+SUPABASE.KEY,
+        "Content-Type":blob.type||"image/jpeg","x-upsert":"true"},
+      body:blob
+    });
+    if(!r.ok){ if(r.status===400||r.status===404||r.status===403) _storageOK=false; return null }
+    _storageOK=true;
+    return SB_BASE+"/storage/v1/object/public/"+SB_BUCKET+"/"+path;
+  }catch(e){ return null }
+}
+
+/* الواجهة القديمة محفوظة: ترجّع نص جاهز للحفظ (رابط أو base64) */
+function msgCompressImg(file,done,maxPx,opts){
+  const o=opts||{};
+  imgProcess(file,async res=>{
+    if(o.localOnly){ done(res.dataURL); return }
+    const url=await sbUpload(res.blob,o.folder);
+    if(url){ done(url); return }
+    /* المخزن مو مجهّز — ننزل للتخزين داخل الصف بدقّة أخف حتى ما نفجّر القاعدة */
+    if(res.dataURL.length>700000){
+      imgProcess(file,r2=>done(r2.dataURL),1280,0.8);
+      if(_storageOK===false&&!_warnedStorage){
+        _warnedStorage=true;
+        toast("فعّل مخزن الصور بـ Supabase حتى تنرفع بدقة 2K");
+      }
+      return;
+    }
+    done(res.dataURL);
+  },maxPx||IMG_2K,o.quality);
+}
+let _warnedStorage=false;
 
 /* ═══ رسم الواجهة ═══ */
 function msgFillUI(){
@@ -5289,6 +5401,8 @@ async function msgOpenChat(phone,name,avatar,convId){
   document.getElementById('chat-screen').classList.add('on');
   chatImgData=null;document.getElementById('chat-img-preview').style.display='none';
   replyClear(); wallApply(); fileClear();
+  _lastChatHTML=""; _chatForceBottom=true; _newWhileUp=0; _firstMsgId="";
+  chatDownBtn(false); chatBindScroll();
   blockRefresh().then(msgUpdateBlockUI);
   /* زر المتابعة — بدون await حتى ما نأخر عرض الرسائل */
   const fb=document.getElementById('chat-follow');
@@ -5366,8 +5480,25 @@ async function msgRefreshChat(){
     const pills=rxPillsHTML(m.id);
     html+=`<div class="chat-bubble ${isMe?'me':'them'}${pills?' has-rx':''}" data-id="${esc(m.id)}">${replyQuoteHTML(m)}${content}${pills}</div>`;
   });
+  /* ما نعيد الرسم إذا ماكو أي تغيير — يمنع القفز والوميض */
+  if(html===_lastChatHTML) return;
+  const nearBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 150;
+  const prevTop=box.scrollTop, prevH=box.scrollHeight;
+  const grew = html.length>_lastChatHTML.length;
+  const firstId = msgs.length?String(msgs[0].id):"";
+  const topSame = firstId===_firstMsgId;   /* هل أول رسالة نفسها؟ */
+  _firstMsgId=firstId;
+  _lastChatHTML=html;
   box.innerHTML=html;
-  box.scrollTop=box.scrollHeight;
+  if(_chatForceBottom || nearBottom){
+    box.scrollTop=box.scrollHeight;
+    _chatForceBottom=false; _newWhileUp=0; chatDownBtn(false);
+  }else{
+    /* المستخدم يقرأ رسائل قديمة — نثبّته بمكانه بالضبط.
+       الرسائل الجديدة تنضاف تحت، فما تزحزح اللي فوق. */
+    box.scrollTop = topSame ? prevTop : prevTop + (box.scrollHeight - prevH);
+    if(grew){ _newWhileUp++; chatDownBtn(true) }
+  }
   /* أزرار حفظ الصور */
   box.querySelectorAll('.chat-img-dl').forEach(btn=>{
     btn.onclick=e=>{ e.stopPropagation(); msgDownloadImg(btn.dataset.src); };
@@ -5709,7 +5840,7 @@ function wallOpenPicker(){
       wallSet("custom",data);
       toast("انحطّت الخلفية ✓");
       wallOpenPicker();
-    },1400);
+    },1600,{localOnly:true,quality:0.86});
     f.value='';
   };
   document.getElementById('wp-clear').onclick=()=>{
@@ -5770,7 +5901,7 @@ function fileIconName(name){
   return "fClip";
 }
 
-const FILE_MAX=4*1024*1024;          /* 4 ميجا — الملف ينحفظ داخل الرسالة */
+const FILE_MAX=25*1024*1024;         /* 25 ميجا — الملف يروح للمخزن مو للقاعدة */
 let chatFileData=null;               /* {name,size,type,data} */
 let _fileCol=true;                   /* هل عمود file موجود بالقاعدة؟ */
 
@@ -5786,11 +5917,11 @@ function filePick(){
 }
 function fileStage(file){
   if(!file) return;
-  if(file.size>FILE_MAX){ toast("الملف كبير — الحد ٤ ميجا"); return }
+  if(file.size>FILE_MAX){ toast("الملف كبير — الحد "+Math.round(FILE_MAX/1048576)+" ميجا"); return }
   const fr=new FileReader();
   fr.onerror=()=>toast("ما قدرت أقرأ الملف");
   fr.onload=()=>{
-    chatFileData={name:file.name,size:file.size,type:file.type||"",data:fr.result};
+    chatFileData={name:file.name,size:file.size,type:file.type||"",data:fr.result,_file:file};
     const p=document.getElementById('chat-doc-preview');
     document.getElementById('cdp-ico').innerHTML=fileIcon(file.name);
     setTxt('cdp-name',file.name);
@@ -5807,19 +5938,30 @@ function fileClear(){
 var fileCardHTML=function(f){
   if(!f) return "";
   let o; try{ o=typeof f==="string"?JSON.parse(f):f }catch(e){ return "" }
-  if(!o||!o.data) return "";
-  return `<div class="file-card" data-file="${esc(o.data)}" data-fname="${esc(o.name||'ملف')}">
+  const src=o&&(o.url||o.data); if(!src) return "";
+  return `<div class="file-card" data-file="${esc(src)}" data-fname="${esc(o.name||'ملف')}">
     <span class="fc-ico">${fileIcon(o.name)}</span>
     <span class="fc-in"><span class="fc-name">${esc(o.name||'ملف')}</span>
       <span class="fc-size">${esc(fmtBytes(o.size))}</span></span>
     <span class="fc-dl">${ic('download','fc-dlsvg')}</span></div>`;
 };
-function fileDownload(data,name){
+async function fileDownload(src,name){
   try{
+    let href=src;
+    /* الروابط الخارجية: نجيبها كـ blob حتى ينجح التنزيل بدل ما يفتحها بتبويب */
+    if(/^https?:/i.test(src)){
+      toast("ينزّل…");
+      const r=await fetch(src); const b=await r.blob();
+      href=URL.createObjectURL(b);
+      const a=document.createElement('a');
+      a.href=href; a.download=name||"ملف"; document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(()=>URL.revokeObjectURL(href),4000);
+      return;
+    }
     const a=document.createElement('a');
-    a.href=data; a.download=name||"ملف"; document.body.appendChild(a); a.click(); a.remove();
+    a.href=href; a.download=name||"ملف"; document.body.appendChild(a); a.click(); a.remove();
     toast("ينحفظ…");
-  }catch(e){ toast("ما قدرت أحفظ الملف") }
+  }catch(e){ toast("ما قدرت أحفظ الملف — جرّب افتحه") }
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -6235,14 +6377,22 @@ function msgStopRec(send){
     if(dur<1){ toast('التسجيل قصير هوايه'); return }
     const blob=new Blob(chunks,{type:chunks[0].type||'audio/webm'});
     if(blob.size>1.5*1024*1024){ toast('التسجيل طويل — سجّل أقصر'); return }
-    const rd=new FileReader();
-    rd.onload=async()=>{
+    (async()=>{
       const rpv=replyTo?replyTo.id:null; replyClear();
-      const ok=await msgSend(chatConvId,null,null,rd.result,dur,rpv);
+      _chatForceBottom=true;
+      /* نرفعها للمخزن — وإذا المخزن مو جاهز ننزل لـ base64 */
+      let payload=await sbUpload(blob,'voice');
+      if(!payload){
+        payload=await new Promise(res=>{
+          const rd=new FileReader(); rd.onload=()=>res(rd.result);
+          rd.onerror=()=>res(null); rd.readAsDataURL(blob);
+        });
+      }
+      if(!payload){ toast('ما قدرت أجهّز التسجيل'); return }
+      const ok=await msgSend(chatConvId,null,null,payload,dur,rpv);
       if(ok) await msgRefreshChat();
       else toast('ما انبعثت الرسالة الصوتية');
-    };
-    rd.readAsDataURL(blob);
+    })();
   };
   try{ _recorder.stop() }catch(e){ msgRecCleanup() }
 }
@@ -6459,7 +6609,7 @@ function upBootImages(){
   const handle=(kind)=>async e=>{
     const f=e.target.files&&e.target.files[0]; e.target.value='';
     if(!f) return;
-    toast('يضغط الصورة…');
+    toast('يجهّز الصورة…');
     msgCompressImg(f,async data=>{
       const patch = kind==='cover' ? {cover:data} : {avatar:data};
       if(await upSavePatch(patch)){
@@ -6467,7 +6617,7 @@ function upBootImages(){
         upPaint(upData,true);
         toast(kind==='cover'?'انحفظ الغلاف':'انحفظت الصورة');
       }else toast('ما انحفظت الصورة');
-    },kind==='cover'?900:600);
+    },kind==='cover'?1600:800,{folder:'profile'});
   };
   document.getElementById('up-av-file').onchange=handle('avatar');
   document.getElementById('up-cover-file').onchange=handle('cover');
@@ -7032,6 +7182,7 @@ function msgBoot(){
   const cdoc=document.getElementById('chat-doc');
   if(cdoc) cdoc.onchange=e=>{ fileStage(e.target.files&&e.target.files[0]) };
   const cmenu=document.getElementById('chat-menu'); if(cmenu) cmenu.onclick=chatMenuOpen;
+  const cdn=document.getElementById('chat-down'); if(cdn) cdn.onclick=chatScrollBottom;
   /* إرسال رسالة */
   const sendMsg=async()=>{
     let txt=document.getElementById('chat-text').value.trim();
@@ -7049,7 +7200,19 @@ function msgBoot(){
     document.getElementById('chat-img-preview').style.display='none';
     const f=chatFileData; fileClear();
     const rp=replyTo?replyTo.id:null; replyClear();
-    await msgSend(chatConvId,txt,img,null,null,rp,f);
+    _chatForceBottom=true;
+    let fObj=null;
+    if(f){
+      fObj={name:f.name,size:f.size,type:f.type};
+      const url=f._file?await sbUpload(f._file,'files'):null;
+      if(url) fObj.url=url;
+      else{
+        /* المخزن مو جاهز — ننزل لـ base64 بس بحد أصغر حتى ما نثقّل القاعدة */
+        if(f.size>3*1024*1024){ toast('فعّل مخزن الملفات — الملف كبير على القاعدة'); fObj=null }
+        else fObj.data=f.data;
+      }
+    }
+    await msgSend(chatConvId,txt,img,null,null,rp,fObj);
     await msgRefreshChat();
   };
   document.getElementById('chat-send').onclick=sendMsg;
@@ -7072,11 +7235,12 @@ function msgBoot(){
   document.getElementById('chat-file').onchange=e=>{
     const f=e.target.files&&e.target.files[0];
     if(!f) return;
+    toast('يجهّز الصورة بدقة 2K…');
     msgCompressImg(f,data=>{
       chatImgData=data;
       document.getElementById('chat-img-pre-src').src=data;
       document.getElementById('chat-img-preview').style.display='block';
-    });
+    },IMG_2K,{folder:'chat'});
     e.target.value='';
   };
   document.getElementById('chat-img-x').onclick=()=>{
