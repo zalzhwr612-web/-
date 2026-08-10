@@ -7553,6 +7553,243 @@ document.addEventListener('contextmenu',e=>{
   e.preventDefault();
 });
 
+
+/* ═══════════════════════════════════════════════════════════════
+   نظام البوتات — BotFather
+   البوتات حسابات حقيقية بجدول user_profiles، وبياناتها بجدول bots
+   المقفل. الردود تتولّد داخل التطبيق وقت ما يراسل المستخدم البوت،
+   فماكو حاجة لسيرفر خارجي ولا استضافة.
+   يحتاج SQL ملف bots.sql — مرة وحدة.
+   ═══════════════════════════════════════════════════════════════ */
+const BF_PHONE = "0900000000";               /* هوية البوت ماذر */
+const LS_BF    = "ha_botfather_state_v1";    /* خطوة الحوار الجارية */
+const isBotPhone = ph => /^09\d{8}$/.test(msgNormPhone(ph));
+
+let _botCache = {};   /* phone → بيانات البوت */
+
+async function botInfo(phone){
+  const k=msgNormPhone(phone);
+  if(_botCache[k]!==undefined) return _botCache[k];
+  try{ _botCache[k] = await sbRpc("bot_public",{p_phone:k}) || null }
+  catch(e){ _botCache[k] = null }
+  return _botCache[k];
+}
+
+/* ── البوت يرسل رسالة بنفس المحادثة ── */
+async function botSay(convId, botPhone, text){
+  if(!convId||!text) return;
+  try{
+    await sbReq("messages",{method:"POST",headers:{Prefer:"return=minimal"},
+      body:JSON.stringify({conv_id:convId, sender:botPhone, body:text})});
+    await sbReq("conversations?id=eq."+convId,{method:"PATCH",headers:{Prefer:"return=minimal"},
+      body:JSON.stringify({last_msg:String(text).slice(0,60), last_at:new Date().toISOString()})});
+  }catch(e){ console.warn("[bot] say:",e) }
+}
+
+/* ── حالة حوار البوت ماذر ── */
+const bfState  = ()=> lsGet(LS_BF)||{};
+const bfSet    = s => lsSet(LS_BF, s||{});
+const bfClear  = ()=> lsSet(LS_BF, {});
+
+/* ── نصوص جاهزة ── */
+const BF_HELP =
+`أگدر أساعدك تصنع بوتات وتديرها.
+
+تگدر تأمرني بهذي الأوامر:
+
+/newbot - صنع بوت جديد
+/mybots - عرض بوتاتك
+
+تعديل البوتات
+/setname - غيّر اسم البوت
+/setabouttext - غيّر نبذة البوت
+/setdescription - غيّر وصف البوت
+/setcommands - غيّر قائمة أوامر البوت
+/deletebot - احذف بوت
+
+إعدادات البوت
+/token - اطلب توكن البوت
+/revoke - ألغِ التوكن واطلب واحد جديد`;
+
+const BF_WELCOME =
+`أهلاً! أنا BotFather.
+
+من هنا تصنع بوتاتك وتديرها. أرسل /newbot حتى نبدي، أو /help تشوف كل الأوامر.`;
+
+/* ── أدوات ── */
+function bfArgs(text){
+  const p=String(text||"").trim().split(/\s+/);
+  return { cmd:(p[0]||"").toLowerCase(), rest:p.slice(1).join(" ").trim(), one:(p[1]||"").trim() };
+}
+const bfClean = u => String(u||"").trim().replace(/^@+/,"").toLowerCase();
+
+async function bfMyBots(){
+  try{ return await sbRpc("bot_list",{p_owner:myPhone()}) || [] }
+  catch(e){ return [] }
+}
+function bfListText(list){
+  if(!list.length) return "ما عندك بوتات لهسه. أرسل /newbot حتى تصنع واحد.";
+  return "بوتاتك:\n\n"+list.map(b=>"@"+b.username+" — "+b.name).join("\n")+
+    "\n\nلأي أمر، اكتبه مع اليوزر. مثال:\n/token @"+list[0].username;
+}
+
+/* ── عقل البوت ماذر ── */
+async function bfReply(text){
+  const st=bfState(), {cmd,rest,one}=bfArgs(text);
+  const t=String(text||"").trim();
+
+  /* إلغاء بأي وقت */
+  if(cmd==="/cancel"){ bfClear(); return "انلغى. شنو تحب تسوي؟ أرسل /help." }
+
+  /* ═══ خطوات متعددة الأدوار ═══ */
+  if(st.step==="name"){
+    if(t.length<2||t.length>64) return "الاسم لازم يكون بين حرفين و٦٤ حرف. جرّب مرة ثانية أو /cancel.";
+    bfSet({step:"username",name:t});
+    return "حلو. هسه اختار يوزر للبوت.\n\nلازم ينتهي بكلمة bot، وحروف إنكليزية وأرقام وشرطة سفلية بس.\nمثال: haidar_help_bot";
+  }
+  if(st.step==="username"){
+    const u=bfClean(t);
+    if(!/^[a-z0-9_]{5,32}$/.test(u)) return "يوزر مو صالح. حروف إنكليزية وأرقام و _ بس، وطوله ٥ لـ٣٢.";
+    if(!u.endsWith("bot")) return "اليوزر لازم ينتهي بكلمة bot. مثال: "+u+"_bot";
+    let r;
+    try{ r=await sbRpc("bot_create",{p_owner:myPhone(),p_name:st.name,p_username:u}) }
+    catch(e){
+      const m=String(e&&e.message||"");
+      bfClear();
+      if(m.includes("taken"))        return "هذا اليوزر محجوز. أرسل /newbot وجرّب غيره.";
+      if(m.includes("must_end_bot")) return "اليوزر لازم ينتهي بـ bot. أرسل /newbot من جديد.";
+      if(m.includes("too_many"))     return "وصلت الحد الأعلى ٢٠ بوت.";
+      if(m.includes("bad_username")) return "يوزر مو صالح. أرسل /newbot من جديد.";
+      return "ما گدرت أصنع البوت. تأكد إن SQL البوتات منشغّل.";
+    }
+    bfClear();
+    return "تم! صنعنا @"+r.username+".\n\nهذا التوكن مالته — خزّنه بمكان آمن ولا تنطيه لأحد:\n\n"+r.token+
+      "\n\nهسه تگدر تحط ردوده بـ /setcommands @"+r.username+
+      "\nوتشوف بوتاتك بـ /mybots";
+  }
+  if(st.step==="await"){
+    const u=st.u, act=st.act;
+    if(act==="setname"){
+      bfClear();
+      const ok=await sbRpc("bot_set",{p_owner:myPhone(),p_username:u,p_field:"name",p_value:t});
+      return ok?("انغيّر اسم @"+u+" إلى: "+t):"ما لكيت هذا البوت عندك.";
+    }
+    if(act==="setabouttext"){
+      bfClear();
+      const ok=await sbRpc("bot_set",{p_owner:myPhone(),p_username:u,p_field:"about",p_value:t});
+      return ok?("انحفظت نبذة @"+u):"ما لكيت هذا البوت عندك.";
+    }
+    if(act==="setdescription"){
+      bfClear();
+      const ok=await sbRpc("bot_set",{p_owner:myPhone(),p_username:u,p_field:"description",p_value:t});
+      return ok?("انحفظ وصف @"+u):"ما لكيت هذا البوت عندك.";
+    }
+    if(act==="setcommands"){
+      const rows=t.split("\n").map(l=>l.trim()).filter(Boolean);
+      const cmds=[];
+      for(const l of rows){
+        const m=/^\/?([a-zA-Z0-9_]{1,32})\s*[-–:]\s*([\s\S]+)$/.exec(l);
+        if(!m) return "سطر مو مفهوم:\n"+l+"\n\nالصيغة: أمر - الرد\nمثال:\nstart - أهلاً بيك\nprice - أسعارنا تبدي من ٢٥ ألف";
+        cmds.push({c:m[1].toLowerCase(), r:m[2].trim()});
+      }
+      bfClear();
+      const ok=await sbRpc("bot_set",{p_owner:myPhone(),p_username:u,p_field:"commands",p_value:JSON.stringify(cmds)});
+      _botCache={};
+      return ok?("انحفظت "+cmds.length+" أوامر لـ@"+u+". جرّبه هسه!"):"ما لكيت هذا البوت عندك.";
+    }
+    if(act==="deletebot"){
+      bfClear();
+      if(bfClean(t)!==u) return "الاسم مو مطابق، فما حذفت شي.";
+      const ok=await sbRpc("bot_delete",{p_owner:myPhone(),p_username:u});
+      _botCache={};
+      return ok?("انحذف @"+u+" نهائياً."):"ما لكيت هذا البوت عندك.";
+    }
+    bfClear();
+  }
+
+  /* ═══ أوامر مباشرة ═══ */
+  if(cmd==="/start")            return BF_WELCOME+"\n\n"+BF_HELP;
+  if(cmd==="/help")             return BF_HELP;
+  if(cmd==="/newbot"){ bfSet({step:"name"}); return "زين. شنو راح يكون اسم البوت؟ هذا الاسم اللي يشوفه الناس." }
+
+  if(cmd==="/mybots")           return bfListText(await bfMyBots());
+
+  if(cmd==="/token"||cmd==="/revoke"){
+    const list=await bfMyBots();
+    if(!list.length) return "ما عندك بوتات. أرسل /newbot.";
+    const u=bfClean(one);
+    if(!u) return "اكتب اليوزر ويّا الأمر. مثال:\n"+cmd+" @"+list[0].username;
+    const b=list.find(z=>z.username===u);
+    if(!b) return "ما لكيت @"+u+" ببوتاتك.";
+    if(cmd==="/token") return "توكن @"+b.username+":\n\n"+b.token+"\n\nلا تنطيه لأحد.";
+    const tk=await sbRpc("bot_revoke",{p_owner:myPhone(),p_username:u});
+    return "التوكن القديم انلغى. الجديد:\n\n"+tk;
+  }
+
+  if(["/setname","/setabouttext","/setdescription","/setcommands","/deletebot"].indexOf(cmd)>-1){
+    const list=await bfMyBots();
+    if(!list.length) return "ما عندك بوتات. أرسل /newbot.";
+    const u=bfClean(one);
+    if(!u) return "اكتب اليوزر ويّا الأمر. مثال:\n"+cmd+" @"+list[0].username;
+    if(!list.find(z=>z.username===u)) return "ما لكيت @"+u+" ببوتاتك.";
+    bfSet({step:"await",act:cmd.slice(1),u});
+    if(cmd==="/setname")        return "شنو الاسم الجديد لـ@"+u+"؟";
+    if(cmd==="/setabouttext")   return "اكتب نبذة قصيرة عن @"+u+".";
+    if(cmd==="/setdescription") return "اكتب وصف @"+u+" — هذا يظهر قبل ما يبدي الحوار.";
+    if(cmd==="/setcommands")    return "ابعثلي أوامر @"+u+" بسطر لكل أمر، بهاي الصيغة:\n\nأمر - الرد\n\nمثال:\nstart - أهلاً بيك بمعرضنا\nprice - الأسعار تبدي من ٢٥ ألف\nlocation - بلد، شارع المحيط";
+    if(cmd==="/deletebot")      return "تأكيد الحذف: اكتب يوزر البوت مرة ثانية بلا @.\n\nهذي خطوة ما ترجع.";
+  }
+
+  if(cmd.startsWith("/")) return "ما أعرف هذا الأمر. أرسل /help تشوف الأوامر.";
+  return "أرسل /help تشوف شنو أگدر أسوي، أو /newbot حتى نصنع بوت.";
+}
+
+/* ── عقل البوتات العادية ── */
+async function botUserReply(botPhone, text){
+  const b=await botInfo(botPhone);
+  if(!b) return "هذا البوت مو متاح حالياً.";
+  const {cmd}=bfArgs(text);
+  const cmds=Array.isArray(b.commands)?b.commands:[];
+  if(cmd.startsWith("/")){
+    const key=cmd.slice(1);
+    const hit=cmds.find(z=>String(z.c).toLowerCase()===key);
+    if(hit) return hit.r;
+    if(key==="start") return b.description||b.about||("أهلاً! أنا "+b.name+".");
+    if(key==="help"){
+      if(!cmds.length) return "ماكو أوامر معرّفة لهذا البوت بعد.";
+      return "الأوامر:\n\n"+cmds.map(z=>"/"+z.c).join("\n");
+    }
+    return "ما أعرف هذا الأمر."+(cmds.length?("\n\nالمتاح:\n"+cmds.map(z=>"/"+z.c).join("\n")):"");
+  }
+  const hit=cmds.find(z=>String(z.c).toLowerCase()==="start");
+  return hit?hit.r:(b.about||b.description||("أهلاً! أنا "+b.name+". أرسل /help."));
+}
+
+/* ── يشتغل بعد ما يرسل المستخدم رسالة داخل محادثة بوت ── */
+async function botOnUserMessage(convId, otherPhone, text){
+  const ph=msgNormPhone(otherPhone);
+  if(!isBotPhone(ph)) return;
+  let out;
+  try{
+    out = (ph===BF_PHONE) ? await bfReply(text) : await botUserReply(ph, text);
+  }catch(e){ console.warn("[bot]",e); out="صار خطأ. جرّب مرة ثانية."; }
+  await botSay(convId, ph, out);
+  try{ if(typeof msgRefreshChat==="function") setTimeout(msgRefreshChat,250) }catch(e){}
+}
+
+/* ── نلف حول الإرسال: أي رسالة نصية لبوت تولّد رد ── */
+if(typeof msgSend==="function" && !msgSend._botWrapped){
+  const _sendOrig = msgSend;
+  msgSend = async function(convId, body, imgData, voiceData, voiceDur, replyToId, fileObj){
+    const r = await _sendOrig.apply(this, arguments);
+    try{
+      if(r && body && chatWith && isBotPhone(chatWith)) botOnUserMessage(convId, chatWith, body);
+    }catch(e){ console.warn("[bot] hook:",e) }
+    return r;
+  };
+  msgSend._botWrapped = true;
+}
+
 </script>
 </body>
 </html>
