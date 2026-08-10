@@ -3346,6 +3346,27 @@ async function adRemove(id){
   const k=MODELS.findIndex(z=>z.id===id); if(k>-1) MODELS.splice(k,1);
 }
 
+/* ── توثيق الحسابات: العلامة الزرقاء بيد المالك ── */
+const adCleanUser=u=>String(u||"").trim().replace(/^@+/,"").toLowerCase();
+
+async function adSetVerified(username,on){
+  const u=adCleanUser(username);
+  if(!u) return "empty";
+  try{
+    const n=await sbRpc("admin_set_verified",{p_pass:owner?owner.pass:"",p_user:u,p_on:!!on});
+    return (+n>0)?"ok":"notfound";
+  }catch(e){
+    console.warn("[owner] verify:",e);
+    return adMissing(e)?"nosql":"fail";
+  }
+}
+
+async function adVerifiedList(){
+  try{ return await sbSelect("user_profiles",
+    "select=phone,username,name,avatar&verified=is.true&order=username.asc&limit=50") || [] }
+  catch(e){ return [] }
+}
+
 /* ── ضغط صورة المنتج ── */
 function adShot(file,done){
   if(!file) return;
@@ -3504,6 +3525,16 @@ function renderAdmin(){
       <div class="item"><div class="ic">◇</div><div><b>${AD.glass}</b>
         <span>${T.ar.glassOpts.join(" · ")}</span></div></div>
     </div>
+    <section class="sec" style="padding-top:22px"><div class="sechead"><h2 style="font-size:16px">توثيق الحسابات</h2></div></section>
+    <div style="padding:0 var(--pad)">
+      <div class="note" style="margin-top:0">اكتب يوزر الحساب بدون @ واضغط «وثّق» — العلامة الزرقاء تظهر جنب اسمه بكل التطبيق.</div>
+      <div class="fld" style="margin-top:12px">
+        <input class="ctrl" id="ad-vuser" placeholder="luffy" autocomplete="off" spellcheck="false"></div>
+      <div class="acts">
+        <button class="btn btn-p" id="ad-von">وثّق</button>
+        <button class="btn btn-o" id="ad-voff">شيل التوثيق</button></div>
+      <div id="ad-vlist" style="margin-top:12px"></div>
+    </div>
     <section class="sec" style="padding-top:22px"><div class="sechead"><h2 style="font-size:16px">${AD.listT}</h2></div></section>
     ${list.length?list.map(adCard).join(''):`<p class="foot" style="padding-top:0">${AD.none}</p>`}
     <div style="padding:14px var(--pad) 0">
@@ -3511,6 +3542,23 @@ function renderAdmin(){
     <p class="foot">${AD.hint}</p>`;
   document.getElementById('ad-new').onclick=()=>adForm(null);
   document.getElementById('ad-out').onclick=adOut;
+
+  /* توثيق الحسابات */
+  const vIn=document.getElementById('ad-vuser');
+  const vMsg={empty:"اكتب اليوزر أول",notfound:"ما لكيت حساب بهذا اليوزر",
+    fail:"ما انحفظ — تأكد من الاتصال",
+    nosql:"شغّل SQL دالة admin_set_verified أول"};
+  const vRun=async on=>{
+    const btnOn=document.getElementById('ad-von'), btnOff=document.getElementById('ad-voff');
+    btnOn.disabled=btnOff.disabled=true;
+    const r=await adSetVerified(vIn.value,on);
+    btnOn.disabled=btnOff.disabled=false;
+    if(r==="ok"){ vIn.value=""; toast(on?"انوثّق الحساب":"انشال التوثيق"); adPaintVerified(); }
+    else toast(vMsg[r]||"ما انحفظ");
+  };
+  document.getElementById('ad-von').onclick=()=>vRun(true);
+  document.getElementById('ad-voff').onclick=()=>vRun(false);
+  adPaintVerified();
   box.querySelectorAll('[data-ad-edit]').forEach(b=>b.onclick=()=>{
     const p=adAll().find(z=>z.id===b.dataset.adEdit); if(p) adForm(p) });
   box.querySelectorAll('[data-ad-tog]').forEach(b=>b.onclick=async()=>{
@@ -3529,6 +3577,24 @@ function renderAdmin(){
       renderAll(); renderAdmin(); toast(AD.delDone);
     };
   });
+}
+
+/* ── رسم قائمة الحسابات الموثّقة داخل اللوحة ── */
+async function adPaintVerified(){
+  const box=document.getElementById('ad-vlist'); if(!box) return;
+  const list=await adVerifiedList();
+  if(!list.length){ box.innerHTML=`<p class="foot" style="padding:0">ماكو حساب موثّق بعد.</p>`; return }
+  box.innerHTML=list.map(p=>`<div class="follow-item">
+    ${msgAvHTML(p.name,p.avatar)}
+    <b>${nameHTML(Object.assign({verified:true},p))}</b>
+    <button class="follow-btn off" data-unv="${esc(p.username||'')}">شيل</button>
+  </div>`).join('');
+  box.querySelectorAll('[data-unv]').forEach(b=>{ b.onclick=async()=>{
+    b.disabled=true;
+    const r=await adSetVerified(b.dataset.unv,false);
+    if(r==="ok"){ toast("انشال التوثيق"); adPaintVerified() }
+    else { b.disabled=false; toast("ما انشال") }
+  }});
 }
 
 /* ── الباب المخفي: ٥ نقرات على الشعار أو ضغطة طويلة ── */
@@ -4507,7 +4573,7 @@ async function rlLoadComments(id){
     const mine=me&&r.phone===me;
     return `<div class="rc-row">
       <span class="rc-av">${av}</span>
-      <span class="rc-in"><span class="rc-who">${esc(nm)}<i>${timeAgo(r.created_at)}</i></span>
+      <span class="rc-in"><span class="rc-who">${nameHTML(p)||esc(nm)}<i>${timeAgo(r.created_at)}</i></span>
         <span class="rc-txt">${esc(r.body||"")}</span></span>
       ${mine?`<button class="rc-del" data-del="${esc(r.id)}" aria-label="حذف">${ic('trash','rc-dsvg')}</button>`:''}
     </div>`;
@@ -4805,7 +4871,7 @@ async function msgForward(msgId){
     const av=p.avatar?`<img src="${esc(p.avatar)}" alt="">`
       :`<span>${esc((nm||"?").charAt(0).toUpperCase())}</span>`;
     return `<button class="fw-row" data-fw="${esc(c.id)}" data-ph="${esc(other)}">
-      <span class="fw-av">${av}</span><span class="fw-nm">${esc(nm)}</span>
+      <span class="fw-av">${av}</span><span class="fw-nm">${nameHTML(p)||esc(nm)}</span>
       <span class="fw-go">${ic('forward','ui-ic')}</span></button>`;
   }).join('');
   box.querySelectorAll('[data-fw]').forEach(b=>{
@@ -4967,6 +5033,11 @@ function msgDisplayName(p){
   if(n) return n;
   if(p.username) return "@"+p.username;
   return p.phone||"";
+}
+
+/* الاسم + العلامة الزرقاء إذا الحساب موثّق — يرجّع HTML جاهز */
+function nameHTML(p,lg){
+  return esc(msgDisplayName(p))+(p&&p.verified?verifiedBadge(lg):"");
 }
 
 function timeAgo(iso){
@@ -5372,7 +5443,7 @@ async function msgRenderConvs(){
     const badge=n?`<span class="msg-unread">${n>99?'99+':n}</span>`:'';
     return `<div class="msg-conv" data-conv='${esc(JSON.stringify({id:c.id,phone:other,name:p.name,avatar:p.avatar}))}'>
       <div class="msg-av-wrap">${msgAvHTML(p.name,p.avatar)}${dot}</div>
-      <div class="msg-body"><b>${esc(msgDisplayName(p)||other)}</b><span class="msg-preview">${esc(c.last_msg||"")}</span></div>
+      <div class="msg-body"><b>${nameHTML(p)||esc(other)}</b><span class="msg-preview">${esc(c.last_msg||"")}</span></div>
       <div class="msg-right"><span class="msg-time">${timeAgo(c.last_at)}</span>${badge}
         <button class="lux-star${isFav(c.id)?' on':''}" data-fav="${esc(c.id)}" aria-label="مفضلة">
           <svg viewBox="0 0 24 24"><path d="M12 3.6l2.6 5.3 5.8.85-4.2 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8-4.2-4.1 5.8-.85z"/></svg>
@@ -5394,7 +5465,7 @@ async function msgRenderFollowers(){
   empty.hidden=true;
   box.innerHTML=list.map(p=>`<div class="follow-item">
     ${msgAvHTML(p.name,p.avatar)}
-    <b>${esc(msgDisplayName(p))}</b>
+    <b>${nameHTML(p)}</b>
     <button class="follow-btn" data-fphone="${esc(p.phone)}" data-fname="${esc(p.name||'')}" data-fav="${esc(p.avatar||'')}">💬</button>
   </div>`).join('');
   box.querySelectorAll('.follow-btn').forEach(b=>{b.onclick=()=>msgOpenChat(b.dataset.fphone,b.dataset.fname,b.dataset.fav)});
@@ -5407,7 +5478,7 @@ async function msgRenderFollowing(){
   empty.hidden=true;
   box.innerHTML=list.map(p=>`<div class="follow-item">
     ${msgAvHTML(p.name,p.avatar)}
-    <b>${esc(msgDisplayName(p))}</b>
+    <b>${nameHTML(p)}</b>
     <button class="follow-btn off" data-uphone="${esc(p.phone)}">❌ ${mt().unfollow}</button>
     <button class="follow-btn" data-fphone="${esc(p.phone)}" data-fname="${esc(p.name||'')}" data-fav="${esc(p.avatar||'')}">💬</button>
   </div>`).join('');
@@ -5459,6 +5530,7 @@ async function msgOpenChat(phone,name,avatar,convId){
   msgGetProfile(phone).then(pr=>{
     if(chatWith!==phone) return;
     document.getElementById('chat-sub').textContent=msgSeenText(pr.last_seen);
+    document.getElementById('chat-name').innerHTML=nameHTML(pr)||esc(name||phone);
   });
   document.getElementById('chat-call').onclick=()=>{ callStart(phone,name,avatar,false) };
   document.getElementById('chat-video').onclick=()=>{ callStart(phone,name,avatar,true) };
@@ -6532,7 +6604,7 @@ async function msgOpenProfile(phone){
 /* رسم بيانات الملف */
 function upPaint(p,isMe){
   document.getElementById('up-av').innerHTML=msgAvHTML(p.name,p.avatar,'up-av');
-  document.getElementById('up-name').textContent=msgDisplayName(p);
+  document.getElementById('up-name').innerHTML=nameHTML(p,true);
   document.getElementById('up-username').textContent=p.username?'@'+p.username:'';
   const bio=document.getElementById('up-bio');
   bio.textContent=p.bio||(isMe?'ما عندك نبذة بعد — اضغط "تعديل الملف" وأضفها.':'');
@@ -7200,11 +7272,10 @@ function msgBoot(){
       document.getElementById('msg-empty-box').hidden=true;
       if(!results.length){box.innerHTML=`<div class="msg-empty"><b>${mt().noResults}</b></div>`;return}
       box.innerHTML=`<div class="msg-list">${results.map(p=>{
-        const vb=p.verified?verifiedBadge():'';
         const un=p.username?`<span class="username-tag">@${esc(p.username)}</span>`:'';
         return `<div class="follow-item">
         ${msgAvHTML(p.name,p.avatar)}
-        <div style="flex:1;min-width:0"><b>${esc(msgDisplayName(p))}</b>${un}</div>
+        <div style="flex:1;min-width:0"><b>${nameHTML(p)}</b>${un}</div>
         <button class="follow-btn" data-fphone="${esc(p.phone)}" data-fname="${esc(p.name||'')}" data-fav="${esc(p.avatar||'')}">${mt().follow}</button>
         <button class="follow-btn" data-mphone="${esc(p.phone)}" data-mname="${esc(p.name||'')}" data-mav="${esc(p.avatar||'')}">💬</button>
       </div>`}).join('')}</div>`;
