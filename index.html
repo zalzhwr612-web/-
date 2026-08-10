@@ -452,7 +452,7 @@ body.dark .chat-follow-btn{color:var(--brand-3);border-color:var(--brand-3)}
 .chat-loading .cl-dot:nth-child(3){animation-delay:.3s}
 @keyframes clPulse{0%,80%,100%{opacity:.35;transform:scale(1)}40%{opacity:1;transform:scale(1.25)}}
 .chat-bubble{max-width:78%;padding:11px 14px;border-radius:20px;font-size:14.5px;line-height:1.6;
-  word-break:break-word;position:relative}
+  word-break:break-word;position:relative;flex:0 0 auto}
 .chat-bubble.me{background:var(--m-bubble-me);color:#fff;align-self:flex-end;border-end-end-radius:7px}
 .chat-bubble.them{background:var(--m-bubble-them);color:var(--ink);align-self:flex-start;border-end-start-radius:7px;
   transition:background-color var(--T),color var(--T)}
@@ -984,10 +984,13 @@ body.dark .up-av .ini{color:var(--brand-3)}
 .up-av-edit{position:absolute;top:6px;inset-inline-start:2px;width:32px;height:32px;border:0;border-radius:50%;
   background:var(--brand);display:grid;place-items:center;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.3)}
 .up-av-edit svg{width:15px;height:15px;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+/* أزرار التعديل تختفي فعلاً عند غير صاحب الحساب */
+.up-av-edit[hidden],.up-cover-edit[hidden],[hidden]{display:none!important}
 .up-acts{display:flex;align-items:center;gap:9px;margin-top:62px;flex-wrap:wrap;justify-content:flex-end;min-width:0;flex:1}
 .up-ibtn{width:46px;height:46px;border:0;border-radius:14px;background:var(--m-surface);color:var(--ink);
   display:grid;place-items:center;cursor:pointer;transition:background-color var(--T),transform .15s}
 .up-ibtn svg{width:21px;height:21px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.up-ibtn.muted{background:transparent;border:1px solid var(--line);color:var(--muted)}
 .up-ibtn:active{transform:scale(.93)}
 .up-follow{border:0;border-radius:14px;background:var(--brand);color:#fff;padding:0 20px;height:46px;white-space:nowrap;
   font-size:15px;font-weight:700;cursor:pointer;transition:transform .15s,background .18s}
@@ -1042,199 +1045,263 @@ body.dark .up-tab.on{color:var(--brand-3)}
 .rl-logo-wrap{position:relative;display:inline-block}
 
 /* ═══════════════════════════════════════════════════════════════
-   واجهة المراسلات الفاخرة — أسود وذهبي
-   تعيد تلوين قسم المراسلات كله عبر تبديل متغيّرات اللون داخل
-   نطاقه فقط، فباقي الموقع يبقى مثل ما هو.
+   واجهة المراسلات — أبيض وأسود، بوضعين فاتح وداكن مستقلين عن
+   ثيم الموقع. كل الألوان تتبدّل عبر متغيّرات داخل نطاق المراسلات
+   فقط، فباقي الموقع يبقى مثل ما هو. بلا أي حركة أو تأثيرات.
    ═══════════════════════════════════════════════════════════════ */
 #v-messages, .chat-screen, .pm-screen{
-  --gold:#C9A227; --gold-2:#E8C766; --gold-3:#7E6320;
-  --ink:#EFE8D8; --muted:#8F8878;
-  --card:#15140F; --cardb:#15140F; --art:rgba(201,162,39,.08);
-  --line:rgba(201,162,39,.16);
-  --brand:#C9A227; --brand-2:#E8C766; --brand-3:#E8C766;
-  --m-bg:#0A0908; --m-surface:#1A1913; --m-sep:rgba(201,162,39,.12);
-  --m-bubble-them:#1C1B16; --m-bubble-me:#B8952F;
-  color:var(--ink);
-}
-body:not(.dark) #v-messages, body:not(.dark) .chat-screen{ color:var(--ink) }
-#v-messages{background:#0A0908;min-height:100dvh}
+  --mBg:#FFFFFF; --mSurf:#F2F2F2; --mSurf2:#EAEAEA;
+  --mInk:#141414; --mMuted:#767676; --mLine:#E6E6E6;
+  --mAcc:#1A1A1A; --mAccInk:#FFFFFF;
+  --mWall:#EDEDED;
+  --mMe:#FFFFFF; --mMeInk:#141414;
+  --mThem:#1E1E1E; --mThemInk:#F2F2F2;
 
-/* ── ترويسة "المراسلات" مع زر الريشة ── */
-#v-messages .sechead h2{color:var(--gold-2);font-family:"Reem Kufi",var(--font);
-  font-size:24px;letter-spacing:.3px}
-.lux-quill{width:46px;height:46px;border-radius:14px;border:1px solid rgba(201,162,39,.4);
-  background:linear-gradient(150deg,#3A2E12,#6E561B);display:grid;place-items:center;
-  cursor:pointer;flex:none;box-shadow:0 4px 14px rgba(0,0,0,.5)}
-.lux-quill svg{width:22px;height:22px;stroke:var(--gold-2);fill:none;stroke-width:1.7;
+  --ink:var(--mInk); --muted:var(--mMuted);
+  --card:var(--mBg); --cardb:var(--mBg); --art:rgba(0,0,0,.05);
+  --line:var(--mLine);
+  --brand:var(--mAcc); --brand-2:var(--mAcc); --brand-3:var(--mAcc);
+  --m-bg:var(--mBg); --m-surface:var(--mSurf); --m-sep:var(--mLine);
+  --m-bubble-them:var(--mThem); --m-bubble-me:var(--mMe);
+  color:var(--mInk);
+}
+/* الوضع الداكن الخاص بالمراسلات — أسود مخفّف مو أسود قاتم */
+body.msgdark #v-messages, body.msgdark .chat-screen, body.msgdark .pm-screen{
+  --mBg:#141414; --mSurf:#212121; --mSurf2:#2A2A2A;
+  --mInk:#F0F0F0; --mMuted:#9B9B9B; --mLine:#2E2E2E;
+  --mAcc:#FFFFFF; --mAccInk:#141414;
+  --mWall:#181818;
+  --mMe:#FFFFFF; --mMeInk:#141414;
+  --mThem:#262626; --mThemInk:#F0F0F0;
+}
+body:not(.dark) #v-messages, body:not(.dark) .chat-screen{ color:var(--mInk) }
+#v-messages{background:var(--mBg);min-height:100dvh}
+
+/* ── الترويسة: العنوان + زر الوضع + زر محادثة جديدة ── */
+#v-messages .sechead h2{color:var(--mInk);font-family:var(--font);
+  font-size:26px;font-weight:800;letter-spacing:0}
+#v-messages .sechead{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.msg-head-acts{display:flex;align-items:center;gap:8px;flex:none}
+.lux-quill{width:44px;height:44px;border-radius:50%;border:0;
+  background:var(--mAcc);display:grid;place-items:center;
+  cursor:pointer;flex:none;box-shadow:none}
+.lux-quill svg{width:20px;height:20px;stroke:var(--mAccInk);fill:none;stroke-width:2;
   stroke-linecap:round;stroke-linejoin:round}
-.lux-quill:active{transform:scale(.93)}
-#v-messages .sechead{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.mode-btn{width:44px;height:44px;border-radius:50%;flex:none;cursor:pointer;
+  border:1px solid var(--mLine);background:var(--mSurf);display:grid;place-items:center}
+.mode-btn svg{width:20px;height:20px;stroke:var(--mInk);fill:none;stroke-width:1.9;
+  stroke-linecap:round;stroke-linejoin:round}
+.mode-btn .ic-sun{display:none}
+body.msgdark .mode-btn .ic-sun{display:block}
+body.msgdark .mode-btn .ic-moon{display:none}
 
 /* ── البحث ── */
-#v-messages .user-search{background:#14130E;border:1px solid var(--line);border-radius:15px}
-#v-messages .user-search input{color:var(--ink)}
-#v-messages .user-search input::placeholder{color:#6E685C}
-#v-messages .user-search svg{stroke:var(--gold)}
+#v-messages .user-search{background:var(--mSurf);border:0;border-radius:22px}
+#v-messages .user-search input{color:var(--mInk)}
+#v-messages .user-search input::placeholder{color:var(--mMuted)}
+#v-messages .user-search svg{stroke:var(--mMuted)}
 
 /* ── شرائح التصفية ── */
-.lux-chips{display:flex;gap:8px;padding:12px var(--pad) 6px;overflow-x:auto;
+.lux-chips{display:flex;gap:6px;padding:10px var(--pad) 6px;overflow-x:auto;
   scrollbar-width:none}
 .lux-chips::-webkit-scrollbar{display:none}
-.lux-chip{border:1px solid var(--line);background:#14130E;color:#A79E8B;border-radius:12px;
-  padding:8px 16px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;flex:none;
-  font-family:var(--font);transition:background .2s,color .2s,border-color .2s}
-.lux-chip.on{background:linear-gradient(150deg,#4A3A14,#7E6320);color:#F3E7C4;
-  border-color:rgba(201,162,39,.55)}
-.lux-chip:active{transform:scale(.96)}
+.lux-chip{border:0;background:var(--mSurf);color:var(--mMuted);border-radius:20px;
+  padding:9px 15px;font-size:14.5px;font-weight:600;cursor:pointer;white-space:nowrap;flex:none;
+  font-family:var(--font)}
+.lux-chip.on{background:var(--mAcc);color:var(--mAccInk)}
 
-/* ── صفوف المحادثات ── */
-#v-messages .msg-conv{background:#111008;border:1px solid rgba(201,162,39,.10);
-  border-radius:18px;margin-bottom:9px;padding:13px 13px}
+/* ── الوصول السريع ── */
+.story-row{padding:14px var(--pad) 10px}
+#v-messages .story-av{box-shadow:0 0 0 2px var(--mBg),0 0 0 4px var(--mInk)}
+#v-messages .story-name{color:var(--mInk);font-weight:600}
+
+/* ── صفوف المحادثات: مسطّحة بلا بطاقات ── */
+#v-messages .msg-conv{background:transparent;border:0;border-radius:14px;
+  margin-bottom:0;padding:9px 10px}
 #v-messages .msg-conv::after{display:none}
-#v-messages .msg-conv:active{background:#181610}
-#v-messages .msg-conv.on{border-color:rgba(201,162,39,.5);
-  box-shadow:0 0 0 1px rgba(201,162,39,.18),0 6px 20px rgba(0,0,0,.5)}
-#v-messages .msg-body b{color:var(--ink);font-size:15px}
-#v-messages .msg-preview{color:#8A8271}
-#v-messages .on-dot{background:#35C759;box-shadow:0 0 0 2.5px #0A0908}
-.lux-star{border:0;background:transparent;padding:0;cursor:pointer;margin-top:4px}
-.lux-star svg{width:17px;height:17px;stroke:#5E594D;fill:none;stroke-width:1.7;
-  stroke-linejoin:round;transition:stroke .2s,fill .2s}
-.lux-star.on svg{stroke:#E8C766;fill:#C9A227}
-.lux-star:active{transform:scale(.85)}
+#v-messages .msg-conv:active{background:var(--mSurf)}
+#v-messages .msg-conv.on{background:var(--mSurf)}
+#v-messages .msg-body b{color:var(--mInk);font-size:16px;font-weight:600}
+#v-messages .msg-preview{color:var(--mMuted);font-size:14.5px}
+#v-messages .on-dot{background:#3FBF5F;box-shadow:0 0 0 2.5px var(--mBg)}
+.lux-star{border:0;background:transparent;padding:0;cursor:pointer;margin-top:2px}
+.lux-star svg{width:16px;height:16px;stroke:var(--mMuted);fill:none;stroke-width:1.8;
+  stroke-linejoin:round}
+.lux-star.on svg{stroke:var(--mInk);fill:var(--mInk)}
 #v-messages .msg-right{display:flex;flex-direction:column;align-items:center;gap:5px}
-#v-messages .msg-time{color:#6E685C;font-size:11.5px}
-#v-messages .msg-av{background:#1C1B14;box-shadow:0 0 0 1px rgba(201,162,39,.22)}
-.msg-unread{background:linear-gradient(150deg,#C9A227,#E8C766)!important;color:#1A1508!important;
-  font-weight:800;box-shadow:0 3px 10px rgba(201,162,39,.35)}
+#v-messages .msg-time{color:var(--mMuted);font-size:12.5px}
+#v-messages .msg-av{width:54px;height:54px;background:var(--mSurf2);box-shadow:none}
+#v-messages .msg-av .ini{font-size:19px;color:var(--mMuted)}
+.msg-unread{background:var(--mAcc)!important;color:var(--mAccInk)!important;
+  font-weight:700;box-shadow:none;min-width:22px;height:22px;font-size:12.5px}
 
 /* نقطة الاتصال */
-.lux-dot{position:absolute;bottom:1px;inset-inline-end:1px;width:12px;height:12px;border-radius:50%;
-  background:#35C759;border:2.5px solid #0A0908}
-
+.lux-dot{position:absolute;bottom:1px;inset-inline-end:1px;width:13px;height:13px;border-radius:50%;
+  background:#3FBF5F;border:2.5px solid var(--mBg)}
 
 /* ═══ شاشة المحادثة ═══ */
-.chat-screen{background:#0A0908}
-.chat-top{background:#100F0A;border-bottom:1px solid rgba(201,162,39,.14)}
-.chat-top-info b{color:var(--ink);font-size:15.5px}
-.chat-top-info small{color:#35C759;font-size:11.5px}
-.chat-back svg,.chat-ic svg{stroke:var(--gold-2)}
-.chat-ic:active{background:rgba(201,162,39,.12)}
-#chat-av{position:relative;box-shadow:0 0 0 1.5px rgba(201,162,39,.45)}
-.chat-follow-btn{border-color:rgba(201,162,39,.5)!important;color:var(--gold-2)!important;
+.chat-screen{background:var(--mWall)}
+.chat-top{background:var(--mBg);border-bottom:1px solid var(--mLine)}
+.chat-top-info b{color:var(--mInk);font-size:16.5px;font-weight:700}
+.chat-top-info small{color:var(--mMuted);font-size:12px}
+.chat-back svg,.chat-ic svg{stroke:var(--mInk)}
+.chat-ic:active{background:var(--mSurf)}
+#chat-av{position:relative;box-shadow:none}
+.chat-follow-btn{border-color:var(--mLine)!important;color:var(--mInk)!important;
   background:transparent!important}
 
-/* خلفية زخرفية خفيفة */
-.chat-screen>.chat-wall{background-color:#0A0908}
-.wp-lux{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='150' viewBox='0 0 150 150'%3E%3Cg fill='none' stroke='%23C9A227' stroke-opacity='.07' stroke-width='1.1'%3E%3Ccircle cx='75' cy='75' r='17'/%3E%3Ccircle cx='75' cy='75' r='31'/%3E%3Ccircle cx='75' cy='75' r='45'/%3E%3Cpath d='M75 12v126M12 75h126M30 30l90 90M120 30l-90 90'/%3E%3Cpath d='M75 30c9 12 9 24 0 34-9-10-9-22 0-34zM75 120c9-12 9-24 0-34-9 10-9 22 0 34zM30 75c12 9 24 9 34 0-10-9-22-9-34 0zM120 75c-12 9-24 9-34 0 10-9 22-9 34 0z'/%3E%3C/g%3E%3C/svg%3E");
-  background-size:150px 150px}
+/* خلفية المحادثة الافتراضية — المستخدم يقدر يبدّلها */
+.chat-screen>.chat-wall{background-color:var(--mWall)}
+.wp-lux{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140' viewBox='0 0 140 140'%3E%3Cg fill='none' stroke='%23808080' stroke-opacity='.16' stroke-width='1.1'%3E%3Ccircle cx='70' cy='70' r='16'/%3E%3Ccircle cx='70' cy='70' r='30'/%3E%3Cpath d='M70 10v120M10 70h120'/%3E%3C/g%3E%3C/svg%3E");
+  background-size:140px 140px}
 
-/* ── الفقاعات مع الذيل ── */
+/* ── الفقاعات: رسائلي بيضاء والطرف الثاني سوداء ── */
 .chat-screen .chat-bubble{border-radius:20px;padding:11px 14px 9px;position:relative;
-  box-shadow:0 3px 12px rgba(0,0,0,.4);max-width:80%}
-/* رسائلي: ذهبي على اليمين (مثل التصميم) */
+  box-shadow:0 1px 2px rgba(0,0,0,.12);max-width:80%}
 html[dir="rtl"] .chat-screen .chat-bubble.me{align-self:flex-start}
 html[dir="rtl"] .chat-screen .chat-bubble.them{align-self:flex-end}
-.chat-screen .chat-bubble.me{
-  background:linear-gradient(145deg,#8A6D22 0%,#B8952F 55%,#9C7C26 100%);
-  color:#FFF9EA;border-end-end-radius:6px}
+.chat-screen .chat-bubble.me{background:var(--mMe);color:var(--mMeInk);
+  border-end-end-radius:6px}
 .chat-screen .chat-bubble.me::before{content:"";position:absolute;bottom:0;inset-inline-end:-7px;
-  width:14px;height:16px;background:#9C7C26;
+  width:14px;height:16px;background:var(--mMe);
   clip-path:polygon(0 0,100% 100%,0 100%);border-end-start-radius:3px}
-.chat-screen .chat-bubble.them{background:#1C1B16;color:#EAE3D3;border-end-start-radius:6px;
-  border:1px solid rgba(201,162,39,.08)}
+.chat-screen .chat-bubble.them{background:var(--mThem);color:var(--mThemInk);
+  border-end-start-radius:6px;border:0}
 .chat-screen .chat-bubble.them::before{content:"";position:absolute;bottom:0;inset-inline-start:-7px;
-  width:14px;height:16px;background:#1C1B16;
+  width:14px;height:16px;background:var(--mThem);
   clip-path:polygon(100% 0,100% 100%,0 100%);border-end-end-radius:3px}
 .chat-screen .chat-ts{color:rgba(255,255,255,.55);font-size:10.5px}
-.chat-screen .chat-bubble.me .chat-ts{color:rgba(255,249,234,.72)}
-.chat-screen .chat-date{background:#1A1913;color:#9A917D;border:1px solid rgba(201,162,39,.12)}
+.chat-screen .chat-bubble.me .chat-ts{color:rgba(20,20,20,.45)}
+.chat-screen .chat-date{background:rgba(0,0,0,.32);color:#fff;border:0}
 
 /* ── بطاقة الملف ── */
 .chat-screen .file-card{flex-direction:column;align-items:stretch;gap:0;background:transparent;
   padding:0;min-width:210px}
 .lux-file-top{display:flex;align-items:center;gap:11px;padding:2px 2px 10px}
 .lux-file-ico{width:46px;height:46px;border-radius:13px;flex:none;display:grid;place-items:center;
-  background:linear-gradient(150deg,#6E561B,#C9A227)}
-.lux-file-ico svg{width:24px;height:24px;stroke:#1A1508;fill:none;stroke-width:1.8;
+  background:rgba(128,128,128,.28)}
+.lux-file-ico svg{width:24px;height:24px;stroke:currentColor;fill:none;stroke-width:1.8;
   stroke-linecap:round;stroke-linejoin:round}
 .lux-file-dl{display:flex;align-items:center;justify-content:center;gap:8px;
-  border:1px solid rgba(255,255,255,.28);background:rgba(255,255,255,.12);color:#FFF6E2;
+  border:1px solid rgba(128,128,128,.4);background:rgba(128,128,128,.14);color:inherit;
   border-radius:13px;padding:11px;font-size:13.5px;font-weight:700;cursor:pointer;
   font-family:var(--font)}
-.chat-bubble.them .lux-file-dl{border-color:rgba(201,162,39,.35);background:rgba(201,162,39,.1);
-  color:var(--gold-2)}
-.lux-file-dl:active{transform:scale(.98)}
 .lux-file-dl svg{width:17px;height:17px;stroke:currentColor;fill:none;stroke-width:2;
   stroke-linecap:round;stroke-linejoin:round}
 
 /* ── شريط الكتابة ── */
-.chat-screen .chat-input{background:#100F0A;border-top:1px solid rgba(201,162,39,.14);
+.chat-screen .chat-input{background:var(--mBg);border-top:1px solid var(--mLine);
   gap:9px;align-items:center}
-.chat-screen #chat-text{background:#1B1A13;border:1px solid rgba(201,162,39,.16);
-  color:var(--ink);border-radius:22px;padding:12px 16px}
-.chat-screen #chat-text::placeholder{color:#6E685C}
+.chat-screen #chat-text{background:var(--mSurf);border:1px solid var(--mLine);
+  color:var(--mInk);border-radius:22px;padding:12px 16px}
+.chat-screen #chat-text::placeholder{color:var(--mMuted)}
 .chat-screen .chat-mic-btn,.chat-screen .chat-send-btn,.chat-screen .chat-send{
-  background:linear-gradient(150deg,#C9A227,#E8C766)!important;border:0!important;color:#1A1508!important}
+  background:var(--mAcc)!important;border:0!important;color:var(--mAccInk)!important}
 .chat-screen .chat-mic-btn svg,.chat-screen .chat-send-btn svg,.chat-screen .chat-send svg{
-  stroke:#1A1508!important;fill:none}
-.chat-screen .chat-img-btn{background:#1B1A13;border:1px solid rgba(201,162,39,.2)}
-.chat-screen .chat-img-btn svg{stroke:var(--gold-2)}
-.lux-plus{width:44px;height:44px;border-radius:50%;flex:none;border:1.5px solid rgba(201,162,39,.5);
-  background:transparent;display:grid;place-items:center;cursor:pointer}
-.lux-plus svg{width:21px;height:21px;stroke:var(--gold-2);fill:none;stroke-width:2;stroke-linecap:round}
-.lux-plus:active{transform:scale(.92)}
+  stroke:var(--mAccInk)!important;fill:none}
+.chat-screen .chat-img-btn{background:var(--mSurf);border:1px solid var(--mLine)}
+.chat-screen .chat-img-btn svg{stroke:var(--mInk)}
+.lux-plus{width:44px;height:44px;border-radius:50%;flex:none;border:1px solid var(--mLine);
+  background:var(--mSurf);display:grid;place-items:center;cursor:pointer}
+.lux-plus svg{width:21px;height:21px;stroke:var(--mInk);fill:none;stroke-width:2;stroke-linecap:round}
 
-/* شارة التوثيق الذهبية */
-.chat-screen .vbadge,#v-messages .vbadge{filter:hue-rotate(18deg) saturate(1.5)}
+/* ── الصور: إطار أبيض رفيع بس، بلا ذيل ولا ظل ملوّن ── */
+.chat-screen .chat-bubble.img-only{background:#FFFFFF!important;border:0!important;
+  padding:4px!important;box-shadow:0 1px 3px rgba(0,0,0,.16);border-radius:18px;
+  min-width:120px}
+.chat-screen .chat-bubble.img-only::before{display:none!important}
+.chat-screen .chat-bubble.img-only .chat-img{border-radius:14px;margin:0;background:#F2F2F2;
+  height:auto}
+.chat-screen .chat-bubble.img-only .chat-ts{position:absolute;bottom:11px;inset-inline-start:13px;
+  color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.9)}
+.chat-screen .chat-bubble.img-only .chat-ticks svg{stroke:#fff}
+.chat-screen .chat-bubble .chat-img{border-radius:14px}
+.chat-screen .chat-bubble .chat-img-wrap{display:block;line-height:0}
+.chat-screen .chat-bubble .chat-img{height:auto;flex:none}
+.chat-screen .chat-bubble{min-height:0}
+/* الإطار يبقى أبيض حتى بالوضع الداكن */
+body.msgdark .chat-screen .chat-bubble.img-only{background:#FFFFFF!important}
 
+/* ── صورة ما وصلت ── */
+.img-bad-box{display:flex;flex-direction:column;align-items:center;gap:5px;
+  padding:20px 16px;min-width:190px;text-align:center;line-height:1.5}
+.img-bad-box svg{width:30px;height:30px;stroke:currentColor;fill:none;stroke-width:1.6;
+  stroke-linecap:round;stroke-linejoin:round;opacity:.65}
+.img-bad-box b{font-size:13.5px}
+.img-bad-box span{font-size:11.5px;opacity:.7}
 
-/* ── تعميم الثيم الذهبي على الهيدر والتاب بار وقت المراسلات ── */
-body.msgview{background:#0A0908}
-body.msgview .topbar{background:linear-gradient(160deg,#151309 0%,#221B0B 55%,#12100A 100%);
-  border-bottom:1px solid rgba(201,162,39,.18)}
-body.msgview .topbar .tt b{color:#E8C766}
-body.msgview .topbar .tt span{color:#9A917D}
-body.msgview .hbtn{background:rgba(201,162,39,.13);border:1px solid rgba(201,162,39,.22)}
-body.msgview .hbtn svg{stroke:#E8C766}
-body.msgview .search{background:#14130E;border:1px solid rgba(201,162,39,.2)}
-body.msgview .search input{color:#EFE8D8}
-body.msgview .search input::placeholder{color:#6E685C}
-body.msgview .search svg{stroke:#C9A227}
-body.msgview .tabbar{background:rgba(12,11,8,.96);border-top:1px solid rgba(201,162,39,.16)}
-body.msgview .blob{background-color:#5A4412!important;opacity:.22}
-body.msgview #sky{opacity:.25}
-body.msgview .tab{color:#7E7869}
-body.msgview .tab svg{stroke:#7E7869}
-body.msgview .tab[aria-selected="true"]{color:#E8C766}
-body.msgview .tab[aria-selected="true"] svg{stroke:#E8C766}
+/* شارة التوثيق */
+.chat-screen .vbadge,#v-messages .vbadge{filter:none}
+
+/* ── تعميم الثيم على الهيدر والتاب بار وقت المراسلات ── */
+body.msgview{background:#FFFFFF}
+body.msgview.msgdark{background:#141414}
+body.msgview .topbar{background:#FFFFFF;border-bottom:1px solid #E6E6E6}
+body.msgview .topbar .tt b{color:#141414}
+body.msgview .topbar .tt span{color:#767676}
+body.msgview .hbtn{background:#F2F2F2;border:0}
+body.msgview .hbtn svg{stroke:#141414}
+body.msgview .search{background:#F2F2F2;border:0}
+body.msgview .search input{color:#141414}
+body.msgview .search input::placeholder{color:#767676}
+body.msgview .search svg{stroke:#767676}
+body.msgview .tabbar{background:#FFFFFF;border-top:1px solid #E6E6E6}
+body.msgview .tab{color:#8A8A8A}
+body.msgview .tab svg{stroke:#8A8A8A}
+body.msgview .tab[aria-selected="true"]{color:#141414}
+body.msgview .tab[aria-selected="true"] svg{stroke:#141414}
+
+body.msgview.msgdark .topbar{background:#141414;border-bottom:1px solid #2E2E2E}
+body.msgview.msgdark .topbar .tt b{color:#F0F0F0}
+body.msgview.msgdark .topbar .tt span{color:#9B9B9B}
+body.msgview.msgdark .hbtn{background:#212121}
+body.msgview.msgdark .hbtn svg{stroke:#F0F0F0}
+body.msgview.msgdark .search{background:#212121}
+body.msgview.msgdark .search input{color:#F0F0F0}
+body.msgview.msgdark .search svg{stroke:#9B9B9B}
+body.msgview.msgdark .tabbar{background:#141414;border-top:1px solid #2E2E2E}
+body.msgview.msgdark .tab{color:#8A8A8A}
+body.msgview.msgdark .tab svg{stroke:#8A8A8A}
+body.msgview.msgdark .tab[aria-selected="true"]{color:#FFFFFF}
+body.msgview.msgdark .tab[aria-selected="true"] svg{stroke:#FFFFFF}
+
+/* بلا أي شي متحرك داخل المراسلات */
+body.msgview .blob,body.msgview #sky{display:none!important}
+body.msgview #v-messages *,body.msgview .chat-screen *,body.msgview .pm-screen *{
+  animation:none!important}
 
 /* تبويبات المحادثات/المتابعون */
-#v-messages .msg-tabs{background:#14130E;border:1px solid rgba(201,162,39,.16);
-  border-radius:15px;padding:4px}
-#v-messages .msg-tab{color:#8F8878;background:transparent;border-radius:12px}
-#v-messages .msg-tab.on{background:linear-gradient(150deg,#4A3A14,#7E6320);color:#F3E7C4}
+#v-messages .msg-tabs{background:var(--mSurf);border:0;border-radius:22px;padding:4px}
+#v-messages .msg-tab{color:var(--mMuted);background:transparent;border-radius:18px}
+#v-messages .msg-tab.on{background:var(--mAcc);color:var(--mAccInk)}
 
 /* ترتيب العمود الأيسر بالصف */
 #v-messages .msg-right{flex-direction:row-reverse;align-items:center;gap:8px}
 #v-messages .msg-right .msg-time{order:3;margin-inline-start:2px}
 #v-messages .msg-conv{align-items:center}
 
+/* الأوراق المنبثقة داخل سياق المراسلات */
+body.msgview .sheet,body.msgview .sheet *{--ink:#141414;--muted:#767676;--line:#E6E6E6;
+  --card:#FFFFFF;--cardb:#FFFFFF;--brand:#141414;--brand-2:#141414;--brand-3:#141414;
+  --m-surface:#F2F2F2;--art:rgba(0,0,0,.05)}
+body.msgview .sheet{background:#FFFFFF;border-top:1px solid #E6E6E6;color:#141414}
+body.msgview .sheet h3{color:#141414}
+body.msgview .sheet .btn-p{background:#141414;color:#fff}
+body.msgview .sheet .btn-o{border-color:#D8D8D8;color:#141414;background:transparent}
+body.msgview .scrim{background:rgba(0,0,0,.42)}
 
-/* الأوراق المنبثقة داخل سياق المراسلات تصير داكنة */
-body.msgview .sheet,body.msgview .sheet *{--ink:#EFE8D8;--muted:#8F8878;--line:rgba(201,162,39,.16);
-  --card:#15140F;--cardb:#15140F;--brand:#C9A227;--brand-2:#E8C766;--brand-3:#E8C766;
-  --m-surface:#1A1913;--art:rgba(201,162,39,.08)}
-body.msgview .sheet{background:#100F0A;border-top:1px solid rgba(201,162,39,.2);color:#EFE8D8}
-body.msgview .sheet h3{color:#E8C766}
-body.msgview .sheet .btn-p{background:linear-gradient(150deg,#C9A227,#E8C766);color:#1A1508}
-body.msgview .sheet .btn-o{border-color:rgba(201,162,39,.4);color:#E8C766;background:transparent}
-body.msgview .scrim{background:rgba(0,0,0,.62)}
+body.msgview.msgdark .sheet,body.msgview.msgdark .sheet *{--ink:#F0F0F0;--muted:#9B9B9B;
+  --line:#2E2E2E;--card:#1C1C1C;--cardb:#1C1C1C;--brand:#FFFFFF;--brand-2:#FFFFFF;
+  --brand-3:#FFFFFF;--m-surface:#212121;--art:rgba(255,255,255,.06)}
+body.msgview.msgdark .sheet{background:#1A1A1A;border-top:1px solid #2E2E2E;color:#F0F0F0}
+body.msgview.msgdark .sheet h3{color:#F0F0F0}
+body.msgview.msgdark .sheet .btn-p{background:#FFFFFF;color:#141414}
+body.msgview.msgdark .sheet .btn-o{border-color:#3A3A3A;color:#F0F0F0}
 
 /* ── ألوان الفقاعة وحجم الخط ── */
-.chat-screen .chat-bubble.me{background:var(--bub-me,linear-gradient(145deg,#8A6D22,#B8952F 55%,#9C7C26))!important;
-  color:var(--bub-me-txt,#FFF9EA)!important}
-.chat-screen .chat-bubble.me::before{background:var(--bub-me-tail,#9C7C26)!important}
+.chat-screen .chat-bubble.me{background:var(--bub-me,var(--mMe))!important;
+  color:var(--bub-me-txt,var(--mMeInk))!important}
+.chat-screen .chat-bubble.me::before{background:var(--bub-me-tail,var(--mMe))!important}
 .chat-screen .chat-bubble>div:not(.chat-ts):not(.q-box):not(.file-card):not(.rx-pills){
   font-size:var(--chat-fs,15px);line-height:1.65}
 .bub-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px}
@@ -1242,7 +1309,7 @@ body.msgview .scrim{background:rgba(0,0,0,.62)}
   cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:5px}
 .bub-opt.on{border-color:var(--brand)}
 .bub-sw{width:100%;aspect-ratio:1;border-radius:11px;display:block;
-  box-shadow:inset 0 -2px 6px rgba(0,0,0,.28)}
+  border:1px solid rgba(128,128,128,.4)}
 .bub-nm{font-size:10.5px;color:var(--muted);font-weight:600}
 .bub-opt.on .bub-nm{color:var(--brand)}
 .fs-box{border:1px solid var(--line);border-radius:16px;padding:14px}
@@ -1452,9 +1519,15 @@ body.msgview .scrim{background:rgba(0,0,0,.62)}
     <div class="view" id="v-messages">
       <section class="sec"><div class="sechead">
         <h2 id="t-msgT">المراسلات</h2>
-        <button class="lux-quill" id="lux-new" aria-label="محادثة جديدة">
-          <svg viewBox="0 0 24 24"><path d="M20.5 3.5c-3.4 0-7.6 1.5-10.4 4.6C7.6 10.8 6.6 14 6.2 16.6c2.6-.4 5.8-1.4 8.5-3.9 3.1-2.8 4.6-7 4.6-10.4z"/><path d="M6.2 16.6L3.5 20.5"/><path d="M9.6 13.2c1.6-.4 3.4-1.3 4.9-2.7"/></svg>
-        </button>
+        <div class="msg-head-acts">
+          <button class="mode-btn" id="msg-mode" aria-label="الوضع الفاتح/الداكن">
+            <svg class="ic-moon" viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+            <svg class="ic-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.2"/><path d="M12 2v2.4M12 19.6V22M2 12h2.4M19.6 12H22M4.9 4.9l1.7 1.7M17.4 17.4l1.7 1.7M19.1 4.9l-1.7 1.7M6.6 17.4l-1.7 1.7"/></svg>
+          </button>
+          <button class="lux-quill" id="lux-new" aria-label="محادثة جديدة">
+            <svg viewBox="0 0 24 24"><path d="M20.5 3.5c-3.4 0-7.6 1.5-10.4 4.6C7.6 10.8 6.6 14 6.2 16.6c2.6-.4 5.8-1.4 8.5-3.9 3.1-2.8 4.6-7 4.6-10.4z"/><path d="M6.2 16.6L3.5 20.5"/><path d="M9.6 13.2c1.6-.4 3.4-1.3 4.9-2.7"/></svg>
+          </button>
+        </div>
       </div></section>
       <div style="padding:0 var(--pad) 10px"><button class="push-btn" id="push-btn"></button></div>
       <div class="user-search" id="msg-search-box">
@@ -2005,7 +2078,7 @@ ar:{dir:"rtl",label:"العربية",
  emDid:"تقصد",emFix:"صحّحه",emGmailShort:"اسم Gmail لازم ٦ حروف فأكثر.",
  lockT:"رقم استلام الطلبات",lockD:"كل الطلبات تروح لهذا الرقم — مقفول وما ينتغيّر.",
  oEmail:"البريد",
- setDb:"قاعدة البيانات",dbWait:"يفحص الاتصال…",dbOn:"متصل ✓",dbOff:"ما يوصل — راجع الإنترنت",
+ setDone:"تم",setDb:"قاعدة البيانات",dbWait:"يفحص الاتصال…",dbOn:"متصل ✓",dbOff:"ما يوصل — راجع الإنترنت",
  dbKey:"المفتاح مرفوض",dbTable:"متصل — بس الجداول ناقصة",
  oCode:"رقم الطلب",
  unit:"متر",dimsTBD:"القياس بعد المعاينة",wh:"(عرض × ارتفاع)",
@@ -2097,7 +2170,7 @@ en:{dir:"ltr",label:"English",
  emDid:"Did you mean",emFix:"Fix it",emGmailShort:"A Gmail name needs 6 characters or more.",
  lockT:"Orders go to",lockD:"Every order lands on this number — locked and cannot change.",
  oEmail:"Email",
- setDb:"Database",dbWait:"Checking…",dbOn:"Connected ✓",dbOff:"Unreachable — check your connection",
+ setDone:"Done",setDb:"Database",dbWait:"Checking…",dbOn:"Connected ✓",dbOff:"Unreachable — check your connection",
  dbKey:"Key rejected",dbTable:"Connected — tables are missing",
  oCode:"Order no.",
  unit:"m",dimsTBD:"Size after the visit",wh:"(width × height)",
@@ -2189,7 +2262,7 @@ ku:{dir:"rtl",label:"کوردی",
  emDid:"مەبەستت",emFix:"چاکی بکە",emGmailShort:"ناوی Gmail دەبێت ٦ پیت یان زیاتر بێت.",
  lockT:"ژمارەی وەرگرتنی داواکاری",lockD:"هەموو داواکارییەک بۆ ئەم ژمارەیە دەچێت — قوفڵدراوە و ناگۆڕدرێت.",
  oEmail:"ئیمەیڵ",
- setDb:"بنکەی زانیاری",dbWait:"پشکنین…",dbOn:"پەیوەندی هەیە ✓",dbOff:"ناگات — ئینتەرنێت بپشکنە",
+ setDone:"تەواو",setDb:"بنکەی زانیاری",dbWait:"پشکنین…",dbOn:"پەیوەندی هەیە ✓",dbOff:"ناگات — ئینتەرنێت بپشکنە",
  dbKey:"کلیل ڕەتکرایەوە",dbTable:"پەیوەندی هەیە — خشتەکان نین",
  oCode:"ژمارەی داواکاری",
  unit:"مەتر",dimsTBD:"پێوان دوای سەردان",wh:"(پانی × بەرزی)",
@@ -2424,7 +2497,8 @@ function fillUI(){
 
 /* ===== التنقل ===== */
 function go(view){
-  try{ document.body.classList.toggle('msgview', view==='messages') }catch(e){}
+  try{ document.body.classList.toggle('msgview', view==='messages');
+       if(typeof msgApplyMode==='function') msgApplyMode(); }catch(e){}
   if(view==='admin'&&!owner) view='home';           /* الصفحة ما تنفتح إلا للمالك */
   document.querySelectorAll('.view').forEach(v=>v.classList.toggle('on',v.id==='v-'+view));
   document.querySelectorAll('.tab').forEach(tb=>tb.setAttribute('aria-selected',tb.dataset.go===view));
@@ -2470,7 +2544,7 @@ document.getElementById('settings-btn').onclick=()=>{
     <div class="setgrid"><div class="setopt" id="db-card" aria-pressed="false" style="cursor:default">
       <span><b id="db-b">${x.dbWait}</b><small class="mono">${sbBase().replace('https://','')}</small></span>
       <span class="dot"></span></div></div>
-    <div class="acts"><button class="btn btn-p" id="set-done">✓</button></div>`);
+    <div class="acts"><button class="btn btn-p" id="set-done">${x.setDone}</button></div>`);
   sbPing().then(st=>{
     const b=document.getElementById('db-b'), card=document.getElementById('db-card');
     if(!b) return;
@@ -4644,6 +4718,19 @@ function rlBindActions(){
 /* ═══════════════════════════════════════════════════════════
    سلوك واجهة المراسلات الفاخرة
    ═══════════════════════════════════════════════════════════ */
+/* ── وضع المراسلات: فاتح/داكن مستقل تماماً عن ثيم الموقع ── */
+const LS_MSGMODE="ha_msg_mode_v1";
+let msgDark = lsGet(LS_MSGMODE)==="dark";
+function msgApplyMode(){
+  try{ document.body.classList.toggle('msgdark', !!msgDark) }catch(e){}
+}
+function msgToggleMode(){
+  msgDark=!msgDark;
+  lsSet(LS_MSGMODE, msgDark?"dark":"light");
+  msgApplyMode();
+}
+msgApplyMode();
+
 const LS_FAV="ha_fav_convs_v1";
 let favConvs=lsGet(LS_FAV)||[];
 let luxFilter="all";
@@ -4708,24 +4795,12 @@ function chatBindScroll(){
    ═══════════════════════════════════════════════════════════ */
 const LS_LOOK="ha_chat_look_v1";
 const BUBBLES=[
-  {k:"gold",   n:"ذهبي",    g:"linear-gradient(145deg,#8A6D22,#B8952F 55%,#9C7C26)", t:"#FFF9EA", tail:"#9C7C26"},
-  {k:"royal",  n:"ملكي",    g:"linear-gradient(145deg,#4C2A8A,#7B4BD1 55%,#5B33A3)", t:"#F6F0FF", tail:"#5B33A3"},
-  {k:"emerald",n:"زمردي",   g:"linear-gradient(145deg,#0B6B4F,#12A374 55%,#0D7C5C)", t:"#EDFFF8", tail:"#0D7C5C"},
-  {k:"ocean",  n:"بحري",    g:"linear-gradient(145deg,#123E7C,#2374D6 55%,#17529B)", t:"#EFF6FF", tail:"#17529B"},
-  {k:"sunset", n:"غروب",    g:"linear-gradient(145deg,#B03A2E,#E8703A 55%,#C9512F)", t:"#FFF4EC", tail:"#C9512F"},
-  {k:"rose",   n:"وردي",    g:"linear-gradient(145deg,#9C2455,#DC4B84 55%,#B23167)", t:"#FFF0F6", tail:"#B23167"},
-  {k:"teal",   n:"فيروزي",  g:"linear-gradient(145deg,#0A5F66,#12909B 55%,#0C7079)", t:"#EDFDFF", tail:"#0C7079"},
-  {k:"wine",   n:"عنابي",   g:"linear-gradient(145deg,#6B1220,#A82239 55%,#7F1729)", t:"#FFF0F2", tail:"#7F1729"},
-  {k:"indigo", n:"نيلي",    g:"linear-gradient(145deg,#252C77,#4653C4 55%,#2E3691)", t:"#F0F2FF", tail:"#2E3691"},
-  {k:"olive",  n:"زيتوني",  g:"linear-gradient(145deg,#4A5220,#798534 55%,#5A6427)", t:"#F8FBEC", tail:"#5A6427"},
-  {k:"graphite",n:"فحمي",   g:"linear-gradient(145deg,#2A2C31,#4A4E57 55%,#33363C)", t:"#F2F4F7", tail:"#33363C"},
-  {k:"sky",    n:"سماوي",   g:"linear-gradient(145deg,#1E6E8C,#39A8CC 55%,#2481A2)", t:"#EEFAFF", tail:"#2481A2"},
-  {k:"plum",   n:"برقوقي",  g:"linear-gradient(145deg,#5B2160,#96389E 55%,#6D2874)", t:"#FCF0FF", tail:"#6D2874"},
-  {k:"amber",  n:"كهرماني", g:"linear-gradient(145deg,#8A4B10,#D2841F 55%,#A25C15)", t:"#FFF7EC", tail:"#A25C15"},
-  {k:"forest", n:"غابة",    g:"linear-gradient(145deg,#1E4620,#357A38 55%,#255529)", t:"#F0FFF1", tail:"#255529"},
-  {k:"slate",  n:"رصاصي",   g:"linear-gradient(145deg,#334155,#57708F 55%,#3D4F66)", t:"#F1F5FA", tail:"#3D4F66"}
+  {k:"white", n:"أبيض",       g:"#FFFFFF", t:"#141414", tail:"#FFFFFF"},
+  {k:"black", n:"أسود",       g:"#1E1E1E", t:"#F2F2F2", tail:"#1E1E1E"},
+  {k:"ash",   n:"رمادي فاتح", g:"#E9E9E9", t:"#141414", tail:"#E9E9E9"},
+  {k:"steel", n:"رمادي غامق", g:"#4A4A4A", t:"#F5F5F5", tail:"#4A4A4A"}
 ];
-let chatLook=lsGet(LS_LOOK)||{bub:"gold",fs:15};
+let chatLook=lsGet(LS_LOOK)||{bub:"white",fs:15};
 
 function lookApply(){
   const b=BUBBLES.find(z=>z.k===chatLook.bub)||BUBBLES[0];
@@ -4902,6 +4977,9 @@ function luxBind(){
     const i=document.getElementById('msg-q');
     if(i){ i.focus(); i.scrollIntoView({behavior:'smooth',block:'center'}) }
   };
+  /* زر الوضع الفاتح/الداكن — يخص المراسلات وحدها */
+  const mb=document.getElementById('msg-mode');
+  if(mb) mb.onclick=()=>msgToggleMode();
   /* زر + بشريط الكتابة → إرفاق ملف */
   const lp=document.getElementById('lux-plus');
   if(lp) lp.onclick=()=>filePick();
@@ -5248,11 +5326,11 @@ async function msgFetch(convId,limit){
 
 /* ═══ ضغط صورة الشات ═══ */
 /* ═══════════════════════════════════════════════════════════
-   ضغط الصور بدقة 2K حقيقية
-   2560 بكسل للضلع الأطول وجودة 0.92 — الصور تنرفع لمخزن
+   ضغط الصور بدقة 4K حقيقية
+   3840 بكسل للضلع الأطول وجودة 0.94 — الصور تنرفع لمخزن
    Supabase وما تنحفظ داخل الرسالة، حتى ما تثقّل القاعدة.
    ═══════════════════════════════════════════════════════════ */
-const IMG_2K=2560, IMG_Q=0.92;
+const IMG_2K=3840, IMG_Q=0.94;   /* 4K — 3840 بكسل للضلع الأطول */
 const SB_BASE=SUPABASE.URL.replace(/\/rest\/v1\/?$/,"");
 const SB_BUCKET="media";
 let _storageOK=null;   /* null=ما جرّبنا، true/false=النتيجة */
@@ -5260,7 +5338,7 @@ let _storageOK=null;   /* null=ما جرّبنا، true/false=النتيجة */
 /* يرجّع {dataURL, blob, w, h} */
 function imgProcess(file,done,maxPx,quality){
   if(!file||!/^image\//i.test(file.type||"")) return;
-  if(file.size>25*1024*1024){toast("الصورة كبيرة — الحد 25 ميجا");return}
+  if(file.size>60*1024*1024){toast("الصورة كبيرة — الحد 60 ميجا");return}
   const fr=new FileReader();
   fr.onerror=()=>toast("ما قدرت أقرأ الصورة");
   fr.onload=()=>{
@@ -5589,7 +5667,9 @@ async function msgRefreshChat(){
       :'<svg viewBox="0 0 24 24"><path d="M4 12.5l5 5L20 6.5"/></svg>'}</span>`:'';
     content+=`<div class="chat-ts">${d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}${ticks}</div>`;
     const pills=rxPillsHTML(m.id);
-    html+=`<div class="chat-bubble ${isMe?'me':'them'}${pills?' has-rx':''}" data-id="${esc(m.id)}">${replyQuoteHTML(m)}${content}${pills}</div>`;
+    /* صورة لحالها بلا نص ولا رد = بلا إطار، الصورة تملأ الفقاعة */
+    const bare = m.img && !m.body && !m.voice && !m.file && !m.reply_to;
+    html+=`<div class="chat-bubble ${isMe?'me':'them'}${pills?' has-rx':''}${bare?' img-only':''}" data-id="${esc(m.id)}">${replyQuoteHTML(m)}${content}${pills}</div>`;
   });
   /* ما نعيد الرسم إذا ماكو أي تغيير — يمنع القفز والوميض */
   if(html===_lastChatHTML) return;
@@ -5621,6 +5701,20 @@ async function msgRefreshChat(){
   /* النقر على الصورة → ملء الشاشة */
   box.querySelectorAll('.chat-img').forEach(im=>{
     im.onclick=e=>{ e.stopPropagation(); imgViewOpen(im.getAttribute('src')) };
+    /* الصورة ما وصلت — نخلي الفقاعة تبين بدل ما تختفي بصمت */
+    const markBad=()=>{
+      const wrap=im.closest('.chat-img-wrap'), bub=im.closest('.chat-bubble');
+      if(bub) bub.classList.remove('img-only');
+      if(wrap && !wrap.classList.contains('img-bad')){
+        wrap.classList.add('img-bad');
+        wrap.innerHTML='<div class="img-bad-box">'+
+          '<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2.4"/>'+
+          '<path d="M3 16l5-5 4 4 3-3 6 6"/><path d="M4 4l16 16"/></svg>'+
+          '<b>الصورة ما وصلت</b><span>سيرفر الصور مطفي — شغّله وحدّث الصفحة</span></div>';
+      }
+    };
+    if(im.complete && im.naturalWidth===0) markBad();
+    im.onerror=markBad;
   });
   /* تحميل الملفات */
   box.querySelectorAll('.file-card').forEach(fc=>{
@@ -6597,8 +6691,36 @@ async function msgOpenProfile(phone){
       document.getElementById('up-followers-n').textContent=upFmtNum(await msgCountFollowers(phone));
     };
     msgB.onclick=()=>{ msgCloseProfile(); msgOpenChat(phone,p.name,p.avatar); };
-    bell.onclick=()=>toast('التنبيهات راح تنضاف قريباً');
+    upPaintBell(bell,phone);
+    bell.onclick=async()=>{
+      const nowMuted=muteToggle(phone);
+      upPaintBell(bell,phone);
+      toast(nowMuted?'انكتمت تنبيهات هذا الحساب':'انفعّلت تنبيهات هذا الحساب');
+      /* أول ما يشغّل التنبيهات، نتأكد إن إشعارات الجهاز مفعّلة */
+      if(!nowMuted && typeof pushEnable==='function' && !_pushOn) pushEnable();
+    };
   }
+}
+
+/* ═══ كتم تنبيهات حساب معيّن — ينحفظ بالجهاز ═══ */
+const LS_MUTE="ha_muted_users_v1";
+let mutedUsers=lsGet(LS_MUTE)||[];
+const isMuted=ph=>mutedUsers.indexOf(msgNormPhone(ph))>-1;
+function muteToggle(ph){
+  const k=msgNormPhone(ph);
+  if(isMuted(k)) mutedUsers=mutedUsers.filter(z=>z!==k);
+  else mutedUsers.push(k);
+  lsSet(LS_MUTE,mutedUsers);
+  return isMuted(k);
+}
+function upPaintBell(btn,ph){
+  if(!btn) return;
+  const off=isMuted(ph);
+  btn.classList.toggle('muted',off);
+  btn.title=off?'التنبيهات مكتومة':'التنبيهات مفعّلة';
+  btn.innerHTML = off
+    ? '<svg viewBox="0 0 24 24"><path d="M8.6 4.6A6 6 0 0 1 18 9.5c0 3.4.9 5 1.7 6M6.3 6.3A6 6 0 0 0 6 9.5C6 14 4 15.5 4 15.5h12"/><path d="M10.3 19a2 2 0 0 0 3.4 0"/><path d="M3 3l18 18"/></svg>'
+    : '<svg viewBox="0 0 24 24"><path d="M18 9.5a6 6 0 1 0-12 0C6 14 4 15.5 4 15.5h16S18 14 18 9.5z"/><path d="M10.3 19a2 2 0 0 0 3.4 0"/></svg>';
 }
 
 /* رسم بيانات الملف */
@@ -6728,7 +6850,7 @@ function upBootImages(){
         upPaint(upData,true);
         toast(kind==='cover'?'انحفظ الغلاف':'انحفظت الصورة');
       }else toast('ما انحفظت الصورة');
-    },kind==='cover'?1600:800,{folder:'profile'});
+    },kind==='cover'?2560:1440,{folder:'profile'});
   };
   document.getElementById('up-av-file').onchange=handle('avatar');
   document.getElementById('up-cover-file').onchange=handle('cover');
@@ -7162,7 +7284,9 @@ async function pushBoot(){
     if(d.type==='push'&&d.payload){
       const p=d.payload;
       if(p.type==='call'){ /* شاشة المكالمة تنفتح من المراقب أصلاً */ }
-      else{ notifBump(); toast('📩 '+(p.title||'رسالة جديدة')); }
+      else if(!(p.from && typeof isMuted==='function' && isMuted(p.from))){
+        notifBump(); toast('📩 '+(p.title||'رسالة جديدة'));
+      }
     }
     if(d.type==='notif-click'){
       const p=d.data||{};
