@@ -3608,7 +3608,7 @@ function rlEnsureView(){
 
 const OWNER_PHONE=msgNormPhone(SHOP.WA);  /* رقم المالك — منسّق لنفس صيغة أرقام الزبائن */
 const verifiedBadge=(lg)=>`<span class="verified-badge${lg?' lg':''}" title="موثّق"><svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg></span>`;
-const rlBrandHTML = ()=>`<span class="rl-logo-wrap"><span class="rl-logo"><img src="${document.querySelector('.logo img')?document.querySelector('.logo img').src:''}" alt=""></span><button class="rl-msg-btn" onclick="event.stopPropagation();msgOpenChat(OWNER_PHONE,(t&&t().brand)||'','')">＋</button></span><b>${esc((t&&t().brand)||"")}${verifiedBadge()}</b>`;
+const rlBrandHTML = ()=>`<span class="rl-logo-wrap"><span class="rl-logo"><img src="${document.querySelector('.logo img')?document.querySelector('.logo img').src:''}" alt=""></span></span><b>${esc((t&&t().brand)||"")}${verifiedBadge()}</b>`;
 function rlItemHTML(r){
   return `<section class="rl-item" data-id="${esc(r.id)}" data-baked="${r.baked!==false}" data-start="${+r.start||0}" data-end="${r.end?+r.end:0}">
     <div class="rl-vwrap">
@@ -3618,8 +3618,20 @@ function rlItemHTML(r){
       <span class="rl-snd" hidden>${RL.tapSound}</span>
     </div>
     <div class="rl-grad"></div>
+    <div class="rl-burst"><svg viewBox="0 0 24 24"><path d="M12 20.5S3.6 15.2 3.6 9.4a4.6 4.6 0 0 1 8.4-2.6 4.6 4.6 0 0 1 8.4 2.6c0 5.8-8.4 11.1-8.4 11.1z"/></svg></div>
+    <div class="rl-rail">
+      <button class="rl-act rl-like" aria-label="إعجاب">
+        <svg viewBox="0 0 24 24"><path d="M12 20.4S3.7 15.2 3.7 9.5a4.6 4.6 0 0 1 8.3-2.7 4.6 4.6 0 0 1 8.3 2.7c0 5.7-8.3 10.9-8.3 10.9z"/></svg>
+        <span class="rl-n">0</span></button>
+      <button class="rl-act rl-cmt" aria-label="تعليقات">
+        <svg viewBox="0 0 24 24"><path d="M20.6 12.2a8 8 0 0 1-11.5 7.2L3.4 21l1.6-5.6A8 8 0 1 1 20.6 12.2z"/></svg>
+        <span class="rl-n">0</span></button>
+      <button class="rl-act rl-share" aria-label="مشاركة">
+        <svg viewBox="0 0 24 24"><path d="M4 12.5v5.8a1.7 1.7 0 0 0 1.7 1.7h12.6a1.7 1.7 0 0 0 1.7-1.7v-5.8"/><path d="M12 15.2V3.8M12 3.8L7.8 8M12 3.8L16.2 8"/></svg>
+        <span class="rl-n"></span></button>
+    </div>
     <div class="rl-meta">
-      <div class="rl-brand">${rlBrandHTML()}</div>
+      <div class="rl-brand">${rlBrandHTML()}<button class="rl-follow">متابعة</button></div>
       ${r.descr?`<p class="rl-desc">${esc(r.descr)}</p>`:""}
     </div>
   </section>`;
@@ -3678,6 +3690,9 @@ function rlRenderFeed(){
     } else { try{v.pause()}catch(e){} }
   }); },{threshold:[0,0.6,1]});
   feed.querySelectorAll(".rl-item").forEach(it=>_rlObs.observe(it));
+  rlBindActions();
+  rlStatsFetch();
+  rlRefreshFollow();
 }
 async function rlAttach(v,it,r){
   if(v.dataset.loaded) return; v.dataset.loaded="1";
@@ -3955,6 +3970,60 @@ function rlCSS(){
   body.reels .topbar{display:none}
   body.reels main{padding-bottom:0}
   body.reels   #v-reels{padding:0;background:#000}
+
+  /* ── شريط التفاعلات الجانبي ── */
+  .rl-rail{position:absolute;inset-inline-end:10px;bottom:104px;z-index:5;
+    display:flex;flex-direction:column;align-items:center;gap:20px}
+  .rl-act{border:0;background:transparent;padding:0;cursor:pointer;color:#fff;
+    display:flex;flex-direction:column;align-items:center;gap:5px}
+  .rl-act svg{width:31px;height:31px;stroke:#fff;fill:none;stroke-width:1.9;
+    stroke-linecap:round;stroke-linejoin:round;
+    filter:drop-shadow(0 2px 6px rgba(0,0,0,.6))}
+  .rl-act .rl-n{font-size:12.5px;font-weight:700;font-family:"IBM Plex Mono",monospace;
+    text-shadow:0 1px 5px rgba(0,0,0,.7);min-height:15px}
+  .rl-act:active svg{transform:scale(.86)}
+  .rl-like.on svg{fill:#F0385F;stroke:#F0385F}
+  .rl-like.pop svg{animation:rlPop .42s cubic-bezier(.2,1.5,.4,1)}
+  @keyframes rlPop{0%{transform:scale(1)}42%{transform:scale(1.42)}100%{transform:scale(1)}}
+  /* قلب النقرتين */
+  .rl-burst{position:absolute;inset:0;z-index:6;display:grid;place-items:center;pointer-events:none;opacity:0}
+  .rl-burst svg{width:110px;height:110px;fill:#F0385F;stroke:none;
+    filter:drop-shadow(0 6px 22px rgba(0,0,0,.5))}
+  .rl-burst.go{animation:rlBurst .95s ease-out}
+  @keyframes rlBurst{0%{opacity:0;transform:scale(.4)}18%{opacity:1;transform:scale(1.15)}
+    38%{transform:scale(.95)}100%{opacity:0;transform:scale(1.25)}}
+  /* زر المتابعة جنب الاسم */
+  .rl-follow{border:1.5px solid rgba(255,255,255,.9);background:transparent;color:#fff;
+    border-radius:9px;padding:4px 15px;font-size:12.5px;font-weight:700;cursor:pointer;
+    font-family:var(--font);flex:none;margin-inline-start:4px;
+    text-shadow:0 1px 4px rgba(0,0,0,.5);transition:background .2s,border-color .2s}
+  .rl-follow:active{transform:scale(.94)}
+  .rl-follow.on{border-color:rgba(255,255,255,.45);color:rgba(255,255,255,.75)}
+  .rl-meta{padding-inline-end:64px}
+
+  /* ── لوحة التعليقات ── */
+  .rc-list{max-height:46vh;overflow-y:auto;margin-bottom:10px;display:flex;flex-direction:column;gap:2px}
+  .rc-load{text-align:center;color:var(--muted);font-size:13px;padding:22px 0}
+  .rc-row{display:flex;gap:10px;align-items:flex-start;padding:9px 4px;position:relative}
+  .rc-row+.rc-row{border-top:1px solid var(--line)}
+  .rc-av{width:36px;height:36px;border-radius:50%;flex:none;overflow:hidden;display:grid;
+    place-items:center;background:var(--m-surface);font-size:14px;font-weight:700;color:var(--brand)}
+  .rc-av img{width:100%;height:100%;object-fit:cover}
+  .rc-in{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+  .rc-who{font-size:12.5px;font-weight:700;color:var(--ink)}
+  .rc-who i{font-style:normal;font-size:11px;color:var(--muted);font-weight:500;margin-inline-start:7px}
+  .rc-txt{font-size:13.5px;line-height:1.6;color:var(--ink);overflow-wrap:anywhere}
+  .rc-del{border:0;background:transparent;cursor:pointer;color:var(--muted);flex:none;padding:2px}
+  .rc-dsvg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round}
+  .rc-bar{display:flex;gap:8px;align-items:center}
+  .rc-input{flex:1;border:1px solid var(--line);background:var(--m-surface);color:var(--ink);
+    border-radius:13px;padding:11px 14px;font-size:14px;font-family:var(--font);outline:none}
+  .rc-send{width:42px;height:42px;border:0;border-radius:50%;background:var(--brand);color:#fff;
+    display:grid;place-items:center;cursor:pointer;flex:none}
+  .rc-svg{width:19px;height:19px;stroke:currentColor;fill:none;stroke-width:2;
+    stroke-linecap:round;stroke-linejoin:round;transform:scaleX(-1)}
+  .rc-send:active{transform:scale(.92)}
+
   .rl-feed{height:calc(100vh - var(--tabh));height:calc(100dvh - var(--tabh));overflow-y:auto;scroll-snap-type:y mandatory;
     -webkit-overflow-scrolling:touch;background:#000;scrollbar-width:none}
   .rl-feed::-webkit-scrollbar{display:none}
@@ -4013,6 +4082,196 @@ function rlCSS(){
 }
 
 /* ═════════ الربط بنظام التنقل ═════════ */
+
+/* ═══════════════════════════════════════════════════════════
+   شريط تفاعلات الريلز — إعجاب وتعليقات ومشاركة ومتابعة
+   يحتاج جدولَي reel_likes و reel_comments بـ Supabase.
+   ═══════════════════════════════════════════════════════════ */
+let rlLikes={};      /* reel_id → {n, mine} */
+let rlCmtN={};       /* reel_id → عدد التعليقات */
+let rlFollowing=false;
+
+const rlNum=n=>{
+  n=+n||0;
+  if(n>=1000000) return (n/1000000).toFixed(n%1000000?1:0)+"M";
+  if(n>=1000)    return (n/1000).toFixed(n%1000>=100?1:0)+"K";
+  return String(n);
+};
+
+/* ───── جلب الأعداد لكل الريلز مرة وحدة ───── */
+async function rlStatsFetch(){
+  const ids=REELS.map(r=>r.id); if(!ids.length) return;
+  const inList=encodeURIComponent(ids.map(i=>`"${i}"`).join(","));
+  const me=myPhone();
+  rlLikes={}; rlCmtN={};
+  try{
+    const rows=await sbSelect("reel_likes","select=reel_id,phone&reel_id=in.("+inList+")");
+    (rows||[]).forEach(r=>{
+      const o=rlLikes[r.reel_id]=rlLikes[r.reel_id]||{n:0,mine:false};
+      o.n++; if(me&&r.phone===me) o.mine=true;
+    });
+  }catch(e){}
+  try{
+    const rows=await sbSelect("reel_comments","select=reel_id&reel_id=in.("+inList+")");
+    (rows||[]).forEach(r=>{ rlCmtN[r.reel_id]=(rlCmtN[r.reel_id]||0)+1 });
+  }catch(e){}
+  rlPaintStats();
+}
+
+function rlPaintStats(){
+  document.querySelectorAll(".rl-item").forEach(it=>{
+    const id=it.dataset.id, L=rlLikes[id]||{n:0,mine:false};
+    const lb=it.querySelector(".rl-like");
+    if(lb){ lb.classList.toggle("on",!!L.mine);
+      const c=lb.querySelector(".rl-n"); if(c) c.textContent=rlNum(L.n); }
+    const cb=it.querySelector(".rl-cmt .rl-n");
+    if(cb) cb.textContent=rlNum(rlCmtN[id]||0);
+  });
+}
+
+/* ───── إعجاب ───── */
+async function rlToggleLike(id,btn){
+  const me=myPhone();
+  if(!me){ toast(mt().needLogin); return }
+  const L=rlLikes[id]=rlLikes[id]||{n:0,mine:false};
+  const was=L.mine;
+  /* تحديث فوري */
+  L.mine=!was; L.n=Math.max(0,L.n+(was?-1:1));
+  rlPaintStats();
+  if(!was){
+    btn.classList.remove("pop"); void btn.offsetWidth; btn.classList.add("pop");
+    if(navigator.vibrate){try{navigator.vibrate(12)}catch(e){}}
+  }
+  try{
+    if(was){
+      await sbReq("reel_likes?reel_id=eq."+encodeURIComponent(id)+"&phone=eq."+encodeURIComponent(me),
+        {method:"DELETE",headers:{Prefer:"return=minimal"}});
+    }else{
+      await sbReq("reel_likes",{method:"POST",headers:{Prefer:"return=minimal"},
+        body:JSON.stringify({reel_id:id,phone:me})});
+    }
+  }catch(e){
+    L.mine=was; L.n=Math.max(0,L.n+(was?1:-1)); rlPaintStats();
+    toast("ما قدرت أحفظ الإعجاب");
+  }
+}
+
+/* ───── التعليقات ───── */
+async function rlOpenComments(id){
+  openSheet(`
+    <h3 style="font-size:17px;margin-bottom:10px">التعليقات</h3>
+    <div class="rc-list" id="rc-list"><div class="rc-load">…</div></div>
+    <div class="rc-bar">
+      <input class="rc-input" id="rc-input" placeholder="اكتب تعليق…" maxlength="300">
+      <button class="rc-send" id="rc-send" aria-label="إرسال">${ic('reply','rc-svg')}</button>
+    </div>`);
+  const send=document.getElementById('rc-send');
+  const inp=document.getElementById('rc-input');
+  send.onclick=async()=>{
+    const me=myPhone();
+    if(!me){ toast(mt().needLogin); return }
+    let v=inp.value.trim(); if(!v) return;
+    const r=cleanBad(v);
+    if(r.hits){ v=r.clean; warnTop("انشالت كلمات غير لائقة من تعليقك."); }
+    inp.value='';
+    try{
+      await sbReq("reel_comments",{method:"POST",headers:{Prefer:"return=minimal"},
+        body:JSON.stringify({reel_id:id,phone:me,body:v})});
+      rlCmtN[id]=(rlCmtN[id]||0)+1; rlPaintStats();
+    }catch(e){ toast("ما قدرت أنشر التعليق") }
+    rlLoadComments(id);
+  };
+  inp.addEventListener('keydown',e=>{ if(e.key==='Enter') send.click() });
+  rlLoadComments(id);
+}
+
+async function rlLoadComments(id){
+  const box=document.getElementById('rc-list'); if(!box) return;
+  let rows;
+  try{ rows=await sbSelect("reel_comments",
+    "select=*&reel_id=eq."+encodeURIComponent(id)+"&order=created_at.desc&limit=80") }
+  catch(e){ box.innerHTML='<div class="rc-load">ما كدرت أجيب التعليقات</div>'; return }
+  if(!rows||!rows.length){ box.innerHTML='<div class="rc-load">ماكو تعليقات لهسه — كون الأول</div>'; return }
+  const me=myPhone();
+  const profs={};
+  await Promise.all([...new Set(rows.map(r=>r.phone))].map(async ph=>{
+    try{ profs[ph]=await msgGetProfile(ph) }catch(e){ profs[ph]={} }
+  }));
+  box.innerHTML=rows.map(r=>{
+    const p=profs[r.phone]||{}, nm=msgDisplayName(p)||r.phone;
+    const av=p.avatar?`<img src="${esc(p.avatar)}" alt="">`
+      :`<span>${esc((nm||"?").charAt(0).toUpperCase())}</span>`;
+    const mine=me&&r.phone===me;
+    return `<div class="rc-row">
+      <span class="rc-av">${av}</span>
+      <span class="rc-in"><span class="rc-who">${esc(nm)}<i>${timeAgo(r.created_at)}</i></span>
+        <span class="rc-txt">${esc(r.body||"")}</span></span>
+      ${mine?`<button class="rc-del" data-del="${esc(r.id)}" aria-label="حذف">${ic('trash','rc-dsvg')}</button>`:''}
+    </div>`;
+  }).join('');
+  box.querySelectorAll('[data-del]').forEach(b=>{
+    b.onclick=async()=>{
+      try{
+        await sbReq("reel_comments?id=eq."+encodeURIComponent(b.dataset.del),
+          {method:"DELETE",headers:{Prefer:"return=minimal"}});
+        rlCmtN[id]=Math.max(0,(rlCmtN[id]||1)-1); rlPaintStats();
+      }catch(e){ toast("ما قدرت أحذفه") }
+      rlLoadComments(id);
+    };
+  });
+}
+
+/* ───── مشاركة الريل ───── */
+function rlShare(id){
+  const r=REELS.find(z=>z.id===id);
+  const txt=(r&&r.descr)?r.descr:((t&&t().brand)||"");
+  shareOpen(txt+"\n"+((t&&t().brand)||""),shareLink("r",id),"ريل");
+}
+
+/* ───── متابعة صاحب الحساب ───── */
+async function rlRefreshFollow(){
+  try{ rlFollowing=await msgIsFollowing(OWNER_PHONE) }catch(e){ rlFollowing=false }
+  rlPaintFollow();
+}
+function rlPaintFollow(){
+  document.querySelectorAll(".rl-follow").forEach(b=>{
+    b.textContent=rlFollowing?"تتابعه":"متابعة";
+    b.classList.toggle("on",rlFollowing);
+  });
+}
+async function rlToggleFollow(){
+  if(!isLoggedMsg()){ toast(mt().needLogin); return }
+  try{
+    if(rlFollowing){ await msgUnfollow(OWNER_PHONE); rlFollowing=false }
+    else{ await msgFollow(OWNER_PHONE); rlFollowing=true }
+    rlPaintFollow();
+  }catch(e){ toast("ما قدرت أحدّث المتابعة") }
+}
+
+/* ───── ربط أزرار الشريط ───── */
+function rlBindActions(){
+  document.querySelectorAll(".rl-item").forEach(it=>{
+    const id=it.dataset.id;
+    const q=s=>it.querySelector(s);
+    const lb=q(".rl-like"); if(lb) lb.onclick=e=>{ e.stopPropagation(); rlToggleLike(id,lb) };
+    const cb=q(".rl-cmt");  if(cb) cb.onclick=e=>{ e.stopPropagation(); rlOpenComments(id) };
+    const sb=q(".rl-share");if(sb) sb.onclick=e=>{ e.stopPropagation(); rlShare(id) };
+    const fb=q(".rl-follow");if(fb) fb.onclick=e=>{ e.stopPropagation(); rlToggleFollow() };
+    /* نقرتين على الفيديو = إعجاب */
+    const tap=q(".rl-tap");
+    if(tap){
+      let last=0;
+      tap.addEventListener('click',()=>{
+        const now=Date.now();
+        if(now-last<320){ if(!(rlLikes[id]||{}).mine) rlToggleLike(id,lb);
+          const h=q(".rl-burst"); if(h){ h.classList.remove("go"); void h.offsetWidth; h.classList.add("go") } }
+        last=now;
+      });
+    }
+  });
+  rlPaintStats(); rlPaintFollow();
+}
+
 function reelsBoot(){
   rlCSS();
   rlEnsureView();
