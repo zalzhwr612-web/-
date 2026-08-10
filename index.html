@@ -5218,11 +5218,50 @@ function imgProcess(file,done,maxPx,quality){
   fr.readAsDataURL(file);
 }
 
-/* يرفع الصورة للمخزن ويرجّع رابطها العام — أو null إذا المخزن مو جاهز */
+/* ═══════════════════════════════════════════════════════════
+   سيرفر الوسائط على هاتف المالك
+   الملف ينرفع للهاتف، والرابط اللي ينحفظ بالقاعدة ثابت ما يتغيّر:
+   .../functions/v1/m/<مجلد>/<ملف> — الدالة تحوّله لرابط النفق الحالي.
+   الهاتف مطفي؟ نرجع تلقائياً لمخزن Supabase مثل قبل بلا أي فرق.
+   ═══════════════════════════════════════════════════════════ */
+const MEDIA_FN=SB_BASE+"/functions/v1/m";
+const MEDIA_TOKEN="ha-media-7Q2v";   /* لازم يطابق اللي بـ media-server.js و SQL */
+let _mBase=null,_mAt=0;
+
+/* رابط النفق الحالي — نسأل عنه مرة كل دقيقة بس */
+async function mediaBase(){
+  if(_mAt&&Date.now()-_mAt<60000) return _mBase;
+  _mAt=Date.now();
+  try{
+    const r=await fetch(MEDIA_FN+"?base=1",{cache:"no-store"});
+    const j=r.ok?await r.json():null;
+    _mBase=(j&&j.online&&j.base)?String(j.base).replace(/\/+$/,""):null;
+  }catch(e){ _mBase=null }
+  return _mBase;
+}
+
+/* يرفع للهاتف ويرجّع الرابط الثابت — أو null إذا الهاتف مو شغّال */
+async function mediaUpload(blob,path){
+  const base=await mediaBase();
+  if(!base) return null;
+  try{
+    const r=await fetch(base+"/up/"+path,{method:"POST",
+      headers:{"x-token":MEDIA_TOKEN,"Content-Type":blob.type||"application/octet-stream"},
+      body:blob});
+    if(!r.ok){ if(r.status===401) console.warn("[media] رمز السيرفر غلط"); return null }
+    return MEDIA_FN+"/"+path;
+  }catch(e){ return null }
+}
+
+/* يرفع الملف ويرجّع رابطه العام — الهاتف أولاً، وبعدها مخزن Supabase */
 async function sbUpload(blob,folder){
-  if(!blob||_storageOK===false) return null;
-  const ext=(blob.type||"image/jpeg").split("/")[1].replace("jpeg","jpg");
+  if(!blob) return null;
+  const ext=((blob.type||"image/jpeg").split("/")[1]||"bin")
+    .split(";")[0].replace("jpeg","jpg").replace(/[^a-z0-9]/gi,"")||"bin";
   const path=(folder||"img")+"/"+Date.now()+"-"+Math.random().toString(36).slice(2,9)+"."+ext;
+  const viaPhone=await mediaUpload(blob,path);
+  if(viaPhone) return viaPhone;
+  if(_storageOK===false) return null;
   try{
     const r=await fetch(SB_BASE+"/storage/v1/object/"+SB_BUCKET+"/"+path,{
       method:"POST",
