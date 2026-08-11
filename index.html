@@ -8,6 +8,17 @@
 <meta name="description" content="متجر حيدر حميد للألمنيوم الحديث في بلد — شارع المحيط، معمل الزهور. أبواب وشبابيك وواجهات ألمنيوم، اطلب مباشرة من التطبيق.">
 <meta name="theme-color" content="#1B72E8">
 
+<!-- ── تثبيت التطبيق (PWA) ── -->
+<link rel="manifest" href="./manifest.webmanifest">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="حيدر حميد">
+<meta name="application-name" content="حيدر حميد للألمنيوم الحديث">
+<link rel="apple-touch-icon" href="./icon-192.png">
+<link rel="apple-touch-icon" sizes="192x192" href="./icon-192.png">
+<link rel="apple-touch-icon" sizes="512x512" href="./icon-512.png">
+
 <!-- معاينة الروابط على مواقع التواصل -->
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="حيدر حميد للألمنيوم الحديث">
@@ -12525,6 +12536,145 @@ addEventListener('popstate',function(){
 /* نحفّز تحميل الأصوات */
 try{ speechSynthesis.getVoices(); speechSynthesis.addEventListener('voiceschanged',()=>{}) }catch(e){}
 
+</script>
+
+<style>
+#pwaBar{
+  position:fixed; left:12px; right:12px; inset-inline:12px;
+  bottom:calc(var(--tabh,64px) + 12px + env(safe-area-inset-bottom,0px));
+  z-index:99999; display:none; gap:12px; align-items:center;
+  padding:12px 14px; border-radius:18px;
+  background:var(--cardb,#fff); color:var(--ink,#0F1724);
+  border:1px solid var(--line,#E6EAF3);
+  box-shadow:0 14px 34px rgba(15,23,36,.18);
+  font-family:var(--font,"Tajawal",system-ui,sans-serif);
+}
+#pwaBar.on{display:flex}
+#pwaBar img{width:44px;height:44px;border-radius:12px;flex:0 0 auto;object-fit:cover}
+#pwaBar .pwaTxt{flex:1 1 auto;min-width:0}
+#pwaBar .pwaTtl{font-weight:700;font-size:15px;line-height:1.4}
+#pwaBar .pwaSub{font-size:12.5px;color:var(--muted,#6B7887);line-height:1.5;
+  overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+#pwaBar .pwaGo{flex:0 0 auto;border:0;cursor:pointer;
+  background:linear-gradient(135deg,var(--brand,#1B72E8),var(--brand-2,#4285F4));
+  color:#fff;font-family:inherit;font-weight:700;font-size:14px;
+  padding:10px 18px;border-radius:12px}
+#pwaBar .pwaX{flex:0 0 auto;border:0;background:transparent;cursor:pointer;
+  color:var(--muted,#6B7887);font-size:20px;line-height:1;padding:6px 8px}
+</style>
+
+<div id="pwaBar" role="dialog" aria-live="polite">
+  <img src="./icon-192.png" alt="">
+  <div class="pwaTxt">
+    <div class="pwaTtl" id="pwaTtl">ثبّت التطبيق على هاتفك</div>
+    <div class="pwaSub" id="pwaSub">يفتح بضغطة من الشاشة الرئيسية — أسرع وبلا متصفح</div>
+  </div>
+  <button class="pwaGo" id="pwaGo" type="button">تثبيت</button>
+  <button class="pwaX" id="pwaX" type="button" aria-label="إغلاق">✕</button>
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════════════════
+   تثبيت التطبيق (PWA) — يخلّي الموقع ينتثبّت كتطبيق بالهاتف
+   يحتاج: manifest.webmanifest + icon-192.png + icon-512.png
+   بجذر الموقع، والموقع مفتوح من رابط https
+   ═══════════════════════════════════════════════════════════ */
+(function(){
+  var HIDE_KEY = "ha_pwa_hide_v2";
+  var deferred = null;
+  var bar   = document.getElementById("pwaBar");
+  var goBtn = document.getElementById("pwaGo");
+  var xBtn  = document.getElementById("pwaX");
+  var ttl   = document.getElementById("pwaTtl");
+  var sub   = document.getElementById("pwaSub");
+
+  function say(m){ try{ if(typeof toast==="function") return toast(m); }catch(e){} }
+  function installed(){
+    try{
+      if(window.matchMedia && matchMedia("(display-mode: standalone)").matches) return true;
+      if(window.matchMedia && matchMedia("(display-mode: minimal-ui)").matches) return true;
+      return navigator.standalone === true;
+    }catch(e){ return false }
+  }
+  function isIOS(){
+    var ua = navigator.userAgent || "";
+    if(/iPad|iPhone|iPod/.test(ua)) return true;
+    return navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1;
+  }
+  function secure(){
+    try{
+      if(location.protocol === "https:") return true;
+      return /^(localhost|127\.0\.0\.1)$/.test(location.hostname);
+    }catch(e){ return false }
+  }
+  function dismissed(){ try{ return localStorage.getItem(HIDE_KEY) === "1" }catch(e){ return false } }
+
+  function show(){ if(bar) bar.classList.add("on") }
+  function hide(){ if(bar) bar.classList.remove("on") }
+
+  /* تسجيل الـ service worker من البداية — شرط التثبيت وشغل بلا نت */
+  window.addEventListener("load", function(){
+    if(!("serviceWorker" in navigator) || !secure()) return;
+    navigator.serviceWorker.register("./sw.js").catch(function(){});
+  });
+
+  /* أندرويد/كروم: المتصفح ينادينا لما يصير التطبيق قابل للتثبيت */
+  window.addEventListener("beforeinstallprompt", function(ev){
+    ev.preventDefault();
+    deferred = ev;
+    if(installed() || dismissed()) return;
+    setTimeout(show, 1200);
+  });
+
+  window.addEventListener("appinstalled", function(){
+    deferred = null;
+    hide();
+    say("انثبّت التطبيق — تلگاه بالشاشة الرئيسية");
+  });
+
+  if(goBtn) goBtn.onclick = async function(){
+    if(deferred){
+      hide();
+      var d = deferred; deferred = null;
+      try{
+        d.prompt();
+        var res = await d.userChoice;
+        if(res && res.outcome !== "accepted") say("تكدر تثبّته بأي وقت من قائمة المتصفح");
+      }catch(e){}
+      return;
+    }
+    if(isIOS()){
+      say("اضغط زر المشاركة بالأسفل ← «إضافة إلى الشاشة الرئيسية»");
+      return;
+    }
+    say("افتح قائمة المتصفح (⋮) ← «تثبيت التطبيق»");
+  };
+
+  if(xBtn) xBtn.onclick = function(){
+    hide();
+    try{ localStorage.setItem(HIDE_KEY, "1") }catch(e){}
+  };
+
+  /* آيفون: ماكو beforeinstallprompt، فنعرض الطريقة اليدوية */
+  window.addEventListener("load", function(){
+    if(!isIOS() || installed() || dismissed() || !secure()) return;
+    setTimeout(function(){
+      if(deferred) return;
+      ttl.textContent = "ضيف التطبيق لشاشتك";
+      sub.textContent = "زر المشاركة بالأسفل ← «إضافة إلى الشاشة الرئيسية»";
+      goBtn.textContent = "شلون؟";
+      show();
+    }, 3000);
+  });
+
+  /* للاستدعاء من أي زر بالموقع: installApp() */
+  window.installApp = function(){
+    if(installed()){ say("التطبيق منثبّت أصلاً"); return }
+    if(!secure()){ say("افتح الموقع من رابط الإنترنت مو من ملف التنزيلات"); return }
+    if(deferred || isIOS()){ show(); }
+    else say("افتح قائمة المتصفح (⋮) ← «تثبيت التطبيق»");
+  };
+})();
 </script>
 </body>
 </html>

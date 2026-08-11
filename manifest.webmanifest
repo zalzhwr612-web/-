@@ -1,0 +1,36 @@
+{
+  "id": "/",
+  "name": "حيدر حميد للألمنيوم الحديث",
+  "short_name": "حيدر حميد",
+  "description": "أبواب وشبابيك وواجهات ألمنيوم — بلد، شارع المحيط، معمل الزهور. اطلب مباشرة من التطبيق.",
+  "lang": "ar",
+  "dir": "rtl",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
+  "orientation": "portrait",
+  "background_color": "#0E1116",
+  "theme_color": "#1B72E8",
+  "categories": ["business", "shopping", "social"],
+  "icons": [
+    {
+      "src": "./icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
