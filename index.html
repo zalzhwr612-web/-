@@ -11712,6 +11712,377 @@ setTimeout(function(){
   }catch(e){}
 },2000);
 
+/* ═══════════════════════════════════════════════════════════════
+   NΞX — عقل البوت ماذر
+   البوت ماذر صار يفهم الكلام العادي وينفّذ بنفسه: تكله «سويلي
+   مجموعة» يسألك عن الاسم والأعضاء وينشئها فعلاً، وتكله «دوّرلي
+   حساب فلان» يجيبه، وهكذا. الأوامر القديمة (/newbot وغيرها)
+   تبقى تشتغل مثل ما هي.
+
+   شلون يشتغل: نعطي الذكاء وصف الأدوات المتاحة، وهو يرجّع JSON
+   فيه الأداة والمعطيات، وإحنا ننفّذها بالكود. إذا ناقصة معلومة،
+   يرجّع "ask" ويسأل المستخدم — وهيچي يجمع المتطلبات بالتدريج.
+   المفتاح ينسحب من بوت NEXAI نفسه.
+   ═══════════════════════════════════════════════════════════════ */
+
+const NEX_TAG   = "__nexchat";        /* مفتاح حفظ سياق الحوار */
+const NEX_TURNS = 8;                  /* كم دور نتذكر */
+
+/* ── إعدادات الذكاء: ناخذها من بوت NEXAI ── */
+let _nexCfg=null, _nexCfgAt=0;
+async function nexCfg(){
+  if(_nexCfg && Date.now()-_nexCfgAt < 120000) return _nexCfg;
+  let cfg=null;
+  try{
+    /* NEXAI: نلگا رقمه من اليوزر، وبعدين نسحب إعداداته */
+    const rows=await sbSelect("user_profiles",
+      "select=phone&username=eq.samer_bot&limit=1");
+    if(rows&&rows[0]){
+      const b=await botInfo(msgNormPhone(rows[0].phone));
+      if(b) cfg=botAI(b);
+    }
+  }catch(e){}
+  if(!cfg||!aiKeyList(cfg).length){
+    /* ما لكينا NEXAI؟ ناخذ أي بوت للمالك عنده مفاتيح */
+    try{
+      const mine=await bfMyBots();
+      for(const b of (mine||[])){
+        const full=await btaFill(b);
+        const c=botAI(full);
+        if(c&&aiKeyList(c).length){ cfg=c; break }
+      }
+    }catch(e){}
+  }
+  _nexCfg=cfg; _nexCfgAt=Date.now();
+  return cfg;
+}
+
+/* ── الأدوات اللي يكدر ينفّذها ── */
+const NEX_TOOLS = `
+create_group    — ينشئ مجموعة. يحتاج: title (الاسم)، members (مصفوفة أسماء أو يوزرات، واحد على الأقل)، about (اختياري).
+create_bot      — ينشئ بوت. يحتاج: name (الاسم المعروض)، username (لازم ينتهي بـ bot، إنكليزي وأرقام و_).
+find_user       — يدوّر على حساب. يحتاج: query (اسم أو يوزر أو رقم).
+list_bots       — يعرض بوتات المستخدم. بلا معطيات.
+bot_token       — يجيب توكن بوت. يحتاج: username.
+set_bot_reply   — يحط ردود جاهزة لبوت. يحتاج: username، pairs (مصفوفة {cmd,reply}).
+set_bot_prompt  — يكتب شخصية بوت. يحتاج: username، prompt.
+set_bot_ai      — يربط بوت بمفاتيح ذكاء. يحتاج: username، keys (مصفوفة مفاتيح).
+set_bot_name    — يغيّر اسم بوت. يحتاج: username، name.
+delete_bot      — يحذف بوت. يحتاج: username.
+my_account      — يعرض معلومات حساب المستخدم نفسه. بلا معطيات.
+my_rooms        — يعرض مجموعات المستخدم. بلا معطيات.
+`;
+
+function nexSys(){
+  const me=(typeof isLoggedMsg==="function"&&isLoggedMsg())?myPhone():"";
+  return `أنت NΞX — عقل البوت ماذر داخل تطبيق عربي عراقي. تنفّذ طلبات المستخدم فعلياً بالأدوات، مو تشرحله شلون يسويها بنفسه.
+
+الأدوات المتاحة:
+${NEX_TOOLS}
+
+ترجّع JSON نظيف بس — بلا أي شرح وبلا علامات markdown. بواحد من هذي الأشكال:
+
+{"act":"say","text":"جوابك"}
+  للكلام العادي والأسئلة اللي ما تحتاج تنفيذ.
+
+{"act":"ask","text":"سؤالك","need":"اسم_المعطى_الناقص"}
+  إذا ناقصك معلومة حتى تنفّذ. اسأل سؤال واحد بالمرة، قصير وبلهجة عراقية بسيطة.
+
+{"act":"do","tool":"اسم_الأداة","args":{...},"text":"سطر قصير تگوله قبل التنفيذ"}
+  إذا كل المعطيات كاملة.
+
+قواعد مهمة:
+• لا تخترع معلومة ناقصة أبداً — اسأل عنها.
+• المجموعة لازم عضو واحد على الأقل. إذا المستخدم ما ذكر أحد، اسأله منو يريد يضيف.
+• يوزر البوت لازم ينتهي بـ bot. إذا المستخدم انطاك اسم بس، اقترح عليه يوزر مناسب واسأله يوافق.
+• احچي عراقي بسيط ومختصر، بلا رسميات.
+• إذا الطلب خارج الأدوات، جاوب بـ say وساعده بالكلام.
+• رقم المستخدم الحالي: ${me||"غير مسجّل"}.`;
+}
+
+/* ── سياق الحوار ── */
+const nexHist = ()=>{ const s=bfState(); return Array.isArray(s[NEX_TAG])?s[NEX_TAG]:[] };
+function nexPush(role,text){
+  const s=bfState();
+  const h=(Array.isArray(s[NEX_TAG])?s[NEX_TAG]:[]).concat([{role,parts:[{text:String(text||"").slice(0,1500)}]}]);
+  s[NEX_TAG]=h.slice(-NEX_TURNS*2);
+  bfSet(s);
+}
+function nexClearHist(){ const s=bfState(); delete s[NEX_TAG]; bfSet(s) }
+
+/* ── تنفيذ الأدوات ── */
+async function nexRun(tool,args){
+  const a=args||{};
+  const me=(typeof isLoggedMsg==="function"&&isLoggedMsg())?myPhone():"";
+  if(!me) return "لازم تسجّل دخولك أول حتى أنفّذ.";
+
+  if(tool==="my_account"){
+    const p=await msgGetProfile(me)||{};
+    return "حسابك:\n\nالاسم: "+(p.name||"—")+
+      "\nاليوزر: "+(p.username?"@"+p.username:"ماكو")+
+      "\nالرقم: "+me+
+      (p.verified?"\nموثّق ✓":"");
+  }
+
+  if(tool==="find_user"){
+    const q=String(a.query||"").trim();
+    if(!q) return "منو تريد أدوّر عليه؟";
+    let rows=[];
+    try{ rows=await msgSearchUsers(q)||[] }catch(e){}
+    rows=(rows||[]).filter(r=>msgNormPhone(r.phone)!==me).slice(0,5);
+    if(!rows.length) return "ما لكيت أحد بهذا الاسم. جرّب اليوزر أو الرقم كامل.";
+    return "لكيت "+rows.length+":\n\n"+rows.map((r,i)=>
+      (i+1)+". "+(r.name||r.phone)+(r.username?" — @"+r.username:"")+
+      (r.verified?" ✓":"")).join("\n")+
+      "\n\nتريد أراسل واحد منهم أو أضيفه لمجموعة؟";
+  }
+
+  if(tool==="my_rooms"){
+    let rows=[];
+    try{
+      const mem=await sbSelect("room_members","select=room_id,role&phone=eq."+encodeURIComponent(me));
+      const ids=(mem||[]).map(x=>x.room_id);
+      if(ids.length) rows=await sbSelect("rooms",
+        "select=id,title,kind,username&id=in.("+ids.map(encodeURIComponent).join(",")+")")||[];
+    }catch(e){}
+    if(!rows.length) return "ما عندك مجموعات بعد. تريد أسويلك وحدة؟";
+    return "مجموعاتك:\n\n"+rows.map((r,i)=>(i+1)+". "+r.title+
+      (r.username?" — @"+r.username:"")).join("\n");
+  }
+
+  if(tool==="list_bots"){
+    const list=await bfMyBots();
+    return bfListText(list);
+  }
+
+  if(tool==="bot_token"){
+    const u=bfClean(a.username||"");
+    const b=(await bfMyBots()).find(z=>z.username===u);
+    if(!b) return "ما لكيت @"+u+" ببوتاتك.";
+    return "توكن @"+b.username+":\n\n"+b.token+"\n\nلا تنطيه لأحد.";
+  }
+
+  if(tool==="create_bot"){
+    const name=String(a.name||"").trim();
+    const u=bfClean(a.username||"");
+    if(name.length<2) return "الاسم قصير. شنو تريد اسمه؟";
+    if(!/^[a-z0-9_]{5,32}$/.test(u)) return "اليوزر مو صالح — حروف إنكليزية وأرقام و _ بس.";
+    if(!u.endsWith("bot")) return "اليوزر لازم ينتهي بـ bot. شنو رأيك بـ "+u+"_bot؟";
+    let r;
+    try{ r=await sbRpc("bot_create",{p_owner:me,p_name:name,p_username:u}) }
+    catch(e){
+      const m=String(e&&e.message||"");
+      if(m.includes("taken")) return "@"+u+" محجوز. اختار يوزر ثاني.";
+      if(m.includes("too_many")) return "وصلت الحد الأعلى ٢٠ بوت.";
+      return "ما گدرت أصنعه: "+m.slice(0,140);
+    }
+    return "تم! صنعت @"+r.username+" ✓\n\nالتوكن:\n"+r.token+
+      "\n\nخزّنه بمكان آمن. تريد أحطله ردود جاهزة أو أربطه بذكاء اصطناعي؟";
+  }
+
+  if(tool==="delete_bot"){
+    const u=bfClean(a.username||"");
+    try{
+      const ok=await sbRpc("bot_delete",{p_owner:me,p_username:u});
+      _botCache={};
+      return ok?("انحذف @"+u+" نهائياً."):"ما لكيت هذا البوت عندك.";
+    }catch(e){ return "ما گدرت أحذفه." }
+  }
+
+  if(tool==="set_bot_name"){
+    const u=bfClean(a.username||""), nm=String(a.name||"").trim();
+    if(nm.length<2) return "الاسم قصير.";
+    const ok=await sbRpc("bot_set",{p_owner:me,p_username:u,p_field:"name",p_value:nm});
+    _botCache={};
+    return ok?("صار اسم @"+u+": "+nm):"ما لكيت هذا البوت عندك.";
+  }
+
+  if(tool==="set_bot_reply"){
+    const u=bfClean(a.username||"");
+    const pairs=Array.isArray(a.pairs)?a.pairs:[];
+    if(!pairs.length) return "شنو الأوامر والردود اللي تريدها؟";
+    const row=(await bfMyBots()).find(z=>z.username===u);
+    if(!row) return "ما لكيت @"+u+" ببوتاتك.";
+    const cmds=pairs.map(p=>({c:String(p.cmd||p.c||"").replace(/^\//,"").toLowerCase().slice(0,32),
+                              r:String(p.reply||p.r||"").trim()})).filter(z=>z.c&&z.r);
+    if(!cmds.length) return "الصيغة مو مضبوطة.";
+    const full=await btaFill(row);
+    const ok=await sbRpc("bot_set",{p_owner:me,p_username:u,p_field:"commands",
+      p_value:JSON.stringify(botPackCmds(cmds,botAI(full),qaMeta(full)))});
+    _botCache={};
+    return ok?("انحفظت "+cmds.length+" ردود لـ@"+u+". جرّبه هسه!"):"ما انحفظ.";
+  }
+
+  if(tool==="set_bot_prompt"){
+    const u=bfClean(a.username||""), pr=String(a.prompt||"").trim();
+    if(pr.length<5) return "اكتبلي شخصية البوت بتفصيل أكثر.";
+    const row=(await bfMyBots()).find(z=>z.username===u);
+    if(!row) return "ما لكيت @"+u+" ببوتاتك.";
+    const full=await btaFill(row), cur=botAI(full)||{};
+    if(!aiKeyList(cur).length) return "لازم أربطه بمفتاح ذكاء أول. عندك مفتاح Gemini؟";
+    cur.sys=pr;
+    const ok=await sbRpc("bot_set",{p_owner:me,p_username:u,p_field:"commands",
+      p_value:JSON.stringify(botPackCmds(botCmdList(full),cur,qaMeta(full)))});
+    _botCache={};
+    return ok?("انحفظت شخصية @"+u+". جرّبه."):"ما انحفظ.";
+  }
+
+  if(tool==="set_bot_ai"){
+    const u=bfClean(a.username||"");
+    const keys=(Array.isArray(a.keys)?a.keys:[a.key]).map(k=>String(k||"").trim())
+      .filter(k=>k.length>=20).slice(0,5);
+    if(!keys.length) return "ابعثلي مفتاح Gemini — تاخذه مجاناً من aistudio.google.com/apikey";
+    const row=(await bfMyBots()).find(z=>z.username===u);
+    if(!row) return "ما لكيت @"+u+" ببوتاتك.";
+    const full=await btaFill(row), cur=botAI(full)||{};
+    cur.keys=keys; cur.key=keys[0]; cur.on=true;
+    if(!cur.model) cur.model=AI_MODELS[0];
+    if(!cur.sys)   cur.sys=AI_SYS_DEF;
+    if(cur.web===undefined) cur.web=true;
+    const ok=await sbRpc("bot_set",{p_owner:me,p_username:u,p_field:"commands",
+      p_value:JSON.stringify(botPackCmds(botCmdList(full),cur,qaMeta(full)))});
+    _botCache={};
+    return ok?("ربطت @"+u+" بـ"+keys.length+" مفتاح ✓ يشتغل على الأول وينتقل للي بعده إذا خلص.")
+             :"ما انحفظ.";
+  }
+
+  if(tool==="create_group"){
+    const title=String(a.title||"").trim();
+    const about=String(a.about||"").trim();
+    let want=Array.isArray(a.members)?a.members:(a.members?[a.members]:[]);
+    want=want.map(x=>String(x||"").trim()).filter(Boolean);
+    if(title.length<2) return "شنو اسم المجموعة؟";
+    if(!want.length)   return "منو تريد أضيف للمجموعة؟ اكتبلي أسماءهم أو يوزراتهم.";
+
+    /* نحوّل الأسماء لأرقام */
+    const found=[], missed=[];
+    for(const q of want){
+      let rows=[];
+      try{ rows=await msgSearchUsers(q)||[] }catch(e){}
+      const hit=(rows||[]).find(r=>msgNormPhone(r.phone)!==me);
+      if(hit) found.push({ph:msgNormPhone(hit.phone),nm:hit.name||hit.phone});
+      else missed.push(q);
+    }
+    if(!found.length)
+      return "ما لكيت ولا واحد منهم"+(missed.length?" ("+missed.join("، ")+")":"")+
+        ".\nجرّب تكتبلي اليوزر بالضبط، مثل @sura.";
+
+    const id=roomNewId("group");
+    try{
+      await sbRpc("room_create",{p_owner:me,p_kind:"group",p_id:id,p_title:title,
+        p_about:about||null,p_avatar:null,p_username:null});
+    }catch(e){
+      const m=String(e&&e.message||"");
+      if(/LIMIT/i.test(m)) return "وصلت الحد: ٥ مجموعات بالشهر.";
+      if(/404|PGRST202/.test(m)) return "جداول المجموعات مو منصّبة بالقاعدة. شغّل part4.sql.";
+      return "ما انصنعت: "+m.slice(0,120);
+    }
+    try{
+      await sbReq("user_profiles",{method:"POST",
+        headers:{Prefer:"resolution=merge-duplicates,return=minimal"},
+        body:JSON.stringify({phone:id,name:title,bio:about||null,
+          last_seen:new Date().toISOString()})});
+    }catch(e){}
+    try{
+      await sbReq("conversations",{method:"POST",headers:{Prefer:"return=minimal"},
+        body:JSON.stringify({user1:id,user2:id,last_msg:"",last_at:new Date().toISOString()})});
+      const r=await sbSelect("conversations","select=id&user1=eq."+id+"&user2=eq."+id+"&limit=1");
+      const conv=(r&&r[0]&&r[0].id)||null;
+      if(conv) await sbReq("rooms?id=eq."+id,{method:"PATCH",headers:{Prefer:"return=minimal"},
+        body:JSON.stringify({conv_id:conv})});
+    }catch(e){}
+    try{
+      await sbReq("room_members",{method:"POST",
+        headers:{Prefer:"resolution=merge-duplicates,return=minimal"},
+        body:JSON.stringify(found.map(f=>({room_id:id,phone:f.ph,role:"member"})))});
+    }catch(e){}
+    myRooms=[];
+    try{ if(typeof msgRenderConvs==="function") setTimeout(msgRenderConvs,300) }catch(e){}
+    return "تم! سويت مجموعة «"+title+"» ✓\n\nالأعضاء: "+found.map(f=>f.nm).join("، ")+
+      (missed.length?"\nما لكيت: "+missed.join("، "):"")+
+      "\n\nتلگاها بقائمة محادثاتك. تريد أضيف أحد ثاني؟";
+  }
+
+  return "ما أعرف هذي الأداة.";
+}
+
+/* ── الحلقة: نسأل الذكاء، ننفّذ، ونعيد لو لازم ── */
+async function nexBrain(text){
+  const cfg=await nexCfg();
+  if(!cfg||!aiKeyList(cfg).length) return null;      /* ماكو مفتاح — نرجع للأوامر القديمة */
+
+  nexPush("user",text);
+  let hist=nexHist();
+
+  for(let hop=0; hop<3; hop++){
+    const raw=await aiAsk({key:cfg.key,keys:aiKeyList(cfg),model:cfg.model,
+      sys:nexSys(),web:false}, hist.slice(0,-1), text);
+
+    let j=null;
+    try{
+      const clean=String(raw).replace(/```json|```/g,"").trim();
+      const i=clean.indexOf("{"), k=clean.lastIndexOf("}");
+      if(i>=0&&k>i) j=JSON.parse(clean.slice(i,k+1));
+    }catch(e){}
+
+    /* ما رجع JSON؟ نعتبره كلام عادي */
+    if(!j||!j.act){ nexPush("model",raw); return String(raw) }
+
+    if(j.act==="say" || j.act==="ask"){
+      const out=String(j.text||"").trim()||"تمام.";
+      nexPush("model",out);
+      return out;
+    }
+
+    if(j.act==="do"){
+      const pre=String(j.text||"").trim();
+      const res=await nexRun(String(j.tool||""),j.args||{});
+      const out=(pre?pre+"\n\n":"")+res;
+      nexPush("model",out);
+      return out;
+    }
+
+    hist=nexHist();
+  }
+  return "ما گدرت أفهم الطلب. جرّب توضحه أكثر.";
+}
+
+/* ── نلف حول بفريبلاي: الأوامر أول، والباقي للذكاء ── */
+if(typeof bfReply==="function" && !bfReply._nexWrapped){
+  const _bf=bfReply;
+  bfReply=async function(text){
+    const t=String(text||"").trim();
+    const st=bfState();
+
+    /* إعادة ضبط الحوار */
+    if(/^\/(cancel|reset|start)\b/i.test(t)) nexClearHist();
+
+    /* حوار متعدد الأدوار شغّال (newbot وغيره)؟ نخليه يكمل */
+    if(st.step) return _bf.apply(this,arguments);
+
+    /* أمر صريح بشرطة؟ للنظام القديم */
+    if(t.startsWith("/")){
+      const out=await _bf.apply(this,arguments);
+      /* نضيف تلميح الحچي الحر لرسالة البداية بس */
+      if(/^\/(start|help)\b/i.test(t) && String(out).indexOf("NΞX")<0){
+        const cfg=await nexCfg();
+        if(cfg&&aiKeyList(cfg).length) return out+NEX_HINT;
+      }
+      return out;
+    }
+
+    /* كلام حر → NΞX */
+    try{
+      const out=await nexBrain(t);
+      if(out) return out;
+    }catch(e){ console.warn("[nex]",e) }
+    return _bf.apply(this,arguments);
+  };
+  bfReply._nexWrapped=true;
+}
+
+const NEX_HINT="\n\n— — —\nوتكدر تحچيني عادي بلا أوامر: «سويلي مجموعة اسمها العمل وضيف سرى»، «دوّرلي حساب فلان»، «سويلي بوت للمعرض». أسألك عن الناقص وأنفّذ بنفسي.";
+
 </script>
 </body>
 </html>
