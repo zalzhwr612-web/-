@@ -3617,6 +3617,7 @@ function renderAdmin(){
       <div id="ad-vlist" style="margin-top:12px"></div>
     </div>
     ${bfaHTML()}
+    ${btaHTML()}
     <section class="sec" style="padding-top:22px"><div class="sechead"><h2 style="font-size:16px">${AD.listT}</h2></div></section>
     ${list.length?list.map(adCard).join(''):`<p class="foot" style="padding-top:0">${AD.none}</p>`}
     <div style="padding:14px var(--pad) 0">
@@ -3642,6 +3643,7 @@ function renderAdmin(){
   document.getElementById('ad-voff').onclick=()=>vRun(false);
   adPaintVerified();
   bfaBind();
+  btaBind();
   box.querySelectorAll('[data-ad-edit]').forEach(b=>b.onclick=()=>{
     const p=adAll().find(z=>z.id===b.dataset.adEdit); if(p) adForm(p) });
   box.querySelectorAll('[data-ad-tog]').forEach(b=>b.onclick=async()=>{
@@ -3802,6 +3804,556 @@ async function bfaBind(){
     }
     done();
   };
+}
+
+/* ═══════════════════════════════════════════════════════════
+   ربط البوتات بذكاء اصطناعي + إدارتها من لوحة المالك
+
+   إعدادات الذكاء تنخزن جوّه قائمة أوامر البوت نفسها كأمر مخفي
+   اسمه __ai، فما نحتاج أي تعديل بقاعدة البيانات ولا SQL جديد.
+   البوت يجاوب أول شي من أوامره الجاهزة، وإذا الأمر مو معروف أو
+   السؤال حر، يروح للذكاء الاصطناعي. مع تفعيل بحث الويب يجيب
+   معلومات محدّثة لحظياً بدل المعلومات المخزونة.
+
+   تنبيه: الردود تتولّد بجهاز الشخص اللي يحچي ويّا البوت، يعني
+   مفتاح الذكاء الاصطناعي لازم يوصل جهازه. أي مستخدم يقدر يشوفه
+   إذا فتح أدوات المطوّر. استعمل مفتاح محدود الصلاحيات وحطّله
+   سقف استهلاك، ولا تحط مفتاح مربوط ببطاقة مفتوحة.
+   ═══════════════════════════════════════════════════════════ */
+const AI_TAG     = "__ai";                     /* الأمر المخفي اللي يخزن الإعدادات */
+const AI_MODELS  = ["gemini-2.5-flash","gemini-2.5-pro","gemini-2.0-flash"];
+const AI_SYS_DEF = "أنت بوت مساعد داخل تطبيق عربي. جاوب بالعربي بلهجة بسيطة وواضحة، وباختصار.";
+
+/* أوامر البوت المعروضة — بلا الأوامر المخفية */
+const botCmdList = b => (Array.isArray(b&&b.commands)?b.commands:[])
+  .filter(z=>String(z.c)!==AI_TAG && String(z.c)!==QA_TAG);
+
+/* إعدادات الذكاء المخزونة بالبوت */
+function botAI(b){
+  const cs=Array.isArray(b&&b.commands)?b.commands:[];
+  const hit=cs.find(z=>String(z.c)===AI_TAG);
+  if(!hit) return null;
+  try{ const c=JSON.parse(hit.r); return (c&&typeof c==="object")?c:null }catch(e){ return null }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   قاعدة أسئلة وأجوبة للبوت
+   الملف نفسه يروح لمخزن الوسائط ومو للقاعدة، والمحفوظ بالبوت
+   رابط صغير بس — فيقدر الملف يكون كبير بلا ما يثقّل شي.
+   ═══════════════════════════════════════════════════════════ */
+const QA_TAG="__qa";
+const QA_INLINE=60;        /* أقل من هذا العدد ينخزن داخل البوت بلا ملف */
+const _qaCache={};
+
+function qaMeta(b){
+  const cs=Array.isArray(b&&b.commands)?b.commands:[];
+  const hit=cs.find(z=>String(z.c)===QA_TAG);
+  if(!hit) return null;
+  try{ const c=JSON.parse(hit.r); return (c&&typeof c==="object")?c:null }catch(e){ return null }
+}
+
+/* تطبيع عربي: نشيل التشكيل ونوحّد الألف والياء والتاء المربوطة */
+function qaNorm(s){
+  return String(s||"").toLowerCase()
+    .replace(/[\u064B-\u0652\u0670\u0640]/g,"")
+    .replace(/[أإآٱ]/g,"ا").replace(/ى/g,"ي").replace(/ة/g,"ه")
+    .replace(/ؤ/g,"و").replace(/ئ/g,"ي")
+    .replace(/[^\p{L}\p{N}\s]/gu," ").replace(/\s+/g," ").trim();
+}
+const QA_STOP=new Set(("من في على عن الى ما هو هي شنو شلون وين ليش هل كم اي هذا هذه ذاك "+
+  "عندكم عندك اريد تريد ممكن لو سمحت the a an is are what how do does").split(/\s+/));
+const qaTokens = s => qaNorm(s).split(" ").filter(w=>w.length>1&&!QA_STOP.has(w));
+
+/* يفهم عدة صيغ: JSON، سؤال|جواب، س:/ج:، وفقرات مفصولة بسطر فارغ */
+function qaParse(text,csv){
+  const raw=String(text||"").replace(/^\uFEFF/,"").trim();
+  if(!raw) return [];
+  if(/^[\[{]/.test(raw)){
+    try{
+      let j=JSON.parse(raw);
+      if(j&&!Array.isArray(j)&&Array.isArray(j.items)) j=j.items;
+      if(Array.isArray(j)){
+        const out=j.map(o=>({q:String((o&&(o.q||o.question||o.سؤال))||"").trim(),
+                             a:String((o&&(o.a||o.answer||o.جواب))||"").trim()}))
+                   .filter(o=>o.q&&o.a);
+        if(out.length) return out;
+      }
+    }catch(e){}
+  }
+  const lines=raw.split(/\r?\n/), out=[];
+  const sep=csv?/^([^,]+),\s*([\s\S]+)$/:/^([^|\t]+?)\s*(?:\||\t|=>)\s*([\s\S]+)$/;
+  const filled=lines.filter(l=>l.trim()).length;
+  let hit=0;
+  for(const l of lines){ if(l.trim()&&sep.test(l.trim())) hit++ }
+  if(hit>=Math.max(1,Math.floor(filled*0.6))){
+    for(const l of lines){
+      const m=sep.exec(l.trim()); if(!m) continue;
+      const q=m[1].trim().replace(/^["']|["']$/g,""), a=m[2].trim().replace(/^["']|["']$/g,"");
+      if(q&&a) out.push({q,a});
+    }
+    if(out.length) return out;
+  }
+  const reQ=/^(?:س|سؤال|q|question)\s*[:：.\-]\s*/i,
+        reA=/^(?:ج|جواب|إجابة|الجواب|a|answer)\s*[:：.\-]\s*/i;
+  let cur=null;
+  for(const l of lines){
+    const t=l.trim();
+    if(reQ.test(t)){ if(cur&&cur.q&&cur.a) out.push(cur); cur={q:t.replace(reQ,"").trim(),a:""}; continue }
+    if(reA.test(t)&&cur){ cur.a=(cur.a?cur.a+"\n":"")+t.replace(reA,"").trim(); continue }
+    if(cur&&t){ if(cur.a) cur.a+="\n"+t; else cur.q+=" "+t }
+  }
+  if(cur&&cur.q&&cur.a) out.push(cur);
+  if(out.length) return out;
+  for(const blk of raw.split(/\n\s*\n/)){
+    const ls=blk.split(/\r?\n/).map(x=>x.trim()).filter(Boolean);
+    if(ls.length>=2) out.push({q:ls[0],a:ls.slice(1).join("\n")});
+  }
+  return out.filter(o=>o.q&&o.a);
+}
+
+async function qaLoad(meta){
+  if(!meta) return [];
+  if(Array.isArray(meta.items)) return meta.items;
+  if(!meta.url) return [];
+  if(_qaCache[meta.url]) return _qaCache[meta.url];
+  try{
+    const r=await fetch(meta.url,{cache:"force-cache"});
+    if(!r.ok) return [];
+    const j=await r.json();
+    const list=Array.isArray(j)?j:(Array.isArray(j&&j.items)?j.items:[]);
+    _qaCache[meta.url]=list;
+    return list;
+  }catch(e){ return [] }
+}
+
+/* أقرب الأسئلة للسؤال المكتوب */
+function qaSearch(list,q,n){
+  const qt=qaTokens(q); if(!qt.length||!list||!list.length) return [];
+  const nq=qaNorm(q), out=[];
+  for(const it of list){
+    if(!it||!it.q||!it.a) continue;
+    const nqq=qaNorm(it.q), t=qaTokens(it.q);
+    if(!t.length) continue;
+    let hit=0;
+    for(const w of qt) if(t.indexOf(w)>-1||nqq.indexOf(w)>-1) hit++;
+    if(!hit) continue;
+    let s=hit/qt.length + .3*(hit/t.length);
+    if(nqq===nq) s+=2;
+    else if(nqq.indexOf(nq)>-1||nq.indexOf(nqq)>-1) s+=.6;
+    out.push({it,s});
+  }
+  out.sort((a,b)=>b.s-a.s);
+  return out.slice(0,n||5);
+}
+
+/* يرفع قاعدة الأسئلة كملف ويرجّع بياناتها المختصرة */
+async function qaStore(items,name){
+  const list=(items||[]).map(o=>({q:String(o.q).slice(0,400),a:String(o.a).slice(0,4000)}));
+  if(!list.length) return null;
+  if(list.length<=QA_INLINE){
+    const inline={items:list,n:list.length,name:name||""};
+    if(JSON.stringify(inline).length<40000) return inline;
+  }
+  const blob=new Blob([JSON.stringify(list)],{type:"application/json"});
+  const url=await sbUpload(blob,"qa");
+  if(url) return {url,n:list.length,name:name||"",at:Date.now()};
+  return {items:list.slice(0,QA_INLINE),n:Math.min(list.length,QA_INLINE),name:name||"",part:true};
+}
+
+/* يرجّع قائمة أوامر جاهزة للحفظ: الأوامر العادية + الإعدادات المخفية */
+function botPackCmds(cmds,ai,qa){
+  const list=(cmds||[]).filter(z=>String(z.c)!==AI_TAG&&String(z.c)!==QA_TAG)
+    .map(z=>({c:z.c,r:z.r}));
+  if(ai&&ai.key) list.push({c:AI_TAG,r:JSON.stringify(ai)});
+  if(qa) list.push({c:QA_TAG,r:JSON.stringify(qa)});
+  return list;
+}
+
+/* ── نداء Gemini ── */
+async function aiAsk(cfg,history,text){
+  if(!cfg||!cfg.key) return "الذكاء الاصطناعي مو مربوط بهذا البوت بعد.";
+  const model=String(cfg.model||AI_MODELS[0]).trim();
+  const url="https://generativelanguage.googleapis.com/v1beta/models/"+
+    encodeURIComponent(model)+":generateContent?key="+encodeURIComponent(cfg.key);
+  const run=async withWeb=>{
+    const body={
+      contents:(history||[]).concat([{role:"user",parts:[{text:String(text||"").slice(0,4000)}]}]),
+      generationConfig:{temperature:.7,maxOutputTokens:900}
+    };
+    if(cfg.sys) body.systemInstruction={parts:[{text:String(cfg.sys).slice(0,4000)}]};
+    if(withWeb) body.tools=[{google_search:{}}];
+    let r,j=null;
+    try{ r=await fetch(url,{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify(body)}) }
+    catch(e){ return {ok:false,status:0,j:null} }
+    try{ j=await r.json() }catch(e){}
+    return {ok:r.ok,status:r.status,j};
+  };
+  const web=cfg.web!==false;
+  let res=await run(web);
+  /* موديل ما يدعم بحث الويب؟ نعيد بلا بحث بدل ما نفشل */
+  if(!res.ok&&web&&(res.status===400||res.status===404)) res=await run(false);
+  if(!res.ok){
+    if(!res.status) return "ما وصلت لخدمة الذكاء الاصطناعي — تأكد من الإنترنت.";
+    const m=String((res.j&&res.j.error&&res.j.error.message)||("خطأ "+res.status));
+    if(res.status===400&&/api key|API_KEY/i.test(m)) return "مفتاح الذكاء الاصطناعي مو صحيح.";
+    if(res.status===403) return "المفتاح مرفوض — تأكد إن الخدمة مفعّلة عليه.";
+    if(res.status===429) return "وصلنا حد الاستخدام بالمفتاح. جرّب بعد شوية.";
+    return "ما گدرت أجاوب هسه: "+m.slice(0,140);
+  }
+  const c=res.j&&res.j.candidates&&res.j.candidates[0];
+  const out=(((c&&c.content&&c.content.parts)||[]).map(p=>p.text||"").join("")).trim();
+  return out||"ما طلع رد. جرّب تسأل بطريقة ثانية.";
+}
+
+/* آخر رسائل المحادثة كسياق للذكاء */
+async function aiHistory(convId,skipText){
+  if(!convId) return [];
+  try{
+    const rows=await msgFetch(convId,40)||[];
+    const me=myPhone(), out=[];
+    for(const m of rows){
+      const t=String(m.body||"").trim();
+      if(t) out.push({role:msgNormPhone(m.sender)===me?"user":"model",parts:[{text:t.slice(0,1500)}]});
+    }
+    /* الرسالة اللي هسه انرسلت موجودة بالقاعدة — نشيلها حتى ما تتكرر */
+    const last=out[out.length-1];
+    if(last&&last.role==="user"&&last.parts[0].text===String(skipText||"").trim()) out.pop();
+    let h=out.slice(-12);
+    while(h.length&&h[0].role!=="user") h.shift();   /* Gemini يريد أول دور "user" */
+    return h;
+  }catch(e){ return [] }
+}
+
+/* ═══ لوحة المالك: إدارة أي بوت ═══ */
+let btaList=[], btaCur=null, btaPic, btaQa;
+
+const btaSlug = u => String(u||"").trim().replace(/^@+/,"").toLowerCase();
+
+function btaHTML(){
+  return `
+    <section class="sec" style="padding-top:22px"><div class="sechead">
+      <h2 style="font-size:16px">إدارة البوتات والذكاء الاصطناعي</h2></div></section>
+    <div style="padding:0 var(--pad)" id="bta-box">
+      <div class="note" style="margin-top:0">اختر بوت وغيّر صورته واسمه ويوزره وأوامره، وتگدر تربطه بذكاء اصطناعي يجاوب على الأسئلة بمعلومات محدّثة من الويب.</div>
+      <div class="opt" style="margin-top:12px"><label for="bta-sel">البوت</label>
+        <select class="ctrl" id="bta-sel"><option value="">— يحمّل… —</option></select></div>
+      <div id="bta-form" style="display:none">
+        <div class="opt"><label>الصورة</label>
+          <div class="adshot" id="bta-slot"
+            style="width:112px;height:112px;border-radius:50%;margin-inline:auto"></div>
+          <div class="adbar" style="justify-content:center">
+            <button class="fixbtn" id="bta-pick">اختر صورة</button>
+            <span id="bta-delbox"></span></div></div>
+        <input type="file" id="bta-file" accept="image/*" style="display:none">
+        <div class="opt"><label for="bta-name">الاسم</label>
+          <input class="ctrl" id="bta-name" placeholder="اسم البوت" autocomplete="off"></div>
+        <div class="opt"><label for="bta-user">اليوزر</label>
+          <input class="ctrl" id="bta-user" placeholder="samer_bot" dir="ltr" autocomplete="off"
+            autocapitalize="none" autocorrect="off" spellcheck="false"></div>
+        <div class="opt"><label for="bta-about">النبذة</label>
+          <input class="ctrl" id="bta-about" placeholder="سطر قصير يعرّف بالبوت" autocomplete="off"></div>
+        <div class="opt"><label for="bta-desc">الوصف</label>
+          <textarea class="ctrl" id="bta-desc" placeholder="يظهر قبل ما يبدي الحوار"></textarea></div>
+        <div class="opt"><label for="bta-cmds">الأوامر الجاهزة</label>
+          <textarea class="ctrl" id="bta-cmds" dir="auto" style="min-height:110px"
+            placeholder="سطر لكل أمر بهاي الصيغة:&#10;start - أهلاً بيك&#10;price - الأسعار تبدي من ٢٥ ألف"></textarea></div>
+
+        <section class="sec" style="padding-top:18px"><div class="sechead">
+          <h2 style="font-size:15px">أسئلة وأجوبة</h2></div></section>
+        <div class="note" style="margin-top:0">ارفع ملف أسئلة وأجوبة بأي حجم — ينرفع للمخزن مو للقاعدة. البوت يجاوب منه أول، وإذا الذكاء مشغّل يستعمله كمرجع.<br>الصيغ المقبولة: json / csv / txt — سطر «السؤال | الجواب»، أو «س:» و«ج:»، أو فقرات أول سطرها السؤال.</div>
+        <div class="adbar" style="margin-top:12px">
+          <button class="fixbtn" id="bta-qapick">ارفع ملف</button>
+          <button class="fixbtn" id="bta-qapaste">الصق نص</button>
+          <span id="bta-qadel"></span></div>
+        <p class="avhint" style="text-align:start;margin-top:8px" id="bta-qastat"></p>
+        <input type="file" id="bta-qafile" style="display:none"
+          accept=".txt,.csv,.json,.md,text/plain,text/csv,application/json">
+
+        <section class="sec" style="padding-top:18px"><div class="sechead">
+          <h2 style="font-size:15px">الذكاء الاصطناعي</h2></div></section>
+        <div class="note" style="margin-top:0">إذا سؤال المستخدم ما ينطبق على أمر جاهز، البوت يجاوب بالذكاء الاصطناعي. مع «بحث الويب» يجيب معلومات محدّثة لحظياً.</div>
+        <div class="row" style="margin-top:12px">
+          <button class="setopt" id="bta-aion" aria-pressed="false"><span><b>شغّل الذكاء</b></span><span class="dot"></span></button>
+          <button class="setopt" id="bta-aiweb" aria-pressed="true"><span><b>بحث الويب</b></span><span class="dot"></span></button></div>
+        <div class="opt" style="margin-top:12px"><label for="bta-aikey">مفتاح Gemini API</label>
+          <input class="ctrl" id="bta-aikey" dir="ltr" placeholder="AIza…" autocomplete="off"
+            autocapitalize="none" autocorrect="off" spellcheck="false"></div>
+        <p class="avhint" style="text-align:start;margin-top:6px">تاخذ المفتاح مجاناً من Google AI Studio. المفتاح يوصل جهاز أي شخص يحچي ويّا البوت — استعمل مفتاح محدود وحطّله سقف استهلاك.</p>
+        <div class="opt"><label for="bta-aimodel">الموديل</label>
+          <input class="ctrl" id="bta-aimodel" dir="ltr" list="bta-models" placeholder="${AI_MODELS[0]}"
+            autocomplete="off" autocapitalize="none" spellcheck="false">
+          <datalist id="bta-models">${AI_MODELS.map(m=>`<option value="${m}">`).join('')}</datalist></div>
+        <div class="opt"><label for="bta-aisys">شخصية البوت وتعليماته</label>
+          <textarea class="ctrl" id="bta-aisys" style="min-height:90px"
+            placeholder="${esc(AI_SYS_DEF)}"></textarea></div>
+
+        <div class="opt"><label>التوكن</label>
+          <input class="ctrl" id="bta-token" dir="ltr" readonly></div>
+        <div class="adbar">
+          <button class="fixbtn" id="bta-copy">انسخ التوكن</button>
+          <button class="fixbtn" id="bta-revoke">توكن جديد</button></div>
+
+        <div class="acts">
+          <button class="btn btn-p" id="bta-save">احفظ</button>
+          <button class="btn btn-o" id="bta-test">جرّب الذكاء</button></div>
+      </div>
+      <div class="acts" id="bta-mk" style="display:none">
+        <button class="btn btn-o" id="bta-new">أنشئ @samer_bot</button></div>
+    </div>`;
+}
+
+function btaPaintPic(){
+  const slot=document.getElementById('bta-slot'); if(!slot) return;
+  const cur=(btaPic!==undefined)?btaPic:((btaCur&&btaCur.avatar)||"");
+  slot.innerHTML=cur?`<img src="${esc(cur)}" alt="">`
+    :`<span class="sub" style="font-size:12px">ماكو صورة</span>`;
+  const pick=document.getElementById('bta-pick');
+  if(pick) pick.textContent=cur?"غيّر الصورة":"اختر صورة";
+  const box=document.getElementById('bta-delbox'); if(!box) return;
+  box.innerHTML=cur?`<button class="avdel" id="bta-imgdel">شيل الصورة</button>`:``;
+  const d=document.getElementById('bta-imgdel');
+  if(d) d.onclick=()=>{ btaPic=""; btaPaintPic() };
+}
+
+/* أوامر البوت نصاً وبالعكس */
+const btaCmdsText = cs => (cs||[]).map(z=>z.c+" - "+z.r).join("\n");
+function btaParseCmds(txt){
+  const out=[];
+  for(const line of String(txt||"").split("\n")){
+    const l=line.trim(); if(!l) continue;
+    const m=/^\/?([a-zA-Z0-9_]{1,32})\s*[-–:]\s*([\s\S]+)$/.exec(l);
+    if(!m) return {err:l};
+    out.push({c:m[1].toLowerCase(),r:m[2].trim()});
+  }
+  return {cmds:out};
+}
+
+/* بيانات البوت كاملة: صف bot_list + الأوامر من bot_public */
+async function btaFill(row){
+  const b=Object.assign({},row||{});
+  if(!Array.isArray(b.commands)&&b.phone){
+    try{ const p=await botInfo(b.phone); if(p) Object.assign(b,{commands:p.commands,
+      about:b.about!==undefined?b.about:p.about, description:b.description!==undefined?b.description:p.description,
+      avatar:b.avatar!==undefined?b.avatar:p.avatar}) }catch(e){}
+  }
+  if(!Array.isArray(b.commands)) b.commands=[];
+  return b;
+}
+
+function btaShow(b){
+  btaCur=b; btaPic=undefined; btaQa=undefined;
+  const form=document.getElementById('bta-form'); if(!form) return;
+  form.style.display=b?'block':'none';
+  if(!b) return;
+  const ai=botAI(b)||{};
+  const set=(id,v)=>{ const el=document.getElementById(id); if(el) el.value=v||"" };
+  set('bta-name',b.name); set('bta-user',b.username);
+  set('bta-about',b.about); set('bta-desc',b.description);
+  set('bta-cmds',btaCmdsText(botCmdList(b)));
+  set('bta-aikey',ai.key); set('bta-aimodel',ai.model); set('bta-aisys',ai.sys);
+  set('bta-token',b.token);
+  const on=document.getElementById('bta-aion'), web=document.getElementById('bta-aiweb');
+  if(on)  on.setAttribute('aria-pressed', !!(ai.on&&ai.key));
+  if(web) web.setAttribute('aria-pressed', ai.web!==false);
+  btaPaintPic(); btaPaintQa();
+}
+
+/* حالة قاعدة الأسئلة تحت الأزرار */
+function btaPaintQa(){
+  const st=document.getElementById('bta-qastat'); if(!st) return;
+  const cur=(btaQa!==undefined)?btaQa:qaMeta(btaCur);
+  if(!cur||!cur.n){
+    st.textContent="ماكو أسئلة محمّلة بعد.";
+  }else{
+    st.textContent=cur.n+" سؤال وجواب"+(cur.name?(" — "+cur.name):"")+
+      (cur.url?" (ملف بالمخزن)":" (مخزون داخل البوت)")+
+      ((btaQa!==undefined)?" — اضغط احفظ":"");
+  }
+  const box=document.getElementById('bta-qadel'); if(!box) return;
+  box.innerHTML=(cur&&cur.n)?`<button class="avdel" id="bta-qarm">امسح الأسئلة</button>`:``;
+  const d=document.getElementById('bta-qarm');
+  if(d) d.onclick=()=>{ btaQa=null; btaPaintQa() };
+}
+
+/* يقرأ النص ويحوّله أسئلة وأجوبة ويجهّزه للحفظ */
+async function btaTakeQa(text,name,csv){
+  const items=qaParse(text,csv);
+  if(!items.length){ toast("ما گدرت أفهم صيغة الأسئلة — راجع الصيغ المكتوبة فوق"); return }
+  toast("يجهّز "+items.length+" سؤال…");
+  const meta=await qaStore(items,name);
+  if(!meta){ toast("ما انحفظت الأسئلة"); return }
+  btaQa=meta; btaPaintQa();
+  toast(meta.part ? ("المخزن مو جاهز — انحفظ أول "+meta.n+" سؤال بس")
+                  : (meta.n+" سؤال جاهز — اضغط احفظ"));
+}
+
+async function btaBind(){
+  const sel=document.getElementById('bta-sel'); if(!sel) return;
+  btaList=await bfMyBots();
+  if(!document.getElementById('bta-sel')) return;      /* اللوحة انرسمت من جديد */
+  const mk=document.getElementById('bta-mk');
+  if(mk) mk.style.display=btaList.some(b=>b.username==="samer_bot")?'none':'flex';
+  if(!btaList.length){
+    sel.innerHTML=`<option value="">— ماكو بوتات بعد —</option>`;
+    btaShow(null);
+  }else{
+    sel.innerHTML=btaList.map(b=>`<option value="${esc(b.username)}">@${esc(b.username)} — ${esc(b.name)}</option>`).join('');
+    const first=btaList.find(b=>b.username==="samer_bot")||btaList[0];
+    sel.value=first.username;
+    btaShow(await btaFill(first));
+  }
+
+  sel.onchange=async()=>{
+    const row=btaList.find(b=>b.username===sel.value);
+    if(row) btaShow(await btaFill(row));
+  };
+
+  const nb=document.getElementById('bta-new');
+  if(nb) nb.onclick=async()=>{
+    nb.disabled=true; nb.textContent="ينشئ…";
+    try{
+      await sbRpc("bot_create",{p_owner:myPhone(),p_name:"Samer",p_username:"samer_bot"});
+      toast("انصنع @samer_bot"); _botCache={}; renderAdmin();
+    }catch(e){
+      nb.disabled=false; nb.textContent="أنشئ @samer_bot";
+      toast("ما انصنع: "+String(e&&e.message||"").slice(0,90));
+    }
+  };
+
+  const file=document.getElementById('bta-file');
+  document.getElementById('bta-pick').onclick=()=>file.click();
+  file.onchange=e=>{
+    const f=e.target.files&&e.target.files[0]; e.target.value="";
+    if(!f) return;
+    toast("يجهّز الصورة…");
+    msgCompressImg(f,url=>{ btaPic=url; btaPaintPic(); toast("جاهزة — اضغط احفظ") },
+      1440,{folder:"bot"});
+  };
+
+  ['bta-aion','bta-aiweb'].forEach(id=>{
+    const b=document.getElementById(id);
+    if(b) b.onclick=()=>b.setAttribute('aria-pressed', b.getAttribute('aria-pressed')!=='true');
+  });
+
+  /* قاعدة الأسئلة: ملف أو نص ملصوق */
+  const qf=document.getElementById('bta-qafile');
+  document.getElementById('bta-qapick').onclick=()=>qf.click();
+  qf.onchange=async e=>{
+    const f=e.target.files&&e.target.files[0]; e.target.value="";
+    if(!f) return;
+    if(f.size>50*1024*1024){ toast("ملف الأسئلة كبير — الحد ٥٠ ميجا"); return }
+    toast("يقرا الملف…");
+    let txt;
+    try{ txt=await f.text() }catch(err){ toast("ما گدرت أقرا الملف"); return }
+    await btaTakeQa(txt, f.name, /\.csv$/i.test(f.name));
+  };
+  document.getElementById('bta-qapaste').onclick=()=>{
+    openSheet(`<h3 style="font-size:18px">الصق الأسئلة والأجوبة</h3>
+      <p class="sub" style="font-size:13px;margin-top:6px">سطر لكل سؤال بصيغة «السؤال | الجواب»، أو استعمل «س:» و«ج:».</p>
+      <div class="opt"><textarea class="ctrl" id="bta-qatxt" style="min-height:200px"
+        placeholder="شكد سعر الباب؟ | الأسعار تبدي من ٢٥ ألف&#10;وين موقعكم؟ | بلد، شارع المحيط"></textarea></div>
+      <div class="acts"><button class="btn btn-p" id="bta-qaok">جهّز</button>
+        <button class="btn btn-o" id="bta-qax">إلغاء</button></div>`);
+    document.getElementById('bta-qax').onclick=closeSheet;
+    document.getElementById('bta-qaok').onclick=async()=>{
+      const v=document.getElementById('bta-qatxt').value;
+      closeSheet();
+      await btaTakeQa(v,"نص ملصوق",false);
+    };
+  };
+
+  document.getElementById('bta-copy').onclick=async()=>{
+    const v=document.getElementById('bta-token').value;
+    if(!v) return;
+    try{ await navigator.clipboard.writeText(v); toast("انتسخ التوكن") }
+    catch(e){ const el=document.getElementById('bta-token'); el.select(); toast("انسخه يدوي") }
+  };
+
+  document.getElementById('bta-revoke').onclick=async()=>{
+    if(!btaCur) return;
+    const b=document.getElementById('bta-revoke'); b.disabled=true;
+    try{
+      const tk=await sbRpc("bot_revoke",{p_owner:myPhone(),p_username:btaCur.username});
+      document.getElementById('bta-token').value=tk||"";
+      btaCur.token=tk; toast("انلغى التوكن القديم");
+    }catch(e){ toast("ما انلغى") }
+    b.disabled=false;
+  };
+
+  document.getElementById('bta-test').onclick=async()=>{
+    const key=document.getElementById('bta-aikey').value.trim();
+    if(!key){ toast("حط المفتاح أول"); return }
+    const b=document.getElementById('bta-test'); b.disabled=true; b.textContent="يجرّب…";
+    const out=await aiAsk({key,
+      model:document.getElementById('bta-aimodel').value.trim()||AI_MODELS[0],
+      sys:document.getElementById('bta-aisys').value.trim()||AI_SYS_DEF,
+      web:document.getElementById('bta-aiweb').getAttribute('aria-pressed')==='true'},
+      [], "بكلمتين: شنو تاريخ اليوم وشلون الطقس بالعراق؟");
+    b.disabled=false; b.textContent="جرّب الذكاء";
+    openSheet(`<h3 style="font-size:18px">تجربة الذكاء الاصطناعي</h3>
+      <p class="sub" style="font-size:13.5px;margin-top:10px;white-space:pre-wrap">${esc(out)}</p>
+      <div class="acts"><button class="btn btn-o" id="bta-tx">تم</button></div>`);
+    const x=document.getElementById('bta-tx'); if(x) x.onclick=closeSheet;
+  };
+
+  document.getElementById('bta-save').onclick=btaSave;
+}
+
+async function btaSave(){
+  if(!btaCur) return;
+  const g=id=>(document.getElementById(id).value||"").trim();
+  const name=g('bta-name'), u=btaSlug(g('bta-user')), old=btaCur.username;
+  if(name.length<2||name.length>64){ toast("الاسم لازم يكون بين حرفين و٦٤ حرف"); return }
+  if(!/^[a-z0-9_]{5,32}$/.test(u)||!u.endsWith("bot")){
+    toast("اليوزر لازم ينتهي بـ bot، وحروف إنكليزية وأرقام و _ بس"); return }
+  const parsed=btaParseCmds(g('bta-cmds'));
+  if(parsed.err){ toast("سطر أوامر مو مفهوم: "+parsed.err.slice(0,40)); return }
+
+  const aiOn=document.getElementById('bta-aion').getAttribute('aria-pressed')==='true';
+  const key=g('bta-aikey');
+  if(aiOn&&!key){ toast("حط مفتاح Gemini حتى تشغّل الذكاء"); return }
+  const ai=key?{on:aiOn,key,model:g('bta-aimodel')||AI_MODELS[0],
+    sys:g('bta-aisys')||AI_SYS_DEF,
+    web:document.getElementById('bta-aiweb').getAttribute('aria-pressed')==='true'}:null;
+  const qa=(btaQa!==undefined)?btaQa:qaMeta(btaCur);
+
+  const btn=document.getElementById('bta-save'); btn.disabled=true; btn.textContent="يحفظ…";
+  const done=()=>{ btn.disabled=false; btn.textContent="احفظ" };
+  const set=(f,v)=>sbRpc("bot_set",{p_owner:myPhone(),p_username:old,p_field:f,p_value:v});
+  let userMoved=true;
+  try{
+    await set("name",name);
+    await set("about",g('bta-about'));
+    await set("description",g('bta-desc'));
+    await set("commands",JSON.stringify(botPackCmds(parsed.cmds,ai,qa)));
+    if(btaPic!==undefined) await set("avatar",btaPic||"");
+    if(u!==old){ try{ await set("username",u) }catch(e){ userMoved=false } }
+  }catch(e){
+    done(); toast("ما انحفظ: "+String(e&&e.message||"").slice(0,90)); return;
+  }
+  /* الاسم والصورة واليوزر اللي يشوفهم الناس محفوظين بصف الحساب */
+  try{
+    const patch={name,username:u};
+    if(btaPic!==undefined) patch.avatar=btaPic||null;
+    const where=btaCur.phone?("phone=eq."+encodeURIComponent(msgNormPhone(btaCur.phone)))
+                            :("username=eq."+encodeURIComponent(old));
+    await sbReq("user_profiles?"+where,{method:"PATCH",
+      headers:{Prefer:"return=minimal"},body:JSON.stringify(patch)});
+  }catch(e){ console.warn("[bot] profile:",e) }
+
+  _botCache={}; btaPic=undefined;
+  try{ if(typeof msgRenderConvs==="function") msgRenderConvs() }catch(e){}
+  done();
+  toast(u!==old&&!userMoved ? "انحفظ — بس أوامر البوت ماذر تبقى على اليوزر القديم @"+old
+                            : "انحفظت بيانات البوت");
+  btaList=await bfMyBots();
+  const sel=document.getElementById('bta-sel');
+  if(sel){
+    sel.innerHTML=btaList.map(b=>`<option value="${esc(b.username)}">@${esc(b.username)} — ${esc(b.name)}</option>`).join('');
+    const row=btaList.find(b=>b.username===u)||btaList.find(b=>b.username===old);
+    if(row){ sel.value=row.username; btaShow(await btaFill(row)) }
+  }
 }
 
 /* ── الباب المخفي: ٥ نقرات على الشعار أو ضغطة طويلة ── */
@@ -6239,8 +6791,8 @@ function fileIconName(name){
   return "fClip";
 }
 
-const FILE_MAX=25*1024*1024;         /* 25 ميجا — الملف يروح للمخزن مو للقاعدة */
-let chatFileData=null;               /* {name,size,type,data} */
+const FILE_MAX=100*1024*1024;        /* 100 ميجا — الملف يروح للمخزن مو للقاعدة */
+let chatFileData=null;               /* {name,size,type,_file} */
 let _fileCol=true;                   /* هل عمود file موجود بالقاعدة؟ */
 
 function fmtBytes(b){
@@ -6253,20 +6805,16 @@ function fileIcon(name){ return ic(fileIconName(name),"fc-svg") }
 function filePick(){
   const inp=document.getElementById('chat-doc'); if(inp) inp.click();
 }
+/* ما نقرا الملف بالذاكرة وقت الاختيار — الملفات الكبيرة تنرفع مباشرة للمخزن */
 function fileStage(file){
   if(!file) return;
   if(file.size>FILE_MAX){ toast("الملف كبير — الحد "+Math.round(FILE_MAX/1048576)+" ميجا"); return }
-  const fr=new FileReader();
-  fr.onerror=()=>toast("ما قدرت أقرأ الملف");
-  fr.onload=()=>{
-    chatFileData={name:file.name,size:file.size,type:file.type||"",data:fr.result,_file:file};
-    const p=document.getElementById('chat-doc-preview');
-    document.getElementById('cdp-ico').innerHTML=fileIcon(file.name);
-    setTxt('cdp-name',file.name);
-    setTxt('cdp-size',fmtBytes(file.size));
-    p.classList.add('on');
-  };
-  fr.readAsDataURL(file);
+  chatFileData={name:file.name,size:file.size,type:file.type||"",data:null,_file:file};
+  const p=document.getElementById('chat-doc-preview');
+  document.getElementById('cdp-ico').innerHTML=fileIcon(file.name);
+  setTxt('cdp-name',file.name);
+  setTxt('cdp-size',fmtBytes(file.size));
+  p.classList.add('on');
 }
 function fileClear(){
   chatFileData=null;
@@ -7573,11 +8121,15 @@ function msgBoot(){
       fObj={name:f.name,size:f.size,type:f.type};
       const url=f._file?await sbUpload(f._file,'files'):null;
       if(url) fObj.url=url;
-      else{
-        /* المخزن مو جاهز — ننزل لـ base64 بس بحد أصغر حتى ما نثقّل القاعدة */
-        if(f.size>3*1024*1024){ toast('فعّل مخزن الملفات — الملف كبير على القاعدة'); fObj=null }
-        else fObj.data=f.data;
-      }
+      else if(f.size<=3*1024*1024){
+        /* المخزن مو جاهز — ننزل لـ base64 بس للملفات الصغيرة حتى ما نثقّل القاعدة */
+        const d=f.data||await new Promise(res=>{
+          const fr=new FileReader();
+          fr.onload=()=>res(fr.result); fr.onerror=()=>res(null);
+          fr.readAsDataURL(f._file);
+        });
+        if(d) fObj.data=d; else fObj=null;
+      }else{ toast('فعّل مخزن الملفات — الملف كبير على القاعدة'); fObj=null }
     }
     await msgSend(chatConvId,txt,img,null,null,rp,fObj);
     await msgRefreshChat();
@@ -7742,6 +8294,13 @@ const BF_HELP =
 /setcommands - غيّر قائمة أوامر البوت
 /deletebot - احذف بوت
 
+الذكاء الاصطناعي
+/setqa - حمّل أسئلة وأجوبة
+/setai - اربط البوت بذكاء اصطناعي
+/setaiprompt - اكتب شخصية البوت وتعليماته
+/aioff - وقّف الذكاء الاصطناعي
+/qaoff - امسح الأسئلة المحمّلة
+
 إعدادات البوت
 /token - اطلب توكن البوت
 /revoke - ألغِ التوكن واطلب واحد جديد
@@ -7832,9 +8391,51 @@ async function bfReply(text){
         cmds.push({c:m[1].toLowerCase(), r:m[2].trim()});
       }
       bfClear();
-      const ok=await sbRpc("bot_set",{p_owner:myPhone(),p_username:u,p_field:"commands",p_value:JSON.stringify(cmds)});
+      const full=await btaFill((await bfMyBots()).find(z=>z.username===u)||{username:u});
+      const ok=await sbRpc("bot_set",{p_owner:myPhone(),p_username:u,p_field:"commands",
+        p_value:JSON.stringify(botPackCmds(cmds,botAI(full),qaMeta(full)))});
       _botCache={};
       return ok?("انحفظت "+cmds.length+" أوامر لـ@"+u+". جرّبه هسه!"):"ما لكيت هذا البوت عندك.";
+    }
+    if(act==="setqa"){
+      bfClear();
+      const row=(await bfMyBots()).find(z=>z.username===u);
+      if(!row) return "ما لكيت هذا البوت عندك.";
+      const items=qaParse(t,false);
+      if(!items.length) return "ما گدرت أفهم الصيغة. اكتب سطر لكل سؤال:\n\nالسؤال | الجواب";
+      const meta=await qaStore(items,"من المحادثة");
+      if(!meta) return "ما انحفظت الأسئلة.";
+      const full=await btaFill(row);
+      const ok=await sbRpc("bot_set",{p_owner:myPhone(),p_username:u,p_field:"commands",
+        p_value:JSON.stringify(botPackCmds(botCmdList(full),botAI(full),meta))});
+      _botCache={};
+      return ok?("انحفظت "+meta.n+" سؤال وجواب لـ@"+u+". اسأله مباشرة بلا أمر وشوف.")
+               :"ما انحفظ.";
+    }
+    if(act==="setai"||act==="setaiprompt"){
+      bfClear();
+      const row=(await bfMyBots()).find(z=>z.username===u);
+      if(!row) return "ما لكيت هذا البوت عندك.";
+      const full=await btaFill(row);
+      const cur=botAI(full)||{};
+      if(act==="setai"){
+        const key=t.replace(/\s+/g,"");
+        if(key.length<20) return "المفتاح مو مكتمل. انسخه كامل من Google AI Studio وأرسله، أو /cancel.";
+        cur.key=key; cur.on=true;
+        if(!cur.model) cur.model=AI_MODELS[0];
+        if(!cur.sys)   cur.sys=AI_SYS_DEF;
+        if(cur.web===undefined) cur.web=true;
+      }else{
+        if(!cur.key) return "اربط المفتاح أول بـ /setai @"+u;
+        cur.sys=t;
+      }
+      const ok=await sbRpc("bot_set",{p_owner:myPhone(),p_username:u,p_field:"commands",
+        p_value:JSON.stringify(botPackCmds(botCmdList(full),cur,qaMeta(full)))});
+      _botCache={};
+      if(!ok) return "ما انحفظ.";
+      return act==="setai"
+        ? "تم! @"+u+" صار مربوط بذكاء اصطناعي.\n\nيجاوب على أي سؤال حر بمعلومات محدّثة من الويب، وأوامره الجاهزة تبقى تشتغل مثل ما هي.\n\nتريد تكتبله شخصية؟ أرسل /setaiprompt @"+u
+        : "انحفظت شخصية @"+u+". جرّبه هسه.";
     }
     if(act==="deletebot"){
       bfClear();
@@ -7879,7 +8480,37 @@ async function bfReply(text){
     }catch(e){ return "ما انحفظ: "+String(e&&e.message||"").slice(0,160) }
   }
 
-  if(["/setname","/setabouttext","/setdescription","/setcommands","/deletebot","/setuserpic"].indexOf(cmd)>-1){
+  if(cmd==="/aioff"){
+    const list=await bfMyBots();
+    const u=bfClean(one);
+    if(!u) return "اكتب اليوزر ويّا الأمر. مثال:\n/aioff @"+(list[0]?list[0].username:"samer_bot");
+    const row=list.find(z=>z.username===u);
+    if(!row) return "ما لكيت @"+u+" ببوتاتك.";
+    const full=await btaFill(row), cur=botAI(full);
+    if(!cur||!cur.key) return "الذكاء الاصطناعي مو مربوط بـ@"+u+" أصلاً.";
+    cur.on=false;
+    const ok=await sbRpc("bot_set",{p_owner:myPhone(),p_username:u,p_field:"commands",
+      p_value:JSON.stringify(botPackCmds(botCmdList(full),cur,qaMeta(full)))});
+    _botCache={};
+    return ok?("انطفى الذكاء الاصطناعي لـ@"+u+". أوامره الجاهزة تبقى شغّالة."):"ما انحفظ.";
+  }
+
+  if(cmd==="/qaoff"){
+    const list=await bfMyBots();
+    const u=bfClean(one);
+    if(!u) return "اكتب اليوزر ويّا الأمر. مثال:\n/qaoff @"+(list[0]?list[0].username:"samer_bot");
+    const row=list.find(z=>z.username===u);
+    if(!row) return "ما لكيت @"+u+" ببوتاتك.";
+    const full=await btaFill(row);
+    if(!qaMeta(full)) return "ماكو أسئلة محمّلة بـ@"+u+".";
+    const ok=await sbRpc("bot_set",{p_owner:myPhone(),p_username:u,p_field:"commands",
+      p_value:JSON.stringify(botPackCmds(botCmdList(full),botAI(full),null))});
+    _botCache={};
+    return ok?("انمسحت أسئلة @"+u+"."):"ما انحفظ.";
+  }
+
+  if(["/setname","/setabouttext","/setdescription","/setcommands","/deletebot","/setuserpic",
+      "/setai","/setaiprompt","/setqa"].indexOf(cmd)>-1){
     const list=await bfMyBots();
     if(!list.length) return "ما عندك بوتات. أرسل /newbot.";
     const u=bfClean(one);
@@ -7891,6 +8522,9 @@ async function bfReply(text){
     if(cmd==="/setdescription") return "اكتب وصف @"+u+" — هذا يظهر قبل ما يبدي الحوار.";
     if(cmd==="/setcommands")    return "ابعثلي أوامر @"+u+" بسطر لكل أمر، بهاي الصيغة:\n\nأمر - الرد\n\nمثال:\nstart - أهلاً بيك بمعرضنا\nprice - الأسعار تبدي من ٢٥ ألف\nlocation - بلد، شارع المحيط";
     if(cmd==="/setuserpic")     return "ابعثلي الصورة اللي تريدها لـ@"+u+" — أرسلها كصورة عادية بالمحادثة.";
+    if(cmd==="/setqa")          return "ابعثلي الأسئلة والأجوبة، سطر لكل سؤال بهاي الصيغة:\n\nالسؤال | الجواب\n\nمثال:\nشكد سعر الباب؟ | الأسعار تبدي من ٢٥ ألف\nوين موقعكم؟ | بلد، شارع المحيط\n\nوإذا عندك ملف كبير، ارفعه من لوحة المالك — قسم «أسئلة وأجوبة».";
+    if(cmd==="/setai")          return "ابعثلي مفتاح Gemini API مالتك حتى أربط @"+u+" بالذكاء الاصطناعي.\n\nتاخذ المفتاح مجاناً من Google AI Studio: aistudio.google.com/apikey\n\nانتبه: المفتاح يوصل جهاز أي شخص يحچي ويّا البوت، فاستعمل مفتاح محدود وحطّله سقف استهلاك.";
+    if(cmd==="/setaiprompt")    return "اكتب شخصية @"+u+" وتعليماته — بأي طول تريد.\n\nمثال:\nأنت مساعد معرض ألمنيوم. جاوب بالعربي باختصار، وإذا انسأل عن الأسعار كول تبدي من ٢٥ ألف.";
     if(cmd==="/deletebot")      return "تأكيد الحذف: اكتب يوزر البوت مرة ثانية بلا @.\n\nهذي خطوة ما ترجع.";
   }
 
@@ -7899,24 +8533,54 @@ async function bfReply(text){
 }
 
 /* ── عقل البوتات العادية ── */
-async function botUserReply(botPhone, text){
+async function botUserReply(botPhone, text, convId){
   const b=await botInfo(botPhone);
   if(!b) return "هذا البوت مو متاح حالياً.";
   const {cmd}=bfArgs(text);
-  const cmds=Array.isArray(b.commands)?b.commands:[];
+  const cmds=botCmdList(b);
+  const ai=botAI(b);
+  const aiOn=!!(ai&&ai.on&&ai.key);
+  const qa=qaMeta(b);
+
+  /* أقرب الأجوبة من قاعدة الأسئلة */
+  const qaHits=async()=>qa?qaSearch(await qaLoad(qa),text,5):[];
+  /* الذكاء يجاوب ومعاه قاعدة الأسئلة كمرجع */
+  const ask=async hits=>{
+    const cfg=Object.assign({},ai);
+    if(hits&&hits.length){
+      cfg.sys=(cfg.sys||AI_SYS_DEF)+
+        "\n\nهذي معلومات من قاعدة أسئلة وأجوبة هذا البوت — اعتمد عليها أول شي، وإذا ما بيها الجواب جاوب من عندك:\n"+
+        hits.map(h=>"س: "+h.it.q+"\nج: "+h.it.a).join("\n\n").slice(0,6000);
+    }
+    return aiAsk(cfg, await aiHistory(convId,text), text);
+  };
+
   if(cmd.startsWith("/")){
     const key=cmd.slice(1);
     const hit=cmds.find(z=>String(z.c).toLowerCase()===key);
     if(hit) return hit.r;
     if(key==="start") return b.description||b.about||("أهلاً! أنا "+b.name+".");
     if(key==="help"){
-      if(!cmds.length) return "ماكو أوامر معرّفة لهذا البوت بعد.";
-      return "الأوامر:\n\n"+cmds.map(z=>"/"+z.c).join("\n");
+      let lines=cmds.length?("الأوامر:\n\n"+cmds.map(z=>"/"+z.c).join("\n")):"ماكو أوامر معرّفة لهذا البوت بعد.";
+      if(qa&&qa.n) lines+="\n\nعندي "+qa.n+" سؤال وجواب — اسألني مباشرة بلا أمر.";
+      else if(aiOn) lines+="\n\nتگدر تسألني أي سؤال بلا أمر — أجاوبك بمعلومات محدّثة.";
+      return lines;
     }
+    if(aiOn) return ask(await qaHits());
     return "ما أعرف هذا الأمر."+(cmds.length?("\n\nالمتاح:\n"+cmds.map(z=>"/"+z.c).join("\n")):"");
   }
-  const hit=cmds.find(z=>String(z.c).toLowerCase()==="start");
-  return hit?hit.r:(b.about||b.description||("أهلاً! أنا "+b.name+". أرسل /help."));
+
+  const hits=await qaHits();
+  if(hits.length&&hits[0].s>=.95) return hits[0].it.a;      /* تطابق قوي — جواب مباشر */
+  if(aiOn) return ask(hits);
+  if(hits.length&&hits[0].s>=.45) return hits[0].it.a;
+  if(qa&&qa.n){
+    const near=hits.slice(0,3).map(h=>"• "+h.it.q);
+    return near.length?("ما لكيت جواب لهذا السؤال بالضبط. تقصد واحد من هذي؟\n\n"+near.join("\n"))
+                      :"ما لكيت جواب لهذا السؤال. جرّب تسأل بكلمات ثانية.";
+  }
+  const st=cmds.find(z=>String(z.c).toLowerCase()==="start");
+  return st?st.r:(b.about||b.description||("أهلاً! أنا "+b.name+". أرسل /help."));
 }
 
 /* ── يشتغل بعد ما يرسل المستخدم رسالة داخل محادثة بوت ── */
@@ -7947,7 +8611,7 @@ async function botOnUserMessage(convId, otherPhone, text){
   if(!isBotPhone(ph)) return;
   let out;
   try{
-    out = (ph===BF_PHONE) ? await bfReply(text) : await botUserReply(ph, text);
+    out = (ph===BF_PHONE) ? await bfReply(text) : await botUserReply(ph, text, convId);
   }catch(e){ console.warn("[bot]",e); out="صار خطأ. جرّب مرة ثانية."; }
   await botSay(convId, ph, out);
   try{ if(typeof msgRefreshChat==="function") setTimeout(msgRefreshChat,250) }catch(e){}
@@ -7979,6 +8643,8 @@ const BF_MENU = [
   ["/help","المساعدة"], ["/newbot","بوت جديد"], ["/mybots","بوتاتي"],
   ["/setname","تغيير الاسم"], ["/setabouttext","النبذة"], ["/setdescription","الوصف"],
   ["/setuserpic","صورة البوت"], ["/setcommands","الأوامر"],
+  ["/setqa","أسئلة وأجوبة"], ["/setai","اربط الذكاء"], ["/setaiprompt","شخصية البوت"],
+  ["/aioff","وقّف الذكاء"], ["/qaoff","امسح الأسئلة"],
   ["/token","التوكن"], ["/revoke","توكن جديد"], ["/deletebot","حذف بوت"]
 ];
 
@@ -8013,7 +8679,7 @@ async function botPaintCmds(phone){
   if(ph===BF_PHONE) items=BF_MENU.slice();
   else{
     const b=await botInfo(ph);
-    const cs=(b&&Array.isArray(b.commands))?b.commands:[];
+    const cs=botCmdList(b);
     items=[["/start","بدء"]].concat(cs.map(c=>["/"+c.c,"/"+c.c]));
   }
   bar.innerHTML=items.map(([c,l])=>
