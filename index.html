@@ -11505,28 +11505,50 @@ function aiPickVoice(gender){
   const ar=list.filter(v=>/^ar/i.test(v.lang||""));
   const pool=ar.length?ar:list;
   const female=/female|amira|hala|zariyah|laila|salma|maged_f|woman|بنت|أنثى/i;
-  const male  =/male|hamed|naayf|shakir|omar|man|ولد|ذكر/i;
-  const want=gender==="female"?female:male;
+  const male  =/male|hamed|naayf|shakir|omar|majed|man|ولد|ذكر/i;
+  /* الأصوات العصبية (Google/Neural/Natural) أدفأ وأريح للأذن من الآلية */
+  const nice=v=>/google|neural|natural|enhanced|premium|online/i.test(v.name||"");
+  const want =gender==="female"?female:male;
   const other=gender==="female"?male:female;
-  return pool.find(v=>want.test(v.name||"")) ||
+  return pool.find(v=>want.test(v.name||"")&&nice(v)) ||
+         pool.find(v=>want.test(v.name||"")) ||
+         pool.find(v=>nice(v)&&!other.test(v.name||"")) ||
          pool.find(v=>!other.test(v.name||"")) ||
          pool[0] || null;
 }
+
+/* ينطق النص بمقاطع — أريح للأذن وما ينقطع بالنصوص الطويلة */
 function aiSpeak(text,gender){
   try{
     if(!("speechSynthesis" in window)) return false;
-    const t=String(text||"").replace(/[*_`#>]/g,"").slice(0,600);
+    const t=String(text||"")
+      .replace(/[*_`#>]/g,"")
+      .replace(/https?:\/\/\S+/g,"رابط")
+      .replace(/[—–]/g," ")
+      .trim();
     if(!t) return false;
     speechSynthesis.cancel();
-    const u=new SpeechSynthesisUtterance(t);
     const v=aiPickVoice(gender);
-    if(v){ u.voice=v; u.lang=v.lang }
-    else u.lang="ar-IQ";
-    u.rate=1; u.pitch=gender==="female"?1.25:0.85;
-    speechSynthesis.speak(u);
+    /* نقسم على الجُمل حتى النبرة تبقى طبيعية وياخذ نفَس بينها */
+    const parts=t.split(/(?<=[.!?؟،:\n])\s+/).reduce((a,z)=>{
+      if(!a.length) return [z];
+      const last=a[a.length-1];
+      if((last+" "+z).length<170){ a[a.length-1]=last+" "+z; return a }
+      a.push(z); return a;
+    },[]).slice(0,14);
+    parts.forEach(seg=>{
+      if(!seg.trim()) return;
+      const u=new SpeechSynthesisUtterance(seg.trim());
+      if(v){ u.voice=v; u.lang=v.lang } else u.lang="ar-SA";
+      u.rate  = gender==="female" ? 1.0 : 0.96;   /* أبطأ شوي = أوضح وأريح */
+      u.pitch = gender==="female" ? 1.18 : 0.82;  /* أوطى = صوت ذكر أدفأ */
+      u.volume= 1;
+      speechSynthesis.speak(u);
+    });
     return true;
   }catch(e){ return false }
 }
+function aiSpeakStop(){ try{ speechSynthesis.cancel() }catch(e){} }
 /* المتصفح يحمّل الأصوات متأخر — نحفّزه بدري */
 try{ speechSynthesis.getVoices(); speechSynthesis.onvoiceschanged=()=>{} }catch(e){}
 
@@ -11678,17 +11700,77 @@ if(typeof botOnUserMessage==="function" && !botOnUserMessage._aiXWrapped){
 }
 
 /* البوت يحچي لما يرد — إذا المستخدم مختار صوت */
+/* القيمة الخام: نميّز «ما اختار شي» عن «طفّاه بنفسه» */
+const aiVoiceRaw = ph => aiVoiceAll()[msgNormPhone(ph)];
+
 if(typeof botSay==="function" && !botSay._voiceWrapped){
   const _botSay=botSay;
   botSay=async function(convId,botPhone,text){
     const r=await _botSay.apply(this,arguments);
     try{
       const g=aiVoiceGet(botPhone);
-      if(g==="male"||g==="female") aiSpeak(text,g);
+      /* البوت ماذر يحچي بصوت ذكر افتراضياً — إلا إذا طفيته */
+      const eff=(g==="off"&&msgNormPhone(botPhone)===BF_PHONE&&aiVoiceRaw(botPhone)===undefined)
+        ? "male" : g;
+      if(eff==="male"||eff==="female"){
+        let inCall=false;
+        try{ inCall=!!bcOn }catch(e){}
+        if(!inCall) aiSpeak(text,eff);   /* بالمكالمة الصوت مالها هي */
+      }
     }catch(e){}
     return r;
   };
   botSay._voiceWrapped=true;
+}
+
+
+/* ── زر السماعة بشريط أوامر البوت ── */
+(function(){
+  const css=document.createElement('style');
+  css.textContent=`.bot-cmd.spk{display:inline-flex;align-items:center;gap:5px;
+  border-color:#D6B36A;color:#B08F4A;font-weight:800}
+.bot-cmd.spk.on{background:linear-gradient(140deg,#F0D99A,#D6B36A);color:#0A0A0A;border-color:#D6B36A}`;
+  document.head.appendChild(css);
+})();
+
+function aiVoiceBtnPaint(){
+  const bar=document.getElementById('bot-cmds');
+  if(!bar||!chatWith||!isBotPhone(chatWith)) return;
+  let b=bar.querySelector('.bot-cmd.spk');
+  if(!b){
+    b=document.createElement('button');
+    b.className='bot-cmd spk';
+    b.onclick=()=>{
+      const ph=msgNormPhone(chatWith);
+      const cur=aiVoiceGet(ph);
+      const eff=(cur==="off"&&ph===BF_PHONE&&aiVoiceRaw(ph)===undefined)?"male":cur;
+      if(eff==="off"){ aiVoiceSet(ph,"male"); toast("صار يحچي بصوت ذكر"); aiSpeak("تمام، صرت أحچي وياك.","male") }
+      else{ aiVoiceSet(ph,"off"); aiSpeakStop(); toast("انطفى الصوت") }
+      aiVoiceBtnPaint();
+    };
+    bar.insertBefore(b,bar.firstChild);
+  }
+  const ph=msgNormPhone(chatWith);
+  const cur=aiVoiceGet(ph);
+  const on=(cur==="male"||cur==="female")||
+           (cur==="off"&&ph===BF_PHONE&&aiVoiceRaw(ph)===undefined);
+  b.classList.toggle('on',on);
+  b.textContent=on?"🔊 الصوت شغّال":"🔇 الصوت مطفي";
+}
+if(typeof botPaintCmds==="function" && !botPaintCmds._spkWrapped){
+  const _bpc=botPaintCmds;
+  botPaintCmds=async function(){
+    const r=await _bpc.apply(this,arguments);
+    try{ aiVoiceBtnPaint() }catch(e){}
+    return r;
+  };
+  botPaintCmds._spkWrapped=true;
+}
+/* نطلع من محادثة البوت؟ نوقف الصوت */
+if(typeof msgCloseChat==="function" && !msgCloseChat._spkWrapped){
+  const _mcc=msgCloseChat;
+  msgCloseChat=function(){ try{ aiSpeakStop() }catch(e){} return _mcc.apply(this,arguments) };
+  msgCloseChat._spkWrapped=true;
 }
 
 /* ── نضيف الأمرين لشريط أزرار البوت ── */
