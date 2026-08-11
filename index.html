@@ -10629,6 +10629,421 @@ if(typeof msgSyncProfile==="function" && !msgSyncProfile._rlWrapped){
   msgSyncProfile._rlWrapped=true;
 }
 
+/* ═══════════════════════════════════════════════════════════════
+   إعدادات المجموعات والقنوات — على طراز تليجرام
+   • ورقة معلومات فيها الصورة والاسم والنبذة وعدد الأعضاء.
+   • تعديل (للمالك والمشرفين): صورة، اسم، نبذة، نوع عام/خاص، يوزر.
+   • الصلاحيات: من يرسل، من يرسل وسائط، من يضيف أعضاء، توقيع
+     رسائل القناة، ورؤية السجل القديم للعضو الجديد.
+   • المشرفون: ترقية عضو، تنزيل مشرف، طرد، نقل الملكية.
+   • رابط الدعوة، كتم الإشعارات، تثبيت رسالة، مغادرة، حذف.
+   يحتاج part4.sql مرة وحدة.
+   ═══════════════════════════════════════════════════════════════ */
+(function(){
+  const css=document.createElement('style');
+  css.textContent=`
+.rmi-head{display:flex;align-items:center;gap:13px;margin-bottom:14px}
+.rmi-av{width:74px;height:74px;border-radius:50%;overflow:hidden;flex:none;display:grid;
+  place-items:center;background:var(--art);border:1px solid var(--line)}
+.rmi-av img{width:100%;height:100%;object-fit:cover;display:block}
+.rmi-av svg{width:34px;height:34px;fill:none;stroke:var(--muted);stroke-width:1.7;
+  stroke-linecap:round;stroke-linejoin:round}
+.rmi-h b{display:block;font-size:17px;line-height:1.3}
+.rmi-h span{display:block;font-size:12.5px;color:var(--muted);margin-top:3px}
+.rmi-sec{font-size:11.5px;font-weight:800;color:var(--muted);letter-spacing:.02em;
+  margin:16px 2px 7px}
+.rmi-sw{display:flex;align-items:center;gap:11px;width:100%;padding:11px 12px;
+  border:0;border-bottom:1px solid var(--line);background:0;cursor:pointer;
+  font-family:var(--font);font-size:14px;color:var(--ink);text-align:start}
+.rmi-sw:last-child{border-bottom:0}
+.rmi-sw span{flex:1;min-width:0}
+.rmi-sw small{display:block;font-size:11.5px;color:var(--muted);margin-top:2px}
+.rmi-tog{flex:none;width:42px;height:24px;border-radius:99px;background:var(--line);
+  position:relative;transition:background .2s}
+.rmi-tog::after{content:"";position:absolute;top:2px;inset-inline-start:2px;width:20px;height:20px;
+  border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.3);transition:transform .2s}
+.rmi-sw.on .rmi-tog{background:#D6B36A}
+.rmi-sw.on .rmi-tog::after{transform:translateX(18px)}
+[dir="rtl"] .rmi-sw.on .rmi-tog::after{transform:translateX(-18px)}
+.rmi-mem{display:flex;align-items:center;gap:10px;padding:9px 4px;border-bottom:1px solid var(--line)}
+.rmi-mem:last-child{border-bottom:0}
+.rmi-mem .mb{flex:1;min-width:0}
+.rmi-mem .mb b{display:block;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rmi-mem .mb small{display:block;font-size:11px;color:var(--muted)}
+.rmi-mem .mx{flex:none;width:34px;height:34px;border-radius:50%;border:1px solid var(--line);
+  background:0;cursor:pointer;display:grid;place-items:center;color:var(--muted);font-size:16px}
+.rmi-badge{flex:none;font-size:10.5px;font-weight:800;color:#0A0A0A;padding:3px 8px;border-radius:20px;
+  background:linear-gradient(140deg,#F0D99A,#D6B36A)}
+.rmi-link{display:flex;align-items:center;gap:8px;padding:11px 12px;border-radius:13px;
+  background:var(--art);font-size:12px;direction:ltr;word-break:break-all;cursor:pointer}
+.rmi-scroll{max-height:40vh;overflow:auto}`;
+  document.head.appendChild(css);
+})();
+
+const rmIsOwner = () => roomRole==="owner";
+const rmIsAdmin = () => roomRole==="owner"||roomRole==="admin";
+const rmKind    = () => roomCur ? roomKindName(roomCur.kind) : "";
+const rmIsCh    = () => !!roomCur && roomCur.kind==="channel";
+
+function rmAvBox(r,cls){
+  const av=r&&r.avatar
+    ? `<img src="${esc(r.avatar)}" alt="">`
+    : `<svg viewBox="0 0 24 24">${ROOM_ICON[(r&&r.kind)||"group"]||ROOM_ICON.group}</svg>`;
+  return `<span class="${cls||"rmi-av"}">${av}</span>`;
+}
+function rmSwitch(id,label,sub,on){
+  return `<button class="rmi-sw${on?' on':''}" type="button" data-rmsw="${id}">
+    <span>${esc(label)}${sub?`<small>${esc(sub)}</small>`:""}</span>
+    <span class="rmi-tog"></span></button>`;
+}
+async function rmPatch(patch){
+  if(!roomCur) return false;
+  try{
+    await sbReq("rooms?id=eq."+encodeURIComponent(roomCur.id),
+      {method:"PATCH",headers:{Prefer:"return=minimal"},body:JSON.stringify(patch)});
+    Object.assign(roomCur,patch);
+    const i=myRooms.findIndex(r=>r.id===roomCur.id);
+    if(i>=0) Object.assign(myRooms[i],patch);
+    return true;
+  }catch(e){ toast("ما انحفظ التعديل"); return false }
+}
+
+/* ═══ الورقة الرئيسية ═══ */
+async function roomInfoSheet(){
+  if(!roomCur) return;
+  roomRole=await roomMyRole(roomCur.id);
+  const mem=await roomMembers(roomCur.id);
+  roomMemN=mem.length;
+  const meMem=mem.find(m=>msgNormPhone(m.phone)===myPhone());
+  const muted=!!(meMem&&meMem.muted);
+  const admin=rmIsAdmin(), owner=rmIsOwner(), ch=rmIsCh();
+
+  openSheet(`
+    <div class="rmi-head">
+      ${rmAvBox(roomCur)}
+      <span class="rmi-h"><b>${esc(roomCur.title||"")}</b>
+        <span>${rmKind()} · ${roomMemN} ${ch?"مشترك":"عضو"}${
+          roomCur.username?" · @"+esc(roomCur.username):""}</span></span>
+    </div>
+    ${roomCur.about?`<p class="note" style="margin-top:0">${esc(roomCur.about)}</p>`:""}
+    ${roomCur.pinned?`<p class="rmi-sec">الرسالة المثبّتة</p>
+      <p class="note" style="margin-top:0">${esc(roomCur.pinned)}</p>`:""}
+
+    <p class="rmi-sec">عام</p>
+    <div class="opt-list">
+      ${rmSwitch("mute","كتم الإشعارات","ما توصلك تنبيهات من هنا",muted)}
+      <button class="opt-row" id="rmi-link">${ic('share')}<span>رابط الدعوة</span></button>
+      ${admin?`<button class="opt-row" id="rmi-edit">${ic('image')}<span>تعديل ${rmKind()}</span></button>`:""}
+      ${admin?`<button class="opt-row" id="rmi-perm">${ic('check')}<span>الصلاحيات</span></button>`:""}
+      ${admin?`<button class="opt-row" id="rmi-pin">${ic('reply')}<span>${roomCur.pinned?"تغيير الرسالة المثبّتة":"ثبّت رسالة"}</span></button>`:""}
+      ${admin?`<button class="opt-row" id="rmi-add">${ic('plus')}<span>أضف أعضاء</span></button>`:""}
+    </div>
+
+    <p class="rmi-sec">${ch?"المشتركون":"الأعضاء"} (${roomMemN})</p>
+    <div class="rmi-scroll" id="rmi-mems"><span class="sub" style="font-size:12px">يحمّل…</span></div>
+
+    <div class="opt-list" style="margin-top:14px">
+      ${owner
+        ? `<button class="opt-row danger" id="rmi-del">${ic('trash')}<span>حذف ${rmKind()}</span></button>`
+        : (roomRole?`<button class="opt-row danger" id="rmi-leave">${ic('ban')}<span>مغادرة ${rmKind()}</span></button>`:"")}
+    </div>`);
+
+  const on=(id,fn)=>{const e=document.getElementById(id); if(e) e.onclick=fn};
+
+  /* كتم */
+  const sw=document.querySelector('[data-rmsw="mute"]');
+  if(sw) sw.onclick=async()=>{
+    const next=!sw.classList.contains('on');
+    sw.classList.toggle('on',next);
+    try{
+      await sbReq("room_members?room_id=eq."+encodeURIComponent(roomCur.id)+
+        "&phone=eq."+encodeURIComponent(myPhone()),
+        {method:"PATCH",headers:{Prefer:"return=minimal"},body:JSON.stringify({muted:next})});
+      toast(next?"انكتمت الإشعارات":"رجعت الإشعارات");
+    }catch(e){ sw.classList.toggle('on',!next); toast("ما گدرت") }
+  };
+
+  on('rmi-link',()=>{ closeSheet();
+    shareOpen((rmIsCh()?"اشترك بقناة ":"انضم لمجموعة ")+(roomCur.title||""),
+      shareLink("room",roomCur.id), roomCur.title||"") });
+  on('rmi-edit',()=>{ closeSheet(); roomEditSheet() });
+  on('rmi-perm',()=>{ closeSheet(); roomPermSheet() });
+  on('rmi-add', ()=>{ closeSheet(); roomAddSheet() });
+  on('rmi-pin', ()=>{ closeSheet(); roomPinSheet() });
+
+  on('rmi-leave',()=>{ closeSheet(); confirmAsk("راح تطلع من "+rmKind()+". أكيد؟",async()=>{
+    try{
+      await sbReq("room_members?room_id=eq."+encodeURIComponent(roomCur.id)+
+        "&phone=eq."+encodeURIComponent(myPhone()),{method:"DELETE",headers:{Prefer:"return=minimal"}});
+      myRooms=[]; toast("طلعت"); msgCloseChat(); msgRenderConvs();
+    }catch(e){ toast("ما گدرت") }
+  }) });
+
+  on('rmi-del',()=>{ closeSheet(); confirmAsk("تنحذف نهائياً عند كل الأعضاء. أكيد؟",async()=>{
+    const id=roomCur.id;
+    try{
+      await sbReq("room_members?room_id=eq."+encodeURIComponent(id),{method:"DELETE",headers:{Prefer:"return=minimal"}});
+      await sbReq("rooms?id=eq."+encodeURIComponent(id),{method:"DELETE",headers:{Prefer:"return=minimal"}});
+      await sbReq("user_profiles?phone=eq."+encodeURIComponent(id),{method:"DELETE",headers:{Prefer:"return=minimal"}});
+    }catch(e){}
+    myRooms=[]; toast("انحذفت"); msgCloseChat(); msgRenderConvs();
+  }) });
+
+  rmPaintMembers(mem);
+}
+
+/* ═══ قائمة الأعضاء مع إجراءات المشرف ═══ */
+async function rmPaintMembers(mem){
+  const box=document.getElementById('rmi-mems'); if(!box) return;
+  const rank={owner:0,admin:1,member:2};
+  const list=mem.slice().sort((a,b)=>(rank[a.role]??2)-(rank[b.role]??2)).slice(0,80);
+  const profs=await Promise.all(list.map(m=>msgGetProfile(m.phone)));
+  if(!document.getElementById('rmi-mems')) return;
+  const admin=rmIsAdmin(), owner=rmIsOwner(), me=myPhone();
+  box.innerHTML=list.map((m,i)=>{
+    const p=profs[i]||{phone:m.phone}, ph=msgNormPhone(m.phone);
+    const role=m.role==="owner"?"المالك":(m.role==="admin"?"مشرف":"");
+    const canAct=admin && ph!==me && m.role!=="owner" && (owner||m.role!=="admin");
+    return `<div class="rmi-mem">
+      ${msgAvHTML(p.name,p.avatar)}
+      <span class="mb"><b>${nameHTML(p)}</b>${p.username?`<small>@${esc(p.username)}</small>`:""}</span>
+      ${role?`<span class="rmi-badge">${role}</span>`:""}
+      ${canAct?`<button class="mx" data-rmact="${esc(ph)}" data-role="${esc(m.role)}" aria-label="خيارات">⋯</button>`:""}
+    </div>`;
+  }).join('');
+  box.querySelectorAll('[data-rmact]').forEach(el=>{
+    el.onclick=()=>rmMemberActions(el.dataset.rmact,el.dataset.role);
+  });
+}
+
+async function rmMemberActions(phone,role){
+  const p=await msgGetProfile(phone);
+  const owner=rmIsOwner();
+  openSheet(`<h3 style="font-size:16px;margin-bottom:12px">${esc(msgDisplayName(p))}</h3>
+    <div class="opt-list">
+      ${role==="admin"
+        ? `<button class="opt-row" id="rma-demote">${ic('minus')}<span>تنزيل من الإشراف</span></button>`
+        : `<button class="opt-row" id="rma-promote">${ic('check')}<span>ترقية لمشرف</span></button>`}
+      ${owner?`<button class="opt-row" id="rma-transfer">${ic('forward')}<span>نقل الملكية إليه</span></button>`:""}
+      <button class="opt-row danger" id="rma-kick">${ic('ban')}<span>طرد من ${rmKind()}</span></button>
+    </div>
+    <div class="acts"><button class="btn btn-o" id="rma-x">إلغاء</button></div>`);
+  const on=(id,fn)=>{const e=document.getElementById(id); if(e) e.onclick=fn};
+  const setRole=async r=>{
+    try{
+      await sbReq("room_members?room_id=eq."+encodeURIComponent(roomCur.id)+
+        "&phone=eq."+encodeURIComponent(phone),
+        {method:"PATCH",headers:{Prefer:"return=minimal"},body:JSON.stringify({role:r})});
+      toast("تم ✓"); closeSheet(); roomInfoSheet();
+    }catch(e){ toast("ما گدرت") }
+  };
+  on('rma-x',closeSheet);
+  on('rma-promote',()=>setRole("admin"));
+  on('rma-demote', ()=>setRole("member"));
+  on('rma-kick',()=>{ closeSheet(); confirmAsk("تطرده من "+rmKind()+"؟",async()=>{
+    try{
+      await sbReq("room_members?room_id=eq."+encodeURIComponent(roomCur.id)+
+        "&phone=eq."+encodeURIComponent(phone),{method:"DELETE",headers:{Prefer:"return=minimal"}});
+      toast("انطرد"); roomInfoSheet();
+    }catch(e){ toast("ما گدرت") }
+  }) });
+  on('rma-transfer',()=>{ closeSheet();
+    confirmAsk("راح يصير هو المالك وانت تنزل مشرف. أكيد؟",async()=>{
+      try{
+        await sbReq("room_members?room_id=eq."+encodeURIComponent(roomCur.id)+
+          "&phone=eq."+encodeURIComponent(phone),
+          {method:"PATCH",headers:{Prefer:"return=minimal"},body:JSON.stringify({role:"owner"})});
+        await sbReq("room_members?room_id=eq."+encodeURIComponent(roomCur.id)+
+          "&phone=eq."+encodeURIComponent(myPhone()),
+          {method:"PATCH",headers:{Prefer:"return=minimal"},body:JSON.stringify({role:"admin"})});
+        await rmPatch({owner:msgNormPhone(phone)});
+        toast("انتقلت الملكية ✓"); roomRole="admin"; roomInfoSheet();
+      }catch(e){ toast("ما گدرت") }
+    }) });
+}
+
+/* ═══ تعديل المعلومات ═══ */
+let rmEditPic=null;
+async function roomEditSheet(){
+  if(!roomCur||!rmIsAdmin()) return;
+  rmEditPic=roomCur.avatar||null;
+  const ch=rmIsCh(), pub=roomCur.rtype==="public";
+  openSheet(`<h3 style="font-size:17px;margin-bottom:12px">تعديل ${rmKind()}</h3>
+    <div class="rm-form">
+      <div class="opt"><label>الصورة</label>
+        <div class="adshot" id="rme-slot" style="width:96px;height:96px;border-radius:50%;margin-inline:auto"></div>
+        <div class="adbar" style="justify-content:center">
+          <button class="fixbtn" id="rme-pick">غيّر الصورة</button></div></div>
+      <input type="file" id="rme-file" accept="image/*" style="display:none">
+      <div class="opt"><label for="rme-title">الاسم</label>
+        <input class="ctrl" id="rme-title" autocomplete="off" value="${esc(roomCur.title||"")}"></div>
+      <div class="opt"><label for="rme-about">النبذة</label>
+        <input class="ctrl" id="rme-about" autocomplete="off" value="${esc(roomCur.about||"")}"></div>
+    </div>
+    <p class="rmi-sec">النوع</p>
+    <div class="opt-list">
+      ${rmSwitch("pub","عامة",pub?"أي شخص يلگيها بالبحث وينضم":"بالرابط بس",pub)}
+    </div>
+    <div id="rme-uwrap" ${pub?"":'hidden'}>
+      <div class="opt" style="margin-top:10px"><label for="rme-user">اليوزر</label>
+        <input class="ctrl" id="rme-user" dir="ltr" autocomplete="off" autocapitalize="none"
+          autocorrect="off" spellcheck="false" placeholder="my_channel" value="${esc(roomCur.username||"")}"></div>
+      <p class="avhint" style="text-align:start">حروف إنكليزية وأرقام و _ بس، من ٥ لـ٣٢ حرف.</p>
+    </div>
+    <div class="acts"><button class="btn btn-p" id="rme-go">حفظ</button>
+      <button class="btn btn-o" id="rme-x">إلغاء</button></div>`);
+
+  const paint=()=>{
+    const s=document.getElementById('rme-slot'); if(!s) return;
+    s.innerHTML=rmEditPic?`<img src="${esc(rmEditPic)}" alt="">`
+      :`<span class="sub" style="font-size:12px">ماكو صورة</span>`;
+  };
+  paint();
+  const f=document.getElementById('rme-file');
+  document.getElementById('rme-pick').onclick=()=>f.click();
+  f.onchange=e=>{
+    const file=e.target.files&&e.target.files[0]; e.target.value="";
+    if(!file) return;
+    toast("يجهّز الصورة…");
+    msgCompressImg(file,url=>{ rmEditPic=url; paint(); toast("جاهزة") },1440,{folder:"room"});
+  };
+  const swp=document.querySelector('[data-rmsw="pub"]');
+  swp.onclick=()=>{
+    swp.classList.toggle('on');
+    document.getElementById('rme-uwrap').hidden=!swp.classList.contains('on');
+  };
+  document.getElementById('rme-x').onclick=closeSheet;
+  document.getElementById('rme-go').onclick=async()=>{
+    const btn=document.getElementById('rme-go');
+    const title=(document.getElementById('rme-title').value||"").trim();
+    const about=(document.getElementById('rme-about').value||"").trim();
+    const isPub=swp.classList.contains('on');
+    const uEl=document.getElementById('rme-user');
+    let user=isPub?((uEl.value||"").trim().replace(/^@+/,"").toLowerCase()):"";
+    if(title.length<2||title.length>64){ toast("الاسم لازم بين حرفين و٦٤ حرف"); return }
+    if(isPub&&!/^[a-z0-9_]{5,32}$/.test(user)){ toast("يوزر مو صالح"); return }
+    if(user&&user!==String(roomCur.username||"").toLowerCase()){
+      try{
+        const t=await sbSelect("user_profiles","select=phone&username=eq."+encodeURIComponent(user)+"&limit=1");
+        if(t&&t[0]&&msgNormPhone(t[0].phone)!==roomCur.id){ toast("اليوزر محجوز"); return }
+      }catch(e){}
+    }
+    btn.disabled=true; btn.textContent="يحفظ…";
+    const ok=await rmPatch({title,about:about||null,avatar:rmEditPic||null,
+      username:user||null,rtype:isPub?"public":"private"});
+    if(!ok){ btn.disabled=false; btn.textContent="حفظ"; return }
+    /* نحدّث صفّه بالحسابات حتى يبين الاسم والصورة بكل مكان */
+    try{
+      await sbReq("user_profiles",{method:"POST",
+        headers:{Prefer:"resolution=merge-duplicates,return=minimal"},
+        body:JSON.stringify({phone:roomCur.id,name:title,avatar:rmEditPic||null,
+          bio:about||null,username:user||null})});
+    }catch(e){}
+    const nm=document.getElementById('chat-name'); if(nm) nm.textContent=title;
+    closeSheet(); toast("انحفظ ✓");
+    if(typeof msgRenderConvs==="function") msgRenderConvs();
+  };
+}
+
+/* ═══ الصلاحيات ═══ */
+async function roomPermSheet(){
+  if(!roomCur||!rmIsAdmin()) return;
+  const ch=rmIsCh();
+  openSheet(`<h3 style="font-size:17px;margin-bottom:4px">الصلاحيات</h3>
+    <p class="sub" style="font-size:12.5px;margin:0 0 12px">شنو يكدر يسوي العضو العادي.</p>
+    <div class="opt-list">
+      ${ch
+        ? rmSwitch("sign","توقيع الرسائل","يبين اسم المشرف اللي نشر",!!roomCur.sign_msgs)
+        : rmSwitch("send","إرسال الرسائل","إذا طفيتها بس المشرفون يكتبون",roomCur.perm_send!==false)}
+      ${ch?"":rmSwitch("media","إرسال الصور والفيديو",null,roomCur.perm_media!==false)}
+      ${rmSwitch("invite","إضافة أعضاء","العضو يكدر يدعو غيره",roomCur.perm_invite!==false)}
+      ${rmSwitch("hist","رؤية السجل القديم","العضو الجديد يشوف الرسائل السابقة",roomCur.history_all!==false)}
+    </div>
+    <div class="acts"><button class="btn btn-o" id="rmp-x">تم</button></div>`);
+  document.getElementById('rmp-x').onclick=()=>{ closeSheet(); roomInfoSheet() };
+  const map={send:"perm_send",media:"perm_media",invite:"perm_invite",
+             hist:"history_all",sign:"sign_msgs"};
+  document.querySelectorAll('[data-rmsw]').forEach(el=>{
+    const col=map[el.dataset.rmsw]; if(!col) return;
+    el.onclick=async()=>{
+      const next=!el.classList.contains('on');
+      el.classList.toggle('on',next);
+      const ok=await rmPatch({[col]:next});
+      if(!ok) el.classList.toggle('on',!next);
+      else if(col==="perm_send") roomApplyUI();
+    };
+  });
+}
+
+/* ═══ تثبيت رسالة ═══ */
+function roomPinSheet(){
+  if(!roomCur||!rmIsAdmin()) return;
+  openSheet(`<h3 style="font-size:17px;margin-bottom:10px">الرسالة المثبّتة</h3>
+    <div class="opt"><label for="rmpin-t">النص</label>
+      <input class="ctrl" id="rmpin-t" autocomplete="off" placeholder="تبين فوق لكل الأعضاء"
+        value="${esc(roomCur.pinned||"")}"></div>
+    <div class="acts"><button class="btn btn-p" id="rmpin-go">ثبّت</button>
+      ${roomCur.pinned?`<button class="btn btn-o" id="rmpin-clr">شيل التثبيت</button>`:""}
+      <button class="btn btn-o" id="rmpin-x">إلغاء</button></div>`);
+  document.getElementById('rmpin-x').onclick=()=>{ closeSheet(); roomInfoSheet() };
+  const clr=document.getElementById('rmpin-clr');
+  if(clr) clr.onclick=async()=>{ await rmPatch({pinned:null}); closeSheet(); toast("انشال"); roomApplyUI() };
+  document.getElementById('rmpin-go').onclick=async()=>{
+    const v=(document.getElementById('rmpin-t').value||"").trim();
+    if(!v){ toast("اكتب النص"); return }
+    await rmPatch({pinned:v}); closeSheet(); toast("انثبتت ✓"); roomApplyUI();
+  };
+}
+
+/* ═══ تطبيق الصلاحيات على شريط الكتابة + شريط التثبيت ═══ */
+function rmPinBar(){
+  let b=document.getElementById('rm-pinbar');
+  if(!b){
+    b=document.createElement('div'); b.id='rm-pinbar';
+    b.style.cssText="display:none;align-items:center;gap:9px;padding:9px 13px;font-size:12.5px;"+
+      "background:var(--mSurf);border-bottom:1px solid var(--mLine);color:var(--mInk)";
+    const box=document.getElementById('chat-msgs');
+    if(box&&box.parentNode) box.parentNode.insertBefore(b,box);
+  }
+  return b;
+}
+if(typeof roomApplyUI==="function" && !roomApplyUI._permWrapped){
+  const _rmApply=roomApplyUI;
+  roomApplyUI=async function(){
+    const r=await _rmApply.apply(this,arguments);
+    try{
+      const bar=rmPinBar();
+      if(roomCur&&roomCur.pinned){
+        bar.style.display='flex';
+        bar.innerHTML=`<b style="color:#B08F4A;flex:none">مثبّتة</b>
+          <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(roomCur.pinned)}</span>`;
+      }else bar.style.display='none';
+
+      /* مجموعة موقوف فيها الإرسال — بس المشرفون يكتبون */
+      if(roomCur && !rmIsCh() && roomCur.perm_send===false && roomRole && !rmIsAdmin()){
+        const inp=document.getElementById('chat-input-bar'), rb=roomBarEl();
+        inp.style.display='none'; rb.classList.add('on');
+        rb.innerHTML='بس المشرفون يكدرون يكتبون بالمجموعة';
+      }
+    }catch(e){}
+    return r;
+  };
+  roomApplyUI._permWrapped=true;
+}
+
+/* زر المعلومات: الضغط على اسم المجموعة يفتح الإعدادات */
+setTimeout(function(){
+  const t=document.getElementById('chat-top-click');
+  if(t && !t._rmWrapped){
+    const prev=t.onclick;
+    t.onclick=function(){
+      if(roomCur){ roomInfoSheet(); return }
+      if(prev) return prev.apply(this,arguments);
+    };
+    t._rmWrapped=true;
+  }
+},1500);
+
 </script>
 </body>
 </html>
