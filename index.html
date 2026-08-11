@@ -3836,6 +3836,41 @@ const AI_SYS_DEF = "أنت بوت مساعد داخل تطبيق عربي. جا�
 const botCmdList = b => (Array.isArray(b&&b.commands)?b.commands:[])
   .filter(z=>String(z.c)!==AI_TAG && String(z.c)!==QA_TAG);
 
+/* ═══════════════════════════════════════════════════════════
+   خمس مفاتيح بالتسلسل
+   البوت يشتغل على أول مفتاح سليم. أول ما يخلص حده اليومي أو
+   ينرفض، ينتقل تلقائياً للي بعده بلا ما يحس المستخدم بشي.
+   المفتاح اللي خلص حده اليومي ينحفظ «ميت» لآخر اليوم، فما
+   نضيع وقت نجرّبه بكل رسالة، ويرجع للخدمة وحده باچر.
+   ═══════════════════════════════════════════════════════════ */
+const AI_KEY_DEAD_RE = /خلص الحد اليومي|الطلبات جاية بسرعة|الطلبات بسرعة|مو صحيح|مو مقبول|مرفوض/;
+const LS_AIDEAD = "ha_ai_deadkeys_v1";
+
+/* قائمة المفاتيح: تدعم الشكل القديم (key) والجديد (keys) */
+function aiKeyList(cfg){
+  if(!cfg) return [];
+  const out=[];
+  const push=v=>{ v=String(v||"").trim(); if(v&&out.indexOf(v)<0) out.push(v) };
+  if(Array.isArray(cfg.keys)) cfg.keys.forEach(push);
+  push(cfg.key);
+  return out.slice(0,5);
+}
+
+const aiDeadAll=()=>{ try{ return JSON.parse(localStorage.getItem(LS_AIDEAD)||"{}") }catch(e){ return {} } };
+function aiDeadMark(key,hours){
+  const a=aiDeadAll();
+  a[String(key).slice(-10)] = Date.now() + (hours||24)*3600e3;
+  try{ localStorage.setItem(LS_AIDEAD,JSON.stringify(a)) }catch(e){}
+}
+function aiDeadIs(key){
+  const a=aiDeadAll(), t=a[String(key).slice(-10)];
+  if(!t) return false;
+  if(Date.now()>t){ delete a[String(key).slice(-10)];
+    try{ localStorage.setItem(LS_AIDEAD,JSON.stringify(a)) }catch(e){}
+    return false; }
+  return true;
+}
+
 /* إعدادات الذكاء المخزونة بالبوت */
 function botAI(b){
   const cs=Array.isArray(b&&b.commands)?b.commands:[];
@@ -3978,7 +4013,26 @@ function botPackCmds(cmds,ai,qa){
 }
 
 /* ── نداء Gemini ── */
+/* الغلاف: يمشي على المفاتيح بالترتيب لحد ما واحد يشتغل */
 async function aiAsk(cfg,history,text){
+  const keys=aiKeyList(cfg);
+  if(!keys.length) return "الذكاء الاصطناعي مو مربوط بهذا البوت بعد.";
+  const live=keys.filter(k=>!aiDeadIs(k));
+  const order=live.length?live:keys;      /* كلهم ميتين؟ نجرّبهم بأي حال */
+  let last="";
+  for(let i=0;i<order.length;i++){
+    const out=await aiAskOne(Object.assign({},cfg,{key:order[i]}),history,text);
+    if(!AI_KEY_DEAD_RE.test(out)) return out;      /* رد سليم */
+    last=out;
+    /* هذا المفتاح خلص أو مرفوض — نعلّمه ونروح للي بعده */
+    if(/خلص الحد اليومي/.test(out)) aiDeadMark(order[i],24);
+    else if(/مو صحيح|مو مقبول|مرفوض/.test(out)) aiDeadMark(order[i],72);
+    else aiDeadMark(order[i],0.02);               /* حد دقيقة — دقيقة وحدة بس */
+  }
+  return last||"ما گدرت أجاوب هسه.";
+}
+
+async function aiAskOne(cfg,history,text){
   if(!cfg||!cfg.key) return "الذكاء الاصطناعي مو مربوط بهذا البوت بعد.";
   const model=String(cfg.model||AI_MODELS[0]).trim();
   const key=String(cfg.key).trim();
@@ -4010,20 +4064,75 @@ async function aiAsk(cfg,history,text){
   if(!res.status){ qs=true; res=await run(web,qs) }
   /* موديل ما يدعم بحث الويب؟ نعيد بلا بحث بدل ما نفشل */
   if(!res.ok&&web&&(res.status===400||res.status===404)) res=await run(false,qs);
+
+  /* ═══ ٤٢٩ ═══
+     جوجل ترجّع 429 لسببين مختلفين تماماً:
+     • حد الدقيقة (RPM) — ثواني وتزول. وبحث الويب يستهلكه بسرعة.
+     • حد اليوم (PerDay) — ما ينفع إلا باچر.
+     قبل كنا نگول «خلص الحد اليومي» بالحالتين، فيطلع الكلام
+     والمفتاح مو خالص. هسه نميّز، ونعيد المحاولة، وننتقل لموديل
+     ثاني قبل ما نيأس. */
+  if(res.status===429){
+    const perDay=e=>/PerDay|per day|daily/i.test(
+      JSON.stringify((e&&e.j&&e.j.error)||{}) );
+    const waitOf=e=>{
+      const m=JSON.stringify((e&&e.j&&e.j.error)||{}).match(/"retryDelay"\s*:\s*"(\d+)s"/);
+      return m?Math.min(12,+m[1]||0)*1000:0;
+    };
+    if(!perDay(res)){
+      /* حد دقيقة — نطفي بحث الويب (أثقل حصة) وننتظر شوية ونعيد */
+      if(web){ res=await run(false,qs) }
+      if(res.status===429){
+        const w=waitOf(res)||3000;
+        await new Promise(r=>setTimeout(r,w));
+        res=await run(false,qs);
+      }
+    }
+    /* لو باقي 429 — نجرّب بقية الموديلات بنفس المفتاح */
+    if(res.status===429){
+      for(const alt of AI_MODELS){
+        if(alt===model) continue;
+        const altBase="https://generativelanguage.googleapis.com/v1beta/models/"+
+          encodeURIComponent(alt)+":generateContent";
+        const body={contents:(history||[]).concat([{role:"user",parts:[{text:String(text||"").slice(0,4000)}]}]),
+          generationConfig:{temperature:.7,maxOutputTokens:900}};
+        if(cfg.sys) body.systemInstruction={parts:[{text:String(cfg.sys).slice(0,4000)}]};
+        let r2,j2=null;
+        const u2=qs?(altBase+"?key="+encodeURIComponent(key)):altBase;
+        const h2={"Content-Type":"application/json"};
+        if(!qs) h2["x-goog-api-key"]=key;
+        try{ r2=await fetch(u2,{method:"POST",headers:h2,body:JSON.stringify(body)}) }catch(e){ continue }
+        try{ j2=await r2.json() }catch(e){}
+        if(r2.ok){ res={ok:true,status:200,j:j2}; break }
+      }
+    }
+  }
+
   if(!res.ok){
     if(!res.status) return "ما وصلت لخدمة الذكاء الاصطناعي — تأكد من الإنترنت.";
-    const m=String((res.j&&res.j.error&&res.j.error.message)||("خطأ "+res.status));
+    const err=(res.j&&res.j.error)||{};
+    const m=String(err.message||("خطأ "+res.status));
+    const raw=JSON.stringify(err);
     if(res.status===400&&/api key|API_KEY/i.test(m)) return "مفتاح الذكاء الاصطناعي مو صحيح.";
     if(res.status===401&&/ACCESS_TOKEN_TYPE_UNSUPPORTED/i.test(m))
       return "المفتاح مرفوض (401). المفاتيح الجديدة اللي تبدي بـ AQ. لازم تكون Auth key مربوطة بمشروع فعّال — سوّي مفتاح جديد من AI Studio وجرّب.";
     if(res.status===401) return "المفتاح مو مقبول (401) — سوّي مفتاح جديد من Google AI Studio.";
     if(res.status===403) return "المفتاح مرفوض — تأكد إن الخدمة مفعّلة عليه.";
-    if(res.status===429) return "وصلنا حد الاستخدام بالمفتاح. جرّب بعد شوية.";
+    if(res.status===429){
+      return /PerDay|per day|daily/i.test(raw)
+        ? "خلص الحد اليومي لهذا المفتاح. يرجع باچر، أو استعمل مفتاح ثاني."
+        : "الطلبات جاية بسرعة على المفتاح. انتظر نص دقيقة وأعد السؤال.";
+    }
+    if(res.status>=500) return "خدمة الذكاء الاصطناعي متعبانة هسه. جرّب بعد دقيقة.";
     return "ما گدرت أجاوب هسه: "+m.slice(0,140);
   }
   const c=res.j&&res.j.candidates&&res.j.candidates[0];
   const out=(((c&&c.content&&c.content.parts)||[]).map(p=>p.text||"").join("")).trim();
-  return out||"ما طلع رد. جرّب تسأل بطريقة ثانية.";
+  if(out) return out;
+  const fr=String((c&&c.finishReason)||"");
+  if(/SAFETY|BLOCK/i.test(fr)) return "ما أگدر أجاوب على هذا الطلب.";
+  if(/MAX_TOKENS/i.test(fr))   return "الجواب طال وانقطع. اسأل سؤال أضيق.";
+  return "ما طلع رد. جرّب تسأل بطريقة ثانية.";
 }
 
 /* آخر رسائل المحادثة كسياق للذكاء */
@@ -4096,10 +4205,11 @@ function btaHTML(){
         <div class="row" style="margin-top:12px">
           <button class="setopt" id="bta-aion" aria-pressed="false"><span><b>شغّل الذكاء</b></span><span class="dot"></span></button>
           <button class="setopt" id="bta-aiweb" aria-pressed="true"><span><b>بحث الويب</b></span><span class="dot"></span></button></div>
-        <div class="opt" style="margin-top:12px"><label for="bta-aikey">مفتاح Gemini API</label>
-          <input class="ctrl" id="bta-aikey" dir="ltr" placeholder="AQ.… أو AIza…" autocomplete="off"
-            autocapitalize="none" autocorrect="off" spellcheck="false"></div>
-        <p class="avhint" style="text-align:start;margin-top:6px">تاخذ المفتاح مجاناً من Google AI Studio. المفاتيح الجديدة تبدي بـ <b dir="ltr">AQ.</b> والقديمة بـ <b dir="ltr">AIza</b> — الاثنين مقبولين هنا. المفتاح يوصل جهاز أي شخص يحچي ويّا البوت — استعمل مفتاح محدود وحطّله سقف استهلاك.</p>
+        ${[1,2,3,4,5].map(i=>`
+        <div class="opt" style="margin-top:${i===1?12:8}px"><label for="bta-aikey${i===1?'':i}">مفتاح Gemini ${i}${i===1?' (الأساسي)':''}</label>
+          <input class="ctrl" id="bta-aikey${i===1?'':i}" dir="ltr" placeholder="${i===1?'AQ.… أو AIza…':'احتياطي — اختياري'}" autocomplete="off"
+            autocapitalize="none" autocorrect="off" spellcheck="false"></div>`).join('')}
+        <p class="avhint" style="text-align:start;margin-top:6px">تكدر تحط لحد ٥ مفاتيح. البوت يشتغل على الأول، وإذا خلصت حصته ينتقل للثاني تلقائياً، وهكذا لحد الخامس — بلا ما ينقطع عن المستخدم. تاخذ المفاتيح مجاناً من Google AI Studio؛ الجديدة تبدي بـ <b dir="ltr">AQ.</b> والقديمة بـ <b dir="ltr">AIza</b>. المفتاح يوصل جهاز أي شخص يحچي ويّا البوت — استعمل مفاتيح محدودة وحطّلها سقف استهلاك.</p>
         <div class="opt"><label for="bta-aimodel">الموديل</label>
           <input class="ctrl" id="bta-aimodel" dir="ltr" list="bta-models" placeholder="${AI_MODELS[0]}"
             autocomplete="off" autocapitalize="none" spellcheck="false">
@@ -4171,7 +4281,9 @@ function btaShow(b){
   set('bta-name',b.name); set('bta-user',b.username);
   set('bta-about',b.about); set('bta-desc',b.description);
   set('bta-cmds',btaCmdsText(botCmdList(b)));
-  set('bta-aikey',ai.key); set('bta-aimodel',ai.model); set('bta-aisys',ai.sys);
+  const keys=aiKeyList(ai);
+  [1,2,3,4,5].forEach(i=>set('bta-aikey'+(i===1?'':i), keys[i-1]||""));
+  set('bta-aimodel',ai.model); set('bta-aisys',ai.sys);
   set('bta-token',b.token);
   const on=document.getElementById('bta-aion'), web=document.getElementById('bta-aiweb');
   if(on)  on.setAttribute('aria-pressed', !!(ai.on&&ai.key));
@@ -4302,17 +4414,27 @@ async function btaBind(){
   };
 
   document.getElementById('bta-test').onclick=async()=>{
-    const key=document.getElementById('bta-aikey').value.trim();
-    if(!key){ toast("حط المفتاح أول"); return }
+    const gg=id=>((document.getElementById(id)||{}).value||"").trim();
+    const keys=[1,2,3,4,5].map(i=>gg('bta-aikey'+(i===1?'':i))).filter(Boolean);
+    if(!keys.length){ toast("حط مفتاح واحد على الأقل"); return }
     const b=document.getElementById('bta-test'); b.disabled=true; b.textContent="يجرّب…";
-    const out=await aiAsk({key,
-      model:document.getElementById('bta-aimodel').value.trim()||AI_MODELS[0],
-      sys:document.getElementById('bta-aisys').value.trim()||AI_SYS_DEF,
-      web:document.getElementById('bta-aiweb').getAttribute('aria-pressed')==='true'},
-      [], "بكلمتين: شنو تاريخ اليوم وشلون الطقس بالعراق؟");
+    const model=gg('bta-aimodel')||AI_MODELS[0];
+    const sys=gg('bta-aisys')||AI_SYS_DEF;
+    const web=document.getElementById('bta-aiweb').getAttribute('aria-pressed')==='true';
+    /* نفحص كل مفتاح لحاله حتى تعرف أي واحد سليم وأي واحد خالص */
+    const rows=[];
+    for(let i=0;i<keys.length;i++){
+      const out=await aiAsk({key:keys[i],model,sys,web,keys:[keys[i]]},[],"رد بكلمة وحدة: تمام");
+      const ok=!AI_KEY_DEAD_RE.test(out)&&!/مفتاح|مرفوض|401|403/.test(out);
+      rows.push(`<div style="display:flex;gap:8px;align-items:flex-start;padding:8px 0;border-bottom:1px solid var(--line)">
+        <b style="flex:none">${i+1}</b>
+        <span style="flex:none">${ok?"✅":"⚠️"}</span>
+        <span style="flex:1;min-width:0;font-size:12.5px;white-space:pre-wrap">${esc(out.slice(0,140))}</span></div>`);
+    }
     b.disabled=false; b.textContent="جرّب الذكاء";
-    openSheet(`<h3 style="font-size:18px">تجربة الذكاء الاصطناعي</h3>
-      <p class="sub" style="font-size:13.5px;margin-top:10px;white-space:pre-wrap">${esc(out)}</p>
+    openSheet(`<h3 style="font-size:18px">تجربة المفاتيح</h3>
+      <p class="sub" style="font-size:12.5px;margin:8px 0 6px">البوت يستعمل أول مفتاح سليم وينتقل للي بعده إذا خلص.</p>
+      ${rows.join('')}
       <div class="acts"><button class="btn btn-o" id="bta-tx">تم</button></div>`);
     const x=document.getElementById('bta-tx'); if(x) x.onclick=closeSheet;
   };
@@ -4331,9 +4453,10 @@ async function btaSave(){
   if(parsed.err){ toast("سطر أوامر مو مفهوم: "+parsed.err.slice(0,40)); return }
 
   const aiOn=document.getElementById('bta-aion').getAttribute('aria-pressed')==='true';
-  const key=g('bta-aikey');
-  if(aiOn&&!key){ toast("حط مفتاح Gemini حتى تشغّل الذكاء"); return }
-  const ai=key?{on:aiOn,key,model:g('bta-aimodel')||AI_MODELS[0],
+  const keys=[1,2,3,4,5].map(i=>g('bta-aikey'+(i===1?'':i))).filter(Boolean);
+  const key=keys[0]||"";
+  if(aiOn&&!key){ toast("حط مفتاح Gemini واحد على الأقل حتى تشغّل الذكاء"); return }
+  const ai=key?{on:aiOn,key,keys,model:g('bta-aimodel')||AI_MODELS[0],
     sys:g('bta-aisys')||AI_SYS_DEF,
     web:document.getElementById('bta-aiweb').getAttribute('aria-pressed')==='true'}:null;
   const qa=(btaQa!==undefined)?btaQa:qaMeta(btaCur);
@@ -8514,9 +8637,10 @@ async function bfReply(text){
       const full=await btaFill(row);
       const cur=botAI(full)||{};
       if(act==="setai"){
-        const key=t.replace(/\s+/g,"");
-        if(key.length<20) return "المفتاح مو مكتمل. انسخه كامل من Google AI Studio وأرسله، أو /cancel.";
-        cur.key=key; cur.on=true;
+        /* يكدر يرسل لحد ٥ مفاتيح — كل مفتاح بسطر */
+        const list=String(t).split(/[\s,]+/).map(z=>z.trim()).filter(z=>z.length>=20).slice(0,5);
+        if(!list.length) return "المفتاح مو مكتمل. انسخه كامل من Google AI Studio وأرسله، أو /cancel.\n\nتكدر ترسل لحد ٥ مفاتيح، كل واحد بسطر — وأنا أشغّل الأول وأنتقل للي بعده إذا خلص.";
+        cur.keys=list; cur.key=list[0]; cur.on=true;
         if(!cur.model) cur.model=AI_MODELS[0];
         if(!cur.sys)   cur.sys=AI_SYS_DEF;
         if(cur.web===undefined) cur.web=true;
@@ -8529,7 +8653,7 @@ async function bfReply(text){
       _botCache={};
       if(!ok) return "ما انحفظ.";
       return act==="setai"
-        ? "تم! @"+u+" صار مربوط بذكاء اصطناعي.\n\nيجاوب على أي سؤال حر بمعلومات محدّثة من الويب، وأوامره الجاهزة تبقى تشتغل مثل ما هي.\n\nتريد تكتبله شخصية؟ أرسل /setaiprompt @"+u
+        ? "تم! @"+u+" صار مربوط بذكاء اصطناعي — "+(cur.keys||[cur.key]).length+" مفتاح.\n\nيشتغل على الأول، وإذا خلص حده ينتقل للي بعده تلقائياً.\nيجاوب على أي سؤال حر بمعلومات محدّثة من الويب، وأوامره الجاهزة تبقى تشتغل مثل ما هي.\n\nتريد تكتبله شخصية؟ أرسل /setaiprompt @"+u
         : "انحفظت شخصية @"+u+". جرّبه هسه.";
     }
     if(act==="deletebot"){
@@ -8618,7 +8742,7 @@ async function bfReply(text){
     if(cmd==="/setcommands")    return "ابعثلي أوامر @"+u+" بسطر لكل أمر، بهاي الصيغة:\n\nأمر - الرد\n\nمثال:\nstart - أهلاً بيك بمعرضنا\nprice - الأسعار تبدي من ٢٥ ألف\nlocation - بلد، شارع المحيط";
     if(cmd==="/setuserpic")     return "ابعثلي الصورة اللي تريدها لـ@"+u+" — أرسلها كصورة عادية بالمحادثة.";
     if(cmd==="/setqa")          return "ابعثلي الأسئلة والأجوبة، سطر لكل سؤال بهاي الصيغة:\n\nالسؤال | الجواب\n\nمثال:\nشكد سعر الباب؟ | الأسعار تبدي من ٢٥ ألف\nوين موقعكم؟ | بلد، شارع المحيط\n\nوإذا عندك ملف كبير، ارفعه من لوحة المالك — قسم «أسئلة وأجوبة».";
-    if(cmd==="/setai")          return "ابعثلي مفتاح Gemini API مالتك حتى أربط @"+u+" بالذكاء الاصطناعي.\n\nتاخذ المفتاح مجاناً من Google AI Studio: aistudio.google.com/apikey\nالمفتاح الجديد يبدي بـ AQ. والقديم بـ AIza — الاثنين يشتغلون.\n\nانتبه: المفتاح يوصل جهاز أي شخص يحچي ويّا البوت، فاستعمل مفتاح محدود وحطّله سقف استهلاك.";
+    if(cmd==="/setai")          return "ابعثلي مفتاح Gemini API مالتك حتى أربط @"+u+" بالذكاء الاصطناعي.\n\nتكدر ترسل لحد ٥ مفاتيح — كل مفتاح بسطر لحاله. أشتغل على الأول، وإذا خلص حده اليومي أنتقل للثاني، وهكذا لحد الخامس بلا ما ينقطع البوت.\n\nتاخذ المفاتيح مجاناً من Google AI Studio: aistudio.google.com/apikey\nالمفتاح الجديد يبدي بـ AQ. والقديم بـ AIza — الاثنين يشتغلون.\n\nانتبه: المفتاح يوصل جهاز أي شخص يحچي ويّا البوت، فاستعمل مفاتيح محدودة وحطّلها سقف استهلاك.";
     if(cmd==="/setaiprompt")    return "اكتب شخصية @"+u+" وتعليماته — بأي طول تريد.\n\nمثال:\nأنت مساعد معرض ألمنيوم. جاوب بالعربي باختصار، وإذا انسأل عن الأسعار كول تبدي من ٢٥ ألف.";
     if(cmd==="/deletebot")      return "تأكيد الحذف: اكتب يوزر البوت مرة ثانية بلا @.\n\nهذي خطوة ما ترجع.";
   }
@@ -11053,6 +11177,540 @@ setTimeout(function(){
     t._rmWrapped=true;
   }
 },1500);
+
+/* ═══════════════════════════════════════════════════════════════
+   القصص — الإصدار الكامل
+   • إطار ذهبي حول الحساب الناشر ٢٤ ساعة من وقت النشر، وبعدها
+     يختفي الحساب من الشريط لحد ما ينشر قصة جديدة.
+   • العارض: صورة وأسم ووقت فوق، ⋮ يفتح قائمة، وتحت شريط
+     «الرد في الخاص…» ويّا زر مشاركة وزر إعجاب.
+   • القائمة: كتم القصص، إخفاء القصص، حفظ بالمعرض، إخفاء
+     مشاهداتي، إبلاغ.
+   ═══════════════════════════════════════════════════════════════ */
+(function(){
+  const css=document.createElement('style');
+  css.textContent=`
+/* الإطار الذهبي — الحساب اللي عنده قصة حيّة */
+.st-ring{background:linear-gradient(140deg,#F0D99A,#D6B36A 52%,#F0D99A)!important;
+  box-shadow:0 0 0 1px rgba(214,179,106,.35)!important}
+.st-ring.seen{background:var(--mLine)!important;box-shadow:none!important}
+.st-ring.add{background:var(--mLine)!important;box-shadow:none!important}
+
+/* ترويسة العارض */
+.stv-top{padding:10px 12px 12px}
+.stv-ic.stv-dots{background:transparent}
+.stv-ic.stv-dots svg{width:22px;height:22px}
+
+/* شريط الرد تحت */
+.stv-foot{position:absolute;z-index:5;inset-inline:0;
+  bottom:calc(env(safe-area-inset-bottom,0px) + 12px);
+  display:flex;align-items:center;gap:11px;padding:0 14px}
+.stv-reply{flex:1;min-width:0;height:44px;border-radius:22px;padding:0 18px;
+  background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.20);
+  color:#fff;font-family:var(--font);font-size:14px;outline:none}
+.stv-reply::placeholder{color:rgba(255,255,255,.62)}
+.stv-fb{flex:none;width:40px;height:40px;border:0;background:0;cursor:pointer;
+  display:grid;place-items:center}
+.stv-fb svg{width:27px;height:27px;stroke:#fff;fill:none;stroke-width:1.9;
+  stroke-linecap:round;stroke-linejoin:round}
+.stv-fb.liked svg{fill:#E0245E;stroke:#E0245E}
+
+/* القائمة */
+.stv-menu{position:absolute;z-index:8;inset-inline-end:12px;
+  top:calc(env(safe-area-inset-top,0px) + 60px);
+  min-width:212px;border-radius:14px;overflow:hidden;display:none;
+  background:rgba(38,38,38,.97);box-shadow:0 16px 40px rgba(0,0,0,.55)}
+.stv-menu.on{display:block}
+.stv-mi{display:flex;align-items:center;gap:14px;width:100%;padding:14px 16px;
+  border:0;background:0;cursor:pointer;font-family:var(--font);font-size:14.5px;
+  color:#fff;text-align:start}
+.stv-mi+.stv-mi{border-top:1px solid rgba(255,255,255,.09)}
+.stv-mi svg{width:22px;height:22px;flex:none;stroke:#fff;fill:none;stroke-width:1.7;
+  stroke-linecap:round;stroke-linejoin:round}
+.stv-mi span{flex:1;min-width:0}
+.stv-scrim{position:absolute;inset:0;z-index:7;display:none}
+.stv-scrim.on{display:block}`;
+  document.head.appendChild(css);
+})();
+
+const ST_HIDE  = "ha_stories_hidden_v1";   /* حسابات مخفية قصصهم */
+const ST_MUTE  = "ha_stories_muted_v1";    /* حسابات مكتومة */
+const ST_GHOST = "ha_stories_ghost_v1";    /* إخفاء مشاهداتي */
+const ST_LIKES = "ha_stories_likes_v1";
+
+let stHidden={}, stMuted={}, stLikes={}, stGhost=false;
+try{ stHidden=JSON.parse(localStorage.getItem(ST_HIDE)||"{}") }catch(e){}
+try{ stMuted =JSON.parse(localStorage.getItem(ST_MUTE)||"{}") }catch(e){}
+try{ stLikes =JSON.parse(localStorage.getItem(ST_LIKES)||"{}") }catch(e){}
+try{ stGhost =localStorage.getItem(ST_GHOST)==="1" }catch(e){}
+const stSaveJ=(k,v)=>{ try{ localStorage.setItem(k,JSON.stringify(v)) }catch(e){} };
+
+/* ── الإطار الذهبي: تحسب من وقت النشر، وتختفي بعد ٢٤ ساعة ── */
+const ST_LIVE_MS = 864e5;
+function stIsLive(s){
+  if(!s) return false;
+  const t=Date.parse(s.created_at||"")||0;
+  if(!t) return true;
+  return (Date.now()-t) < ST_LIVE_MS;
+}
+/* نصفّي القصص المنتهية محلياً كمان — حتى لو القاعدة تأخرت */
+if(typeof stLoad==="function" && !stLoad._liveWrapped){
+  const _stLoad=stLoad;
+  stLoad=async function(){
+    const r=await _stLoad.apply(this,arguments);
+    try{
+      stGroups=(stGroups||[]).map(g=>Object.assign({},g,{items:g.items.filter(stIsLive)}))
+        .filter(g=>g.items.length && !stHidden[g.phone]);
+      stPaintRow();
+    }catch(e){}
+    return r;
+  };
+  stLoad._liveWrapped=true;
+}
+/* فحص كل دقيقة: أي قصة تجاوزت ٢٤ ساعة يختفي إطارها فوراً */
+setInterval(()=>{
+  try{
+    const before=(stGroups||[]).length;
+    stGroups=(stGroups||[]).map(g=>Object.assign({},g,{items:g.items.filter(stIsLive)}))
+      .filter(g=>g.items.length);
+    if(before!==stGroups.length) stPaintRow();
+  }catch(e){}
+},60000);
+
+/* ═══ العارض: نعيد بناءه بالكامل ═══ */
+function stViewEl(){
+  let v=document.getElementById('st-view');
+  if(v) return v;
+  v=document.createElement('div');
+  v.id='st-view';
+  v.innerHTML=`
+    <div class="stv-media" id="stv-media"></div>
+    <div class="stv-nav"><span id="stv-prev"></span><span id="stv-next"></span></div>
+    <div class="stv-bars" id="stv-bars"></div>
+    <div class="stv-top">
+      <span class="stv-av" id="stv-av"></span>
+      <span class="stv-who"><b id="stv-name"></b><span id="stv-time"></span></span>
+      <button class="stv-ic" id="stv-del" hidden aria-label="حذف">
+        <svg viewBox="0 0 24 24"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg></button>
+      <button class="stv-ic stv-dots" id="stv-more" aria-label="خيارات">
+        <svg viewBox="0 0 24 24" fill="#fff" stroke="none"><circle cx="12" cy="5" r="1.9"/><circle cx="12" cy="12" r="1.9"/><circle cx="12" cy="19" r="1.9"/></svg></button>
+      <button class="stv-ic" id="stv-x" aria-label="إغلاق">
+        <svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+    </div>
+    <div class="stv-scrim" id="stv-scrim"></div>
+    <div class="stv-menu" id="stv-menu"></div>
+    <div class="stv-foot" id="stv-foot">
+      <input class="stv-reply" id="stv-reply" placeholder="الرد في الخاص..." autocomplete="off">
+      <button class="stv-fb" id="stv-share" aria-label="مشاركة">
+        <svg viewBox="0 0 24 24"><path d="M4 12.5v5.8A1.7 1.7 0 0 0 5.7 20h12.6a1.7 1.7 0 0 0 1.7-1.7v-5.8"/><path d="M12 15.2V3.8M12 3.8L7.8 8M12 3.8L16.2 8"/></svg></button>
+      <button class="stv-fb" id="stv-like" aria-label="إعجاب">
+        <svg viewBox="0 0 24 24"><path d="M20.8 8.6c0 4.6-8.8 10-8.8 10s-8.8-5.4-8.8-10a5 5 0 0 1 8.8-3.2 5 5 0 0 1 8.8 3.2z"/></svg></button>
+    </div>
+    <div class="stv-cap" id="stv-cap"></div>`;
+  document.body.appendChild(v);
+  v.querySelector('#stv-x').onclick=stClose;
+  v.querySelector('#stv-next').onclick=()=>stStep(1);
+  v.querySelector('#stv-prev').onclick=()=>stStep(-1);
+  v.querySelector('#stv-del').onclick=stDelete;
+  v.querySelector('#stv-more').onclick=stMenuOpen;
+  v.querySelector('#stv-scrim').onclick=stMenuClose;
+  v.querySelector('#stv-share').onclick=stShare;
+  v.querySelector('#stv-like').onclick=stLike;
+
+  const rep=v.querySelector('#stv-reply');
+  /* وقت الكتابة نوقف العداد حتى ما تهرب القصة */
+  rep.addEventListener('focus',()=>{ stPause(true) });
+  rep.addEventListener('blur', ()=>{ stPause(false) });
+  rep.addEventListener('keydown',e=>{ if(e.key==="Enter") stSendReply() });
+  return v;
+}
+
+/* إيقاف/تشغيل مؤقت */
+let stPaused=false;
+function stPause(on){
+  stPaused=!!on;
+  const vid=document.querySelector('#stv-media video');
+  if(vid){ if(on) vid.pause(); else vid.play().catch(()=>{}) }
+  if(on){ if(stRaf){ cancelAnimationFrame(stRaf); stRaf=0 } }
+  else if(!stRaf && stCur>=0) stShow();
+}
+
+/* ═══ القائمة (⋮) ═══ */
+const ST_MI={
+  bell:'<path d="M18 8.5a6 6 0 1 0-12 0c0 6-2 7.5-2 7.5h16s-2-1.5-2-7.5z"/><path d="M13.7 20a2 2 0 0 1-3.4 0"/><path d="M3 3l18 18"/>',
+  hide:'<path d="M4 4h16v11H4z"/><path d="M12 7v5M9.5 9.5L12 12l2.5-2.5"/><path d="M3 19h18"/>',
+  save:'<rect x="3" y="4" width="18" height="14" rx="2.5"/><circle cx="8.5" cy="9" r="1.6"/><path d="M21 15l-5-5-8 8"/>',
+  eye :'<path d="M2.5 12S6 5.8 12 5.8 21.5 12 21.5 12 18 18.2 12 18.2 2.5 12 2.5 12z"/><path d="M3 3l18 18"/>',
+  warn:'<circle cx="12" cy="12" r="9"/><path d="M12 7.5v5M12 16.2h.01"/>'
+};
+function stMenuOpen(){
+  const g=stGroups[stCur]; if(!g) return;
+  stPause(true);
+  const m=document.getElementById('stv-menu');
+  const muted=!!stMuted[g.phone];
+  const s=g.items[stIdx]||{};
+  m.innerHTML=[
+    ['mute', ST_MI.bell, muted?"إلغاء كتم القصص":"كتم إشعاري عن القصص"],
+    ['hide', ST_MI.hide, "إخفاء قصص "+String(g.name||"").split(/\s+/)[0]],
+    ['save', ST_MI.save, s.kind==="image"?"حفظ الصورة":"حفظ المقطع"],
+    ['ghost',ST_MI.eye,  stGhost?"إظهار مشاهداتي":"إخفاء مشاهداتي"],
+    ['report',ST_MI.warn,"إبلاغ"]
+  ].map(([k,ic2,label])=>
+    `<button class="stv-mi" type="button" data-stm="${k}">
+      <svg viewBox="0 0 24 24">${ic2}</svg><span>${esc(label)}</span></button>`).join('');
+  m.classList.add('on');
+  document.getElementById('stv-scrim').classList.add('on');
+  m.querySelectorAll('[data-stm]').forEach(el=>{ el.onclick=()=>stMenuDo(el.dataset.stm) });
+}
+function stMenuClose(){
+  const m=document.getElementById('stv-menu');
+  if(m) m.classList.remove('on');
+  const sc=document.getElementById('stv-scrim');
+  if(sc) sc.classList.remove('on');
+  stPause(false);
+}
+async function stMenuDo(k){
+  const g=stGroups[stCur]; if(!g) return;
+  const s=g.items[stIdx]||{};
+  stMenuClose();
+  if(k==="mute"){
+    if(stMuted[g.phone]) delete stMuted[g.phone]; else stMuted[g.phone]=1;
+    stSaveJ(ST_MUTE,stMuted);
+    toast(stMuted[g.phone]?"انكتمت قصصه":"رجعت إشعارات قصصه");
+  }
+  else if(k==="hide"){
+    stHidden[g.phone]=1; stSaveJ(ST_HIDE,stHidden);
+    toast("ما راح تشوف قصصه بعد");
+    stClose(); stLoad();
+  }
+  else if(k==="save"){
+    try{
+      const a=document.createElement('a');
+      a.href=s.url; a.download="story_"+(s.id||Date.now())+(s.kind==="image"?".jpg":".mp4");
+      a.target="_blank"; a.rel="noopener";
+      document.body.appendChild(a); a.click(); a.remove();
+      toast("جاري الحفظ…");
+    }catch(e){ toast("ما گدرت أحفظها") }
+  }
+  else if(k==="ghost"){
+    stGhost=!stGhost;
+    try{ localStorage.setItem(ST_GHOST,stGhost?"1":"0") }catch(e){}
+    toast(stGhost?"صاحب القصة ما راح يشوف مشاهدتك":"مشاهداتك تبين لصاحب القصة");
+  }
+  else if(k==="report"){
+    try{
+      await sbInsert("bug_reports",{
+        kind:"story_report",
+        body:"بلاغ عن قصة "+(s.id||"")+" من "+(g.phone||""),
+        phone:(typeof isLoggedMsg==="function"&&isLoggedMsg())?myPhone():null
+      });
+    }catch(e){}
+    toast("وصل البلاغ — راح ننطلع عليه");
+  }
+}
+
+/* ═══ الرد والمشاركة والإعجاب ═══ */
+async function stSendReply(){
+  const g=stGroups[stCur]; if(!g) return;
+  const el=document.getElementById('stv-reply');
+  const txt=(el.value||"").trim();
+  if(!txt) return;
+  if(typeof isLoggedMsg!=="function"||!isLoggedMsg()){ toast("سجّل دخولك حتى ترد"); return }
+  if(g.phone===myPhone()){ toast("هذي قصتك انت"); return }
+  el.value=""; el.blur();
+  try{
+    const conv=await msgGetOrCreateConv(g.phone);
+    if(!conv){ toast("ما گدرت أفتح المحادثة"); return }
+    await msgSend(conv.id, "↩︎ رداً على قصتك:\n"+txt);
+    toast("انبعث الرد ✓");
+  }catch(e){ toast("ما انبعث الرد") }
+}
+function stShare(){
+  const g=stGroups[stCur]; if(!g) return;
+  const s=g.items[stIdx]||{};
+  stPause(true);
+  try{
+    if(navigator.share){
+      navigator.share({title:"قصة "+(g.name||""),url:s.url}).catch(()=>{}).then(()=>stPause(false));
+      return;
+    }
+  }catch(e){}
+  try{ navigator.clipboard.writeText(s.url); toast("انتسخ الرابط") }catch(e){}
+  stPause(false);
+}
+async function stLike(){
+  const g=stGroups[stCur]; if(!g) return;
+  const s=g.items[stIdx]; if(!s) return;
+  const btn=document.getElementById('stv-like');
+  const on=!stLikes[s.id];
+  if(on) stLikes[s.id]=1; else delete stLikes[s.id];
+  stSaveJ(ST_LIKES,stLikes);
+  btn.classList.toggle('liked',on);
+  if(!on) return;
+  if(typeof isLoggedMsg!=="function"||!isLoggedMsg()) return;
+  if(g.phone===myPhone()) return;
+  try{
+    const conv=await msgGetOrCreateConv(g.phone);
+    if(conv) await msgSend(conv.id,"❤️ عجبتني قصتك");
+  }catch(e){}
+}
+
+/* ═══ نلف حول stShow حتى نحدّث القدم والقائمة ═══ */
+if(typeof stShow==="function" && !stShow._uiWrapped){
+  const _stShow=stShow;
+  stShow=function(){
+    const r=_stShow.apply(this,arguments);
+    try{
+      const g=stGroups[stCur], s=g&&g.items[stIdx];
+      const foot=document.getElementById('stv-foot');
+      const like=document.getElementById('stv-like');
+      const me=(typeof isLoggedMsg==="function"&&isLoggedMsg())?myPhone():"";
+      if(foot) foot.style.display=(g&&g.phone===me)?'none':'flex';   /* قصتي ما أرد عليها */
+      if(like&&s) like.classList.toggle('liked',!!stLikes[s.id]);
+      stMenuClose._quiet=true;
+      const m=document.getElementById('stv-menu'); if(m) m.classList.remove('on');
+      const sc=document.getElementById('stv-scrim'); if(sc) sc.classList.remove('on');
+      stMenuClose._quiet=false;
+    }catch(e){}
+    return r;
+  };
+  stShow._uiWrapped=true;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   بوت الذكاء الاصطناعي — صور وصوت
+   • /صورة أو /image + الوصف  ← يولّد صورة ويبعثها بالمحادثة.
+   • /صوت أو /voice           ← يختار صوت ولد أو بنت، وبعدها
+     كل رد من البوت يوصل مسموع كمان.
+   الصور تنولّد بموديل Gemini للصور بنفس مفتاح البوت، والصوت
+   من محرّك النطق المدمج بالمتصفح (يشتغل بلا إنترنت زيادة).
+   ═══════════════════════════════════════════════════════════════ */
+
+const AI_IMG_MODEL = "gemini-2.5-flash-image";
+const LS_AIVOICE   = "ha_ai_voice_v1";
+
+/* ── إعداد الصوت لكل بوت ── */
+const aiVoiceAll = ()=>{ try{ return JSON.parse(localStorage.getItem(LS_AIVOICE)||"{}") }catch(e){ return {} } };
+const aiVoiceGet = ph => (aiVoiceAll()[msgNormPhone(ph)]||"off");
+function aiVoiceSet(ph,v){
+  const a=aiVoiceAll(); a[msgNormPhone(ph)]=v;
+  try{ localStorage.setItem(LS_AIVOICE,JSON.stringify(a)) }catch(e){}
+}
+
+/* ── اختيار أفضل صوت عربي حسب الجنس ── */
+function aiPickVoice(gender){
+  let list=[];
+  try{ list=speechSynthesis.getVoices()||[] }catch(e){ return null }
+  if(!list.length) return null;
+  const ar=list.filter(v=>/^ar/i.test(v.lang||""));
+  const pool=ar.length?ar:list;
+  const female=/female|amira|hala|zariyah|laila|salma|maged_f|woman|بنت|أنثى/i;
+  const male  =/male|hamed|naayf|shakir|omar|man|ولد|ذكر/i;
+  const want=gender==="female"?female:male;
+  const other=gender==="female"?male:female;
+  return pool.find(v=>want.test(v.name||"")) ||
+         pool.find(v=>!other.test(v.name||"")) ||
+         pool[0] || null;
+}
+function aiSpeak(text,gender){
+  try{
+    if(!("speechSynthesis" in window)) return false;
+    const t=String(text||"").replace(/[*_`#>]/g,"").slice(0,600);
+    if(!t) return false;
+    speechSynthesis.cancel();
+    const u=new SpeechSynthesisUtterance(t);
+    const v=aiPickVoice(gender);
+    if(v){ u.voice=v; u.lang=v.lang }
+    else u.lang="ar-IQ";
+    u.rate=1; u.pitch=gender==="female"?1.25:0.85;
+    speechSynthesis.speak(u);
+    return true;
+  }catch(e){ return false }
+}
+/* المتصفح يحمّل الأصوات متأخر — نحفّزه بدري */
+try{ speechSynthesis.getVoices(); speechSynthesis.onvoiceschanged=()=>{} }catch(e){}
+
+/* ── توليد صورة بمفتاح البوت ── */
+async function aiImage(cfg,prompt){
+  const keys=aiKeyList(cfg);
+  if(!keys.length) return {err:"الذكاء الاصطناعي مو مربوط بهذا البوت."};
+  const live=keys.filter(k=>!aiDeadIs(k));
+  const order=live.length?live:keys;
+  let last=null;
+  for(let i=0;i<order.length;i++){
+    const r=await aiImageOne(Object.assign({},cfg,{key:order[i]}),prompt);
+    if(!r.err) return r;
+    last=r;
+    if(/خلص الحد اليومي/.test(r.err)) aiDeadMark(order[i],24);
+    else if(/مرفوض|صلاحية/.test(r.err)) aiDeadMark(order[i],72);
+    else if(/الطلبات بسرعة/.test(r.err)) aiDeadMark(order[i],0.02);
+    else break;                     /* خطأ مو له علاقة بالمفتاح */
+  }
+  return last||{err:"ما گدرت أسوي الصورة."};
+}
+
+async function aiImageOne(cfg,prompt){
+  if(!cfg||!cfg.key) return {err:"الذكاء الاصطناعي مو مربوط بهذا البوت."};
+  const key=String(cfg.key).trim();
+  const url="https://generativelanguage.googleapis.com/v1beta/models/"+
+    encodeURIComponent(AI_IMG_MODEL)+":generateContent";
+  const body={contents:[{role:"user",parts:[{text:String(prompt||"").slice(0,1200)}]}]};
+  let r,j=null;
+  try{
+    r=await fetch(url,{method:"POST",
+      headers:{"Content-Type":"application/json","x-goog-api-key":key},
+      body:JSON.stringify(body)});
+    j=await r.json();
+  }catch(e){ return {err:"ما وصلت لخدمة الصور — تأكد من الإنترنت."} }
+  if(!r.ok){
+    const err=(j&&j.error)||{};
+    const m=String(err.message||("خطأ "+r.status));
+    if(r.status===429){
+      return {err:/PerDay|per day|daily/i.test(JSON.stringify(err))
+        ? "خلص الحد اليومي للصور بهذا المفتاح — يرجع باچر."
+        : "الطلبات بسرعة. انتظر نص دقيقة وأعد المحاولة."};
+    }
+    if(r.status===404) return {err:"المفتاح ما عنده صلاحية توليد صور — فعّلها من Google AI Studio."};
+    if(r.status===403) return {err:"المفتاح مرفوض لتوليد الصور."};
+    if(r.status>=500)  return {err:"خدمة الصور متعبانة هسه. جرّب بعد دقيقة."};
+    return {err:"ما گدرت أسوي الصورة: "+m.slice(0,120)};
+  }
+  const parts=((j&&j.candidates&&j.candidates[0]&&j.candidates[0].content&&
+                j.candidates[0].content.parts)||[]);
+  const img=parts.find(p=>p.inlineData||p.inline_data);
+  if(!img) return {err:"ما رجعت صورة. جرّب وصف ثاني."};
+  const d=img.inlineData||img.inline_data;
+  return {dataURL:"data:"+(d.mimeType||d.mime_type||"image/png")+";base64,"+d.data};
+}
+
+/* ── إرسال صورة من البوت ── */
+async function botSayImg(convId,botPhone,dataURL,caption){
+  if(!convId||!dataURL) return;
+  let url=dataURL;
+  try{
+    /* نرفعها للمخزن حتى ما يثقل صف الرسالة */
+    const b=await (await fetch(dataURL)).blob();
+    const up=await sbUpload(b,"ai");
+    if(up) url=up;
+  }catch(e){}
+  try{
+    await sbReq("messages",{method:"POST",headers:{Prefer:"return=minimal"},
+      body:JSON.stringify({conv_id:convId,sender:botPhone,body:caption||null,img:url})});
+    await sbReq("conversations?id=eq."+convId,{method:"PATCH",
+      headers:{Prefer:"return=minimal"},
+      body:JSON.stringify({last_msg:"صورة",last_at:new Date().toISOString()})});
+  }catch(e){ console.warn("[bot] img:",e) }
+}
+
+/* ── أوامر جديدة داخل محادثة البوت ── */
+const AI_IMG_RE   = /^\/(image|img|صورة|صوره)\b/i;
+const AI_VOICE_RE = /^\/(voice|صوت)\b/i;
+
+async function aiHandleExtra(botPhone, text, convId){
+  const t=String(text||"").trim();
+  const ph=msgNormPhone(botPhone);
+
+  /* اختيار الصوت */
+  if(AI_VOICE_RE.test(t)){
+    const arg=t.replace(AI_VOICE_RE,"").trim().toLowerCase();
+    if(/بنت|أنثى|انثى|female|girl|woman/.test(arg)){
+      aiVoiceSet(ph,"female");
+      await botSay(convId,ph,"صار صوتي صوت بنت. أي رد أرسله راح تسمعه.\nلتغييره: /صوت ولد — ولإطفائه: /صوت وقف");
+      aiSpeak("هلا بيك، هذا صوتي هسه","female");
+      return true;
+    }
+    if(/ولد|ذكر|male|boy|man/.test(arg)){
+      aiVoiceSet(ph,"male");
+      await botSay(convId,ph,"صار صوتي صوت ولد. أي رد أرسله راح تسمعه.\nلتغييره: /صوت بنت — ولإطفائه: /صوت وقف");
+      aiSpeak("هلا بيك، هذا صوتي هسه","male");
+      return true;
+    }
+    if(/وقف|اطفي|أطفئ|off|stop/.test(arg)){
+      aiVoiceSet(ph,"off");
+      await botSay(convId,ph,"انطفى الصوت. ردودي تجي مكتوبة بس.");
+      return true;
+    }
+    const cur=aiVoiceGet(ph);
+    await botSay(convId,ph,
+      "اختر صوتي:\n\n/صوت ولد\n/صوت بنت\n/صوت وقف\n\nالحالي: "+
+      (cur==="female"?"بنت":cur==="male"?"ولد":"مطفي"));
+    return true;
+  }
+
+  /* توليد صورة */
+  if(AI_IMG_RE.test(t)){
+    const prompt=t.replace(AI_IMG_RE,"").trim();
+    if(!prompt){
+      await botSay(convId,ph,"اكتب وصف الصورة بعد الأمر.\n\nمثال:\n/صورة باب ألمنيوم أسود بتصميم حديث");
+      return true;
+    }
+    const b=await botInfo(ph);
+    const cfg=botAI(b);
+    if(!cfg||!cfg.key){
+      await botSay(convId,ph,"هذا البوت مو مربوط بمفتاح ذكاء اصطناعي بعد.");
+      return true;
+    }
+    await botSay(convId,ph,"يسوي الصورة… انتظر شوية 🎨");
+    try{ if(typeof msgRefreshChat==="function") setTimeout(msgRefreshChat,200) }catch(e){}
+    const res=await aiImage(cfg,prompt);
+    if(res.err) await botSay(convId,ph,res.err);
+    else await botSayImg(convId,ph,res.dataURL,prompt.slice(0,80));
+    try{ if(typeof msgRefreshChat==="function") setTimeout(msgRefreshChat,250) }catch(e){}
+    return true;
+  }
+  return false;
+}
+
+/* ── نلف حول رد البوت: نلتقط الأوامر الجديدة وننطق الرد ── */
+if(typeof botOnUserMessage==="function" && !botOnUserMessage._aiXWrapped){
+  const _botMsg=botOnUserMessage;
+  botOnUserMessage=async function(convId,otherPhone,text){
+    try{
+      const ph=msgNormPhone(otherPhone);
+      if(isBotPhone(ph) && ph!==BF_PHONE){
+        const done=await aiHandleExtra(ph,text,convId);
+        if(done) return;
+      }
+    }catch(e){ console.warn("[ai-x]",e) }
+    return _botMsg.apply(this,arguments);
+  };
+  botOnUserMessage._aiXWrapped=true;
+}
+
+/* البوت يحچي لما يرد — إذا المستخدم مختار صوت */
+if(typeof botSay==="function" && !botSay._voiceWrapped){
+  const _botSay=botSay;
+  botSay=async function(convId,botPhone,text){
+    const r=await _botSay.apply(this,arguments);
+    try{
+      const g=aiVoiceGet(botPhone);
+      if(g==="male"||g==="female") aiSpeak(text,g);
+    }catch(e){}
+    return r;
+  };
+  botSay._voiceWrapped=true;
+}
+
+/* ── نضيف الأمرين لشريط أزرار البوت ── */
+setTimeout(function(){
+  try{
+    if(typeof BOT_EXTRA_CMDS==="undefined") window.BOT_EXTRA_CMDS=[["/صورة","صورة"],["/صوت","الصوت"]];
+    const bar=document.getElementById('bot-cmds');
+    if(!bar) return;
+    const obs=new MutationObserver(()=>{
+      if(!chatWith||!isBotPhone(chatWith)) return;
+      if(msgNormPhone(chatWith)===BF_PHONE) return;
+      if(bar.querySelector('[data-aix]')) return;
+      ["/صورة","/صوت"].forEach(c=>{
+        const b=document.createElement('button');
+        b.className='bot-cmd'; b.dataset.aix="1"; b.textContent=c;
+        b.onclick=()=>{ if(typeof botSendCmd==="function") botSendCmd(c) };
+        bar.appendChild(b);
+      });
+    });
+    obs.observe(bar,{childList:true});
+  }catch(e){}
+},2000);
 
 </script>
 </body>
