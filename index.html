@@ -1,4 +1,5 @@
 <!doctype html>
+<!-- build: scroll-fix -->
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="utf-8">
@@ -385,7 +386,7 @@ body.dark .msg-av .ini{color:var(--brand-3)}
 .msg-body{flex:1;min-width:0}
 .msg-body b{display:block;font-size:15px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
   letter-spacing:-.2px}
-.msg-body .msg-preview{font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:3px}
+.msg-body .msg-preview{display:block;max-width:100%;font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:3px}
 .msg-right{display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex:none}
 .msg-time{font-size:11.5px;color:var(--muted);font-family:"IBM Plex Mono"}
 .msg-unread{min-width:21px;height:21px;border-radius:99px;background:var(--brand);color:#fff;font-size:11px;font-weight:700;
@@ -422,8 +423,12 @@ body.dark .msg-av .ini{color:var(--brand-3)}
 .chat-ticks.read svg{stroke:#4FC3F7;opacity:1}
 
 /* شاشة المحادثة */
+html{overflow-x:clip}
+body{overflow-x:clip;max-width:100%}
+.story-row,.lux-chips,.bot-cmds,.msg-tabs{overflow-x:auto;-webkit-overflow-scrolling:touch;
+  touch-action:pan-x pan-y;overscroll-behavior-x:contain}
 .chat-screen{position:fixed;inset:0;height:100dvh;z-index:80;background:var(--m-bg);display:none;flex-direction:column;
-  max-width:520px;margin:0 auto;transition:background-color var(--T)}
+  width:100vw;max-width:100vw;margin:0;overflow-x:hidden;transition:background-color var(--T)}
 .chat-screen.on{display:flex}
 .chat-top{display:flex;align-items:center;gap:8px;min-width:0;padding:calc(env(safe-area-inset-top,0px) + 12px) 12px 12px;
   background:var(--m-head);color:var(--ink);flex:none;border-bottom:1px solid var(--m-sep);
@@ -802,7 +807,7 @@ body.dark .opt-row.danger{color:#F08A76}
 .hb-av svg{width:20px;height:20px;stroke:#fff;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
 
 .pm-screen{position:fixed;inset:0;z-index:90;display:none;flex-direction:column;
-  background:var(--m-bg);max-width:520px;margin:0 auto;transition:background-color var(--T)}
+  background:var(--m-bg);width:100vw;max-width:100vw;margin:0;overflow-x:hidden;transition:background-color var(--T)}
 .pm-screen.on{display:flex}
 .pm-body{flex:1;overflow-y:auto;overscroll-behavior:contain;padding-bottom:26px}
 /* حافة مخروطة أسفل الصفيحة — مثل حرف مقطوعة الألمنيوم */
@@ -1122,7 +1127,8 @@ body.msgdark .mode-btn .ic-moon{display:none}
 #v-messages .msg-conv:active{background:var(--mSurf)}
 #v-messages .msg-conv.on{background:var(--mSurf)}
 #v-messages .msg-body b{color:var(--mInk);font-size:16px;font-weight:600}
-#v-messages .msg-preview{color:var(--mMuted);font-size:14.5px}
+#v-messages .msg-preview{color:var(--mMuted);font-size:14.5px;display:block;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
 #v-messages .on-dot{background:#3FBF5F;box-shadow:0 0 0 2.5px var(--mBg)}
 .lux-star{border:0;background:transparent;padding:0;cursor:pointer;margin-top:2px}
 .lux-star svg{width:16px;height:16px;stroke:var(--mMuted);fill:none;stroke-width:1.8;
@@ -1278,7 +1284,8 @@ body.msgview #v-messages *,body.msgview .chat-screen *,body.msgview .pm-screen *
 /* ترتيب العمود الأيسر بالصف */
 #v-messages .msg-right{flex-direction:row-reverse;align-items:center;gap:8px}
 #v-messages .msg-right .msg-time{order:3;margin-inline-start:2px}
-#v-messages .msg-conv{align-items:center}
+#v-messages .msg-conv{align-items:center;max-width:100%;overflow:hidden}
+#v-messages .msg-body{flex:1;min-width:0;overflow:hidden}
 
 /* الأوراق المنبثقة داخل سياق المراسلات */
 body.msgview .sheet,body.msgview .sheet *{--ink:#141414;--muted:#767676;--line:#E6E6E6;
@@ -3609,6 +3616,7 @@ function renderAdmin(){
         <button class="btn btn-o" id="ad-voff">شيل التوثيق</button></div>
       <div id="ad-vlist" style="margin-top:12px"></div>
     </div>
+    ${bfaHTML()}
     <section class="sec" style="padding-top:22px"><div class="sechead"><h2 style="font-size:16px">${AD.listT}</h2></div></section>
     ${list.length?list.map(adCard).join(''):`<p class="foot" style="padding-top:0">${AD.none}</p>`}
     <div style="padding:14px var(--pad) 0">
@@ -3633,6 +3641,7 @@ function renderAdmin(){
   document.getElementById('ad-von').onclick=()=>vRun(true);
   document.getElementById('ad-voff').onclick=()=>vRun(false);
   adPaintVerified();
+  bfaBind();
   box.querySelectorAll('[data-ad-edit]').forEach(b=>b.onclick=()=>{
     const p=adAll().find(z=>z.id===b.dataset.adEdit); if(p) adForm(p) });
   box.querySelectorAll('[data-ad-tog]').forEach(b=>b.onclick=async()=>{
@@ -3669,6 +3678,130 @@ async function adPaintVerified(){
     if(r==="ok"){ toast("انشال التوثيق"); adPaintVerified() }
     else { b.disabled=false; toast("ما انشال") }
   }});
+}
+
+/* ═══════════════════════════════════════════════════════════
+   إدارة البوت ماذر من لوحة المالك
+   الصورة والاسم واليوزر ينحفظون بصف حساب البوت ماذر داخل
+   user_profiles، فالتغيير يوصل كل المستخدمين فوراً. نفس شغل
+   أوامر /bfpic و/bfname و/bfuser داخل المحادثة، بس بواجهة.
+   ما يحتاج أي SQL جديد.
+   ═══════════════════════════════════════════════════════════ */
+const BFA_PHONE = "0900000000";                              /* هوية البوت ماذر */
+const BFA_DEF   = {name:"BotFather", username:"botfather"};  /* الافتراضي */
+let bfaRow=null;   /* آخر بيانات مقروءة من القاعدة */
+let bfaPic;        /* undefined=الصورة ما تغيّرت، ""=شيلها، نص=صورة جديدة */
+
+const bfaUserClean = u => String(u||"").trim().replace(/^@+/,"").toLowerCase();
+
+async function bfaLoad(){
+  try{
+    const r=await sbSelect("user_profiles",
+      "select=phone,name,username,avatar&phone=eq."+BFA_PHONE+"&limit=1");
+    return (r&&r[0])||null;
+  }catch(e){ console.warn("[bf] load:",e); return null }
+}
+
+/* اليوزر محجوز لحساب ثاني؟ */
+async function bfaTaken(u){
+  try{
+    const r=await sbSelect("user_profiles",
+      "select=phone&username=eq."+encodeURIComponent(u)+"&limit=1");
+    return !!(r&&r[0]&&msgNormPhone(r[0].phone)!==BFA_PHONE);
+  }catch(e){ return false }
+}
+
+/* upsert: ينشئ صف البوت ماذر إذا مو موجود، ويعدّل الحقول المرسلة بس */
+async function bfaSave(patch){
+  await sbReq("user_profiles",{method:"POST",
+    headers:{Prefer:"resolution=merge-duplicates,return=minimal"},
+    body:JSON.stringify(Object.assign({phone:BFA_PHONE,verified:true},patch))});
+}
+
+function bfaHTML(){
+  return `
+    <section class="sec" style="padding-top:22px"><div class="sechead">
+      <h2 style="font-size:16px">إدارة BotFather</h2></div></section>
+    <div style="padding:0 var(--pad)">
+      <div class="note" style="margin-top:0">صورة البوت ماذر واسمه ويوزره — أي تغيير هنا يشوفه كل المستخدمين بالتطبيق.</div>
+      <div class="opt" style="margin-top:12px"><label>الصورة</label>
+        <div class="adshot" id="bfa-slot"
+          style="width:112px;height:112px;border-radius:50%;margin-inline:auto"></div>
+        <div class="adbar" style="justify-content:center">
+          <button class="fixbtn" id="bfa-pick">اختر صورة</button>
+          <span id="bfa-delbox"></span></div></div>
+      <input type="file" id="bfa-file" accept="image/*" style="display:none">
+      <div class="opt"><label for="bfa-name">الاسم</label>
+        <input class="ctrl" id="bfa-name" placeholder="BotFather" autocomplete="off"></div>
+      <div class="opt"><label for="bfa-user">اليوزر</label>
+        <input class="ctrl" id="bfa-user" placeholder="botfather" dir="ltr" autocomplete="off"
+          autocapitalize="none" autocorrect="off" spellcheck="false"></div>
+      <p class="avhint" style="text-align:start;margin-top:8px">اليوزر: حروف إنكليزية وأرقام و _ بس، وطوله ٥ لـ٣٢ حرف.</p>
+      <div class="acts">
+        <button class="btn btn-p" id="bfa-save">احفظ</button>
+        <button class="btn btn-o" id="bfa-reset">رجّع الافتراضي</button></div>
+    </div>`;
+}
+
+function bfaPaint(){
+  const slot=document.getElementById('bfa-slot'); if(!slot) return;
+  const cur = (bfaPic!==undefined) ? bfaPic : ((bfaRow&&bfaRow.avatar)||"");
+  slot.innerHTML = cur ? `<img src="${esc(cur)}" alt="">`
+                       : `<span class="sub" style="font-size:12px">ماكو صورة</span>`;
+  const pick=document.getElementById('bfa-pick');
+  if(pick) pick.textContent = cur?"غيّر الصورة":"اختر صورة";
+  const box=document.getElementById('bfa-delbox');
+  if(!box) return;
+  box.innerHTML = cur?`<button class="avdel" id="bfa-imgdel">شيل الصورة</button>`:``;
+  const d=document.getElementById('bfa-imgdel');
+  if(d) d.onclick=()=>{ bfaPic=""; bfaPaint() };
+}
+
+async function bfaBind(){
+  if(!document.getElementById('bfa-slot')) return;
+  bfaPic=undefined;
+  bfaRow=await bfaLoad();
+  const nm=document.getElementById('bfa-name'), us=document.getElementById('bfa-user'),
+        btn=document.getElementById('bfa-save'), file=document.getElementById('bfa-file');
+  if(!nm||!us||!btn||!file) return;          /* اللوحة انرسمت من جديد وإحنا نقرا */
+  nm.value=(bfaRow&&bfaRow.name)||BFA_DEF.name;
+  us.value=(bfaRow&&bfaRow.username)||BFA_DEF.username;
+  bfaPaint();
+
+  document.getElementById('bfa-pick').onclick=()=>file.click();
+  file.onchange=e=>{
+    const f=e.target.files&&e.target.files[0]; e.target.value="";
+    if(!f) return;
+    toast("يجهّز الصورة…");
+    msgCompressImg(f,url=>{ bfaPic=url; bfaPaint(); toast("جاهزة — اضغط احفظ") },
+      1440,{folder:"bot"});
+  };
+
+  document.getElementById('bfa-reset').onclick=()=>{
+    nm.value=BFA_DEF.name; us.value=BFA_DEF.username; bfaPic=undefined; bfaPaint();
+  };
+
+  btn.onclick=async()=>{
+    const name=nm.value.trim(), u=bfaUserClean(us.value);
+    if(name.length<2||name.length>64){ toast("الاسم لازم يكون بين حرفين و٦٤ حرف"); return }
+    if(!/^[a-z0-9_]{5,32}$/.test(u)){ toast("يوزر مو صالح — حروف إنكليزية وأرقام و _ بس"); return }
+    btn.disabled=true; btn.textContent="يحفظ…";
+    const done=()=>{ btn.disabled=false; btn.textContent="احفظ" };
+    if(await bfaTaken(u)){ done(); toast("هذا اليوزر محجوز لحساب ثاني"); return }
+    const patch={name,username:u};
+    if(bfaPic!==undefined) patch.avatar=bfaPic||null;
+    try{
+      await bfaSave(patch);
+      bfaRow=Object.assign({},bfaRow||{},patch,{phone:BFA_PHONE});
+      bfaPic=undefined; bfaPaint();
+      try{ _botCache={} }catch(e){}
+      try{ if(typeof msgRenderConvs==="function") msgRenderConvs() }catch(e){}
+      toast("انحفظت بيانات البوت ماذر");
+    }catch(e){
+      toast("ما انحفظ: "+String(e&&e.message||"").slice(0,90));
+    }
+    done();
+  };
 }
 
 /* ── الباب المخفي: ٥ نقرات على الشعار أو ضغطة طويلة ── */
@@ -7582,7 +7715,8 @@ async function botSay(convId, botPhone, text){
     await sbReq("messages",{method:"POST",headers:{Prefer:"return=minimal"},
       body:JSON.stringify({conv_id:convId, sender:botPhone, body:text})});
     await sbReq("conversations?id=eq."+convId,{method:"PATCH",headers:{Prefer:"return=minimal"},
-      body:JSON.stringify({last_msg:String(text).slice(0,60), last_at:new Date().toISOString()})});
+      body:JSON.stringify({last_msg:String(text).replace(/\s+/g," ").slice(0,45),
+        last_at:new Date().toISOString()})});
   }catch(e){ console.warn("[bot] say:",e) }
 }
 
@@ -7898,6 +8032,12 @@ if(typeof msgOpenChat==="function" && !msgOpenChat._botWrapped){
     const r=_openOrig.apply(this,arguments);
     try{
       botPaintCmds(ph);
+      /* فحص لمرة وحدة: إذا بقى السبنر بعد 3 ثواني، نعرض حالة بدل الدوران */
+      setTimeout(()=>{
+        const box=document.getElementById('chat-msgs');
+        if(box && chatWith===ph && box.querySelector('.chat-loading'))
+          box.innerHTML='<div class="chat-empty-note">ما گدرت أفتح المحادثة. ارجع افتحها من جديد.</div>';
+      },3000);
       if(isBotPhone(ph)){
         const sub=document.getElementById('chat-sub');
         if(sub){ sub.textContent='بوت'; sub.dataset.bot='1' }
@@ -7942,29 +8082,20 @@ if(typeof msgRefreshChat==="function" && !msgRefreshChat._fixWrapped){
   msgRefreshChat._fixWrapped=true;
 }
 
-/* بعد ثانيتين، إذا لسه سبنر وماكو محادثة — نوقف الانتظار */
-setInterval(()=>{
-  try{
-    const box=document.getElementById('chat-msgs');
-    if(!box||!chatWith) return;
-    const sp=box.querySelector('.chat-loading');
-    if(sp && !chatConvId){
-      box.innerHTML='<div class="chat-empty-note">ما گدرت أفتح المحادثة. ارجع افتحها من جديد.</div>';
-    }
-  }catch(e){}
-},2500);
 
+/* ── الشاشات الطافية تغطي الشاشة كاملة (كانت 520px بالنص فتبين الصفحة وراها) ── */
 /* ── تنسيق أزرار الأوامر ── */
 (function(){
   const css=document.createElement('style');
   css.textContent=`
-.bot-cmds{display:none;gap:7px;padding:9px 12px;overflow-x:auto;flex:none;
+.bot-cmds{display:none;gap:7px;padding:9px 12px;overflow-x:auto;flex:none;max-width:100%;box-sizing:border-box;
   background:var(--mBg);border-top:1px solid var(--mLine);scrollbar-width:none}
 .bot-cmds::-webkit-scrollbar{display:none}
 .bot-cmd{flex:none;border:1px solid var(--mLine);background:var(--mSurf);color:var(--mInk);
   border-radius:18px;padding:8px 14px;font-size:13.5px;font-weight:600;cursor:pointer;
   font-family:var(--font);white-space:nowrap}
 .bot-cmd:active{background:var(--mAcc);color:var(--mAccInk)}
+
 .chat-empty-note{margin:auto;padding:24px;text-align:center;font-size:13.5px;
   color:var(--mMuted);line-height:1.7}`;
   document.head.appendChild(css);
