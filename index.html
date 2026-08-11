@@ -10083,6 +10083,7 @@ const ST_SEEN    = "ha_stories_seen_v1";
 let stAll=[], stGroups=[], stSeen={}, stBusy=false;
 let stCur=-1, stIdx=0, stTimer=null, stRaf=0;
 let stFile=null, stMeta=null, stAs=null, stAsList=[];
+let stImgBlob=null, stImgData=null;
 
 try{ stSeen=JSON.parse(localStorage.getItem(ST_SEEN)||"{}") }catch(e){ stSeen={} }
 const stSaveSeen=()=>{ try{ localStorage.setItem(ST_SEEN,JSON.stringify(stSeen)) }catch(e){} };
@@ -10291,7 +10292,7 @@ async function stDelete(){
 /* ═══ النشر ═══ */
 async function stSheet(){
   if(typeof isLoggedMsg!=="function"||!isLoggedMsg()){ toast("سجّل دخولك أول حتى تنشر قصة"); return }
-  stFile=null; stMeta=null; stAs=null;
+  stFile=null; stMeta=null; stAs=null; stImgBlob=null; stImgData=null;
   openSheet(`<h3 style="font-size:18px;margin-bottom:4px">قصة جديدة</h3>
     <p class="sub" style="font-size:12.5px;margin:0 0 12px">
       مقطع أقصر من دقيقة أو صورة — تبقى ٢٤ ساعة وبعدين تنمحي وحدها.</p>
@@ -10328,12 +10329,22 @@ async function stPick(f){
       stFile=null; go.disabled=true; prev.hidden=true; return;
     }
     stMeta={kind:"video",dur:Math.round(dur||0)};
-  }else if(/^image\//.test(f.type)){
+  }else if(/^image\//i.test(f.type||"")||/\.(jpe?g|png|webp|gif|heic|heif|bmp)$/i.test(f.name||"")){
     stMeta={kind:"image",dur:0};
+    stImgBlob=null; stImgData=null;
+    /* نضغط الصورة لـJPEG قبل الرفع — هيچي ما تفشل الصور الكبيرة ولا صيغ الكاميرا */
+    go.disabled=true; go.textContent="يجهّز الصورة…";
+    const res=await Promise.race([
+      new Promise(r=>{ try{ imgProcess(f,r,1600,0.86) }catch(e){ r(null) } }),
+      new Promise(r=>setTimeout(()=>r(null),9000))
+    ]);
+    go.textContent="انشر القصة";
+    if(res){ stImgBlob=res.blob||null; stImgData=res.dataURL||null }
+    if(!stImgBlob) stImgBlob=f;                 /* ما انضغطت؟ نرفع الأصلية */
   }else{ toast("اختر فيديو أو صورة"); return }
 
   stFile=f;
-  const u=URL.createObjectURL(f);
+  const u=(stMeta.kind==="image"&&stImgData)?stImgData:URL.createObjectURL(f);
   prev.hidden=false;
   prev.innerHTML = stMeta.kind==="video"
     ? `<video src="${u}" muted playsinline controls></video>`
@@ -10375,14 +10386,22 @@ async function stPublish(){
   if(!stFile||!stMeta){ toast("اختر مقطع أو صورة"); return }
   const go=document.getElementById('stp-go');
   go.disabled=true; go.textContent="يرفع…";
-  let blob=stFile, poster=null;
+  let blob=(stMeta.kind==="image"&&stImgBlob)?stImgBlob:stFile, poster=null;
   try{
     if(stMeta.kind==="video") poster=await rlGrabPoster(stFile,0.3).catch(()=>null);
   }catch(e){}
-  const url=await sbUpload(blob, stMeta.kind==="video"?"stories":"stories-img");
+  let url=await sbUpload(blob, stMeta.kind==="video"?"stories":"stories-img");
+  /* المخزن مو جاهز؟ الصورة الصغيرة تنحفظ داخل الصف بدل ما ينفشل النشر */
+  if(!url && stMeta.kind==="image" && stImgData && stImgData.length<900000) url=stImgData;
   if(!url){
     go.disabled=false; go.textContent="انشر القصة";
-    toast("ما گدرت أرفع — شغّل سيرفر الهاتف أو تأكد من المخزن"); return;
+    /* نگول للمستخدم وين وگف بالضبط: سيرفر الهاتف لو المخزن */
+    let phoneOn=false;
+    try{ phoneOn=!!(await mediaBase()) }catch(e){}
+    toast(phoneOn
+      ? "سيرفر الهاتف رفض الملف — جرّب ملف أصغر"
+      : "سيرفر الهاتف مطفي والمخزن رافض الرفع — شغّل ملف storage.sql");
+    return;
   }
   const who=stAsList.find(a=>a.phone===stAs)||stAsList[0]||{phone:myPhone()};
   const now=Date.now();
@@ -10394,7 +10413,14 @@ async function stPublish(){
     expires_at:new Date(now+864e5).toISOString()
   };
   try{ await sbInsert("stories",row) }
-  catch(e){ go.disabled=false; go.textContent="انشر القصة"; toast("ما گدرت أنشرها — شغّل ملف stories.sql"); return }
+  catch(e){
+    go.disabled=false; go.textContent="انشر القصة";
+    const m=String(e&&e.message||e);
+    toast(/404|PGRST205/.test(m) ? "جدول stories مو موجود — شغّل ملف stories.sql"
+        : /401|403|policy|row-level/i.test(m) ? "القاعدة رافضة النشر — تأكد من سياسة stories بـ RLS"
+        : "ما گدرت أنشرها: "+m.slice(0,70));
+    return;
+  }
   closeSheet(); toast("اننشرت القصة ✓");
   stFile=null; stMeta=null;
   await stLoad();
