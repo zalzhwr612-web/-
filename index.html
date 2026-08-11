@@ -11498,57 +11498,133 @@ function aiVoiceSet(ph,v){
 }
 
 /* ── اختيار أفضل صوت عربي حسب الجنس ── */
+/* ═══════════════════════════════════════════════════════════
+   النطق — نسخة مصلَّحة
+   ثلاث مشاكل كانت تمنع الصوت:
+   ١) المتصفحات على الموبايل ما تسمح بالنطق إلا بعد لمسة من
+      المستخدم. رد البوت يجي بعد طلب شبكة، فتضيع اللمسة ويطلع
+      الكلام بلا صوت. الحل: نفتح القفل بأول لمسة بالصفحة.
+   ٢) قائمة الأصوات تجي متأخرة، فأول نطق كان يطلع بصوت افتراضي
+      غريب. الحل: ننتظرها وننتقي صوت واحد ونثبّته لكل النطق.
+   ٣) كروم يوقف المحرّك لحاله بالنصوص الطويلة. الحل: نبضة resume.
+   ═══════════════════════════════════════════════════════════ */
+let _ttsUnlocked=false, _ttsVoice=null, _ttsVoiceFor="", _ttsPulse=null, _ttsWarned=false;
+
+/* ١) فتح القفل بأول لمسة */
+function ttsUnlock(){
+  if(_ttsUnlocked||!("speechSynthesis" in window)) return;
+  try{
+    const u=new SpeechSynthesisUtterance(" ");
+    u.volume=0; u.rate=1;
+    speechSynthesis.speak(u);
+    speechSynthesis.resume();
+    _ttsUnlocked=true;
+  }catch(e){}
+}
+["touchstart","pointerdown","click","keydown"].forEach(ev=>{
+  document.addEventListener(ev,ttsUnlock,{once:false,passive:true,capture:true});
+});
+
+/* ٢) قائمة الأصوات: ننتظرها لو ما جهزت */
+function ttsVoices(){
+  try{ return speechSynthesis.getVoices()||[] }catch(e){ return [] }
+}
+function ttsReady(){
+  return new Promise(res=>{
+    if(ttsVoices().length) return res(ttsVoices());
+    let n=0;
+    const t=setInterval(()=>{
+      const v=ttsVoices();
+      if(v.length||++n>20){ clearInterval(t); res(v) }
+    },150);
+    try{ speechSynthesis.onvoiceschanged=()=>{ const v=ttsVoices();
+      if(v.length){ clearInterval(t); res(v) } } }catch(e){}
+  });
+}
+
+/* صوت واحد ثابت — ما يتغيّر بين جملة وجملة */
 function aiPickVoice(gender){
-  let list=[];
-  try{ list=speechSynthesis.getVoices()||[] }catch(e){ return null }
+  const key=gender||"male";
+  if(_ttsVoice&&_ttsVoiceFor===key) return _ttsVoice;
+  const list=ttsVoices();
   if(!list.length) return null;
   const ar=list.filter(v=>/^ar/i.test(v.lang||""));
   const pool=ar.length?ar:list;
-  const female=/female|amira|hala|zariyah|laila|salma|maged_f|woman|بنت|أنثى/i;
-  const male  =/male|hamed|naayf|shakir|omar|majed|man|ولد|ذكر/i;
-  /* الأصوات العصبية (Google/Neural/Natural) أدفأ وأريح للأذن من الآلية */
-  const nice=v=>/google|neural|natural|enhanced|premium|online/i.test(v.name||"");
-  const want =gender==="female"?female:male;
-  const other=gender==="female"?male:female;
-  return pool.find(v=>want.test(v.name||"")&&nice(v)) ||
-         pool.find(v=>want.test(v.name||"")) ||
-         pool.find(v=>nice(v)&&!other.test(v.name||"")) ||
-         pool.find(v=>!other.test(v.name||"")) ||
-         pool[0] || null;
+  const female=/female|amira|hala|zariyah|laila|salma|maged_f|woman/i;
+  const male  =/male|hamed|naayf|shakir|omar|majed|man/i;
+  const nice  =v=>/google|neural|natural|enhanced|premium|online|wavenet/i.test(v.name||"");
+  const want =key==="female"?female:male;
+  const other=key==="female"?male:female;
+  const pick =
+    pool.find(v=>want.test(v.name||"")&&nice(v)) ||
+    pool.find(v=>want.test(v.name||"")) ||
+    pool.find(v=>nice(v)&&!other.test(v.name||"")) ||
+    pool.find(v=>!other.test(v.name||"")) ||
+    pool[0] || null;
+  _ttsVoice=pick; _ttsVoiceFor=key;
+  return pick;
 }
 
-/* ينطق النص بمقاطع — أريح للأذن وما ينقطع بالنصوص الطويلة */
-function aiSpeak(text,gender){
-  try{
-    if(!("speechSynthesis" in window)) return false;
-    const t=String(text||"")
-      .replace(/[*_`#>]/g,"")
-      .replace(/https?:\/\/\S+/g,"رابط")
-      .replace(/[—–]/g," ")
-      .trim();
-    if(!t) return false;
-    speechSynthesis.cancel();
-    const v=aiPickVoice(gender);
-    /* نقسم على الجُمل حتى النبرة تبقى طبيعية وياخذ نفَس بينها */
-    const parts=t.split(/(?<=[.!?؟،:\n])\s+/).reduce((a,z)=>{
-      if(!a.length) return [z];
-      const last=a[a.length-1];
-      if((last+" "+z).length<170){ a[a.length-1]=last+" "+z; return a }
-      a.push(z); return a;
-    },[]).slice(0,14);
-    parts.forEach(seg=>{
-      if(!seg.trim()) return;
-      const u=new SpeechSynthesisUtterance(seg.trim());
-      if(v){ u.voice=v; u.lang=v.lang } else u.lang="ar-SA";
-      u.rate  = gender==="female" ? 1.0 : 0.96;   /* أبطأ شوي = أوضح وأريح */
-      u.pitch = gender==="female" ? 1.18 : 0.82;  /* أوطى = صوت ذكر أدفأ */
-      u.volume= 1;
-      speechSynthesis.speak(u);
-    });
-    return true;
-  }catch(e){ return false }
+/* ٣) نبضة تمنع كروم من إيقاف المحرّك بالنص الطويل */
+function ttsPulseOn(){
+  clearInterval(_ttsPulse);
+  _ttsPulse=setInterval(()=>{
+    try{
+      if(!speechSynthesis.speaking){ clearInterval(_ttsPulse); _ttsPulse=null; return }
+      speechSynthesis.pause(); speechSynthesis.resume();
+    }catch(e){}
+  },7000);
 }
-function aiSpeakStop(){ try{ speechSynthesis.cancel() }catch(e){} }
+
+async function aiSpeak(text,gender){
+  if(!("speechSynthesis" in window)) return false;
+  const t=String(text||"")
+    .replace(/```[\s\S]*?```/g," ")
+    .replace(/[*_`#>|]/g," ")
+    .replace(/https?:\/\/\S+/g,"رابط")
+    .replace(/[—–]/g," ")
+    .replace(/\s+/g," ")
+    .trim();
+  if(!t) return false;
+
+  ttsUnlock();
+  await ttsReady();
+
+  const v=aiPickVoice(gender);
+  if(!v && !_ttsWarned){
+    _ttsWarned=true;
+    try{ toast("ما لكيت أصوات منصّبة بالجهاز — نزّل حزمة الأصوات العربية من إعدادات الهاتف") }catch(e){}
+  }
+
+  try{ speechSynthesis.cancel() }catch(e){}
+  await new Promise(r=>setTimeout(r,60));      /* cancel يحتاج نفَس قبل speak */
+
+  /* نقسم على الجُمل — نفس الصوت ونفس النبرة بكل مقطع */
+  const parts=t.split(/(?<=[.!?؟،:])\s+/).reduce((a,z)=>{
+    if(!a.length) return [z];
+    const last=a[a.length-1];
+    if((last+" "+z).length<160){ a[a.length-1]=last+" "+z; return a }
+    a.push(z); return a;
+  },[]).filter(z=>z.trim()).slice(0,16);
+
+  const rate  = gender==="female" ? 1.0  : 0.95;
+  const pitch = gender==="female" ? 1.18 : 0.82;
+
+  parts.forEach(seg=>{
+    const u=new SpeechSynthesisUtterance(seg.trim());
+    if(v){ u.voice=v; u.lang=v.lang } else u.lang="ar-SA";
+    u.rate=rate; u.pitch=pitch; u.volume=1;
+    try{ speechSynthesis.speak(u) }catch(e){}
+  });
+  try{ speechSynthesis.resume() }catch(e){}
+  ttsPulseOn();
+  return true;
+}
+
+function aiSpeakStop(){
+  clearInterval(_ttsPulse); _ttsPulse=null;
+  try{ speechSynthesis.cancel() }catch(e){}
+}
 /* المتصفح يحمّل الأصوات متأخر — نحفّزه بدري */
 try{ speechSynthesis.getVoices(); speechSynthesis.onvoiceschanged=()=>{} }catch(e){}
 
@@ -11741,6 +11817,7 @@ function aiVoiceBtnPaint(){
     b=document.createElement('button');
     b.className='bot-cmd spk';
     b.onclick=()=>{
+      try{ ttsUnlock() }catch(e){}
       const ph=msgNormPhone(chatWith);
       const cur=aiVoiceGet(ph);
       const eff=(cur==="off"&&ph===BF_PHONE&&aiVoiceRaw(ph)===undefined)?"male":cur;
@@ -12259,21 +12336,8 @@ function bcBubble(who,text){
 }
 
 /* ── صوت ذكر بالعربي، وأحسن صوت موجود ── */
-function bcVoice(){
-  let list=[];
-  try{ list=speechSynthesis.getVoices()||[] }catch(e){ return null }
-  if(!list.length) return null;
-  const ar=list.filter(v=>/^ar/i.test(v.lang||""));
-  const pool=ar.length?ar:list;
-  const female=/female|amira|hala|zariyah|laila|salma|woman|siri.*female/i;
-  const male=/male|hamed|naayf|shakir|omar|majed|man/i;
-  /* نفضّل صوت طبيعي (Google/Neural) وذكر */
-  const nice=v=>/google|neural|natural|enhanced|premium/i.test(v.name||"");
-  return pool.find(v=>male.test(v.name||"")&&nice(v)) ||
-         pool.find(v=>male.test(v.name||"")) ||
-         pool.find(v=>nice(v)&&!female.test(v.name||"")) ||
-         pool.find(v=>!female.test(v.name||"")) || pool[0] || null;
-}
+/* نفس صوت المحادثة بالضبط — حتى ما يختلف الصوت بين المكالمة والمحادثة */
+function bcVoice(){ return aiPickVoice("male") }
 
 /* ── ينطق ثم يرجع يسمع ── */
 function bcSay(text,thenListen){
@@ -12285,12 +12349,13 @@ function bcSay(text,thenListen){
       if(thenListen) bcListen();
       return res();
     }
+    try{ ttsUnlock() }catch(e){}
     try{ speechSynthesis.cancel() }catch(e){}
     bcRecStop();
     const u=new SpeechSynthesisUtterance(clean);
     const v=bcVoice();
     if(v){ u.voice=v; u.lang=v.lang } else u.lang="ar-SA";
-    u.rate=0.98; u.pitch=0.82;      /* أوطى شوي = صوت ذكر أدفأ */
+    u.rate=0.95; u.pitch=0.82;      /* نفس نبرة المحادثة بالضبط */
     const av=document.getElementById('bc-av');
     bcSetState("يحچي…"); if(av) av.classList.add('speaking'); bcWave(true);
     const done=()=>{
@@ -12301,7 +12366,7 @@ function bcSay(text,thenListen){
     };
     u.onend=done;
     u.onerror=done;
-    try{ speechSynthesis.speak(u) }catch(e){ done() }
+    try{ speechSynthesis.speak(u); speechSynthesis.resume(); ttsPulseOn() }catch(e){ done() }
     /* احتياط: بعض المتصفحات ما تطلق onend */
     setTimeout(()=>{ if(bcOn&&av&&av.classList.contains('speaking')) done() },
       Math.min(30000, 2500+clean.length*90));
@@ -12420,7 +12485,8 @@ async function bcCall(phone,name,avatar){
     if(e) e.textContent=String(Math.floor(s/60)).padStart(2,"0")+":"+String(s%60).padStart(2,"0");
   },1000);
 
-  await new Promise(r=>setTimeout(r,900));
+  try{ ttsUnlock(); await ttsReady() }catch(e){}
+  await new Promise(r=>setTimeout(r,700));
   if(!bcOn) return;
   const cfg=await nexCfg();
   const hasAI=cfg&&aiKeyList(cfg).length;
