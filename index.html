@@ -9223,25 +9223,20 @@ async function newMsgSheet(){
     <button class="nm-row" id="nm-group">
       <span class="rm-ic"><svg viewBox="0 0 24 24">${ROOM_ICON.group}</svg></span>
       <span style="flex:1;min-width:0"><b>مجموعة جديدة</b><small id="nm-gq">…</small></span></button>
-    <button class="nm-row" id="nm-channel">
-      <span class="rm-ic ch"><svg viewBox="0 0 24 24">${ROOM_ICON.channel}</svg></span>
-      <span style="flex:1;min-width:0"><b>قناة جديدة</b><small id="nm-cq">…</small></span></button>
     <button class="nm-row" id="nm-person">
       <span class="rm-ic" style="background:var(--art)"><svg viewBox="0 0 24 24" style="stroke:var(--muted)"><circle cx="12" cy="8.5" r="3.6"/><path d="M4.5 20c.6-4 3.7-6.3 7.5-6.3S18.9 16 19.5 20"/></svg></span>
       <span style="flex:1;min-width:0"><b>محادثة مع شخص</b><small>ابحث باليوزر أو الاسم</small></span></button>
     <p class="avhint" style="text-align:start;margin-top:12px" id="nm-bq">
-      الحد الشهري: ٥ مجموعات و٥ قنوات و٣ بوتات لكل حساب.</p>`);
+      الحد الشهري: ٥ مجموعات و٣ بوتات لكل حساب.</p>`);
   document.getElementById('nm-group').onclick=()=>{ closeSheet(); roomFormSheet("group") };
-  document.getElementById('nm-channel').onclick=()=>{ closeSheet(); roomFormSheet("channel") };
   document.getElementById('nm-person').onclick=()=>{
     closeSheet();
     const i=document.getElementById('msg-q');
     if(i){ i.focus(); i.scrollIntoView({behavior:'smooth',block:'center'}) }
   };
-  const [g,c,b]=await Promise.all([roomUsed("group"),roomUsed("channel"),botUsed()]);
+  const [g,b]=await Promise.all([roomUsed("group"),botUsed()]);
   const put=(id,txt)=>{const e=document.getElementById(id); if(e) e.textContent=txt};
   put('nm-gq',"صنعت "+g+" من "+ROOM_LIM.group+" هذا الشهر");
-  put('nm-cq',"صنعت "+c+" من "+ROOM_LIM.channel+" هذا الشهر");
   put('nm-bq',"البوتات: صنعت "+b+" من "+ROOM_LIM.bot+" هذا الشهر — تصنعها من محادثة BotFather.");
 }
 
@@ -9267,7 +9262,7 @@ async function roomFormSheet(kind){
         <input class="ctrl" id="rm-user" dir="ltr" autocomplete="off" autocapitalize="none"
           autocorrect="off" spellcheck="false" placeholder="my_channel"></div>
         <p class="avhint" style="text-align:start">حروف إنكليزية وأرقام و _ بس، وطوله ٥ لـ٣٢ حرف. باليوزر يلگونها الناس بالبحث.</p>`:``}
-      <div class="opt"><label>${isCh?"المشتركون الأوائل (اختياري)":"الأعضاء"}</label>
+      <div class="opt"><label>${isCh?"المشتركون الأوائل (اختياري)":"الأعضاء — اختر واحد على الأقل"}</label>
         <div class="rm-pick" id="rm-people"><span class="sub" style="font-size:12px;padding:6px">يحمّل…</span></div></div>
     </div>
     <div class="acts">
@@ -9303,7 +9298,7 @@ async function roomFormSheet(kind){
   });
   if(!document.getElementById('rm-people')) return;
   if(!list.length){
-    box.innerHTML=`<span class="sub" style="font-size:12px;padding:6px">ماكو أحد بقائمة المتابعة — تكدر تضيف أعضاء بعدين برابط الدعوة.</span>`;
+    box.innerHTML=`<span class="sub" style="font-size:12px;padding:6px">ماكو أحد بقائمة المتابعة — تابع شخص أول من قائمة المستخدمين، بعدين ترجع تسوي المجموعة.</span>`;
     return;
   }
   box.innerHTML=list.map(p=>{
@@ -9313,11 +9308,22 @@ async function roomFormSheet(kind){
       <b>${esc(msgDisplayName(p))}</b>
       <span class="tick">✓</span></div>`;
   }).join('');
+  const goBtn=document.getElementById('rm-go');
+  const paintGo=()=>{
+    if(!goBtn) return;
+    const n=Object.keys(rmPicked).length;
+    if(kind==="channel"){ goBtn.textContent="أنشئ القناة"; return }
+    goBtn.textContent = n ? ("أنشئ المجموعة ("+n+")") : "أنشئ المجموعة";
+    goBtn.classList.toggle('btn-o',!n);
+    goBtn.classList.toggle('btn-p',!!n);
+  };
+  paintGo();
   box.querySelectorAll('[data-mpick]').forEach(el=>{
     el.onclick=()=>{
       const ph=el.dataset.mpick;
       if(rmPicked[ph]) delete rmPicked[ph]; else rmPicked[ph]=true;
       el.classList.toggle('on',!!rmPicked[ph]);
+      paintGo();
     };
   });
 }
@@ -9329,6 +9335,10 @@ async function roomCreate(kind){
   const uEl=document.getElementById('rm-user');
   const user=uEl?(uEl.value||"").trim().replace(/^@+/,"").toLowerCase():"";
   if(title.length<2||title.length>64){ toast("الاسم لازم يكون بين حرفين و٦٤ حرف"); return }
+  if(kind!=="channel" && !Object.keys(rmPicked).length){
+    toast("اختر عضو واحد على الأقل — المجموعة ما تصير بشخص واحد");
+    return;
+  }
   if(user&&!/^[a-z0-9_]{5,32}$/.test(user)){ toast("يوزر مو صالح — حروف إنكليزية وأرقام و _ بس"); return }
   if(user){
     try{
