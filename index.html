@@ -12083,6 +12083,300 @@ if(typeof bfReply==="function" && !bfReply._nexWrapped){
 
 const NEX_HINT="\n\n— — —\nوتكدر تحچيني عادي بلا أوامر: «سويلي مجموعة اسمها العمل وضيف سرى»، «دوّرلي حساب فلان»، «سويلي بوت للمعرض». أسألك عن الناقص وأنفّذ بنفسي.";
 
+/* ═══════════════════════════════════════════════════════════════
+   مكالمة صوتية ويّا البوت ماذر (NΞX)
+   تتصل بيه من زر الاتصال، يرد بصوت ذكر، تحچي وهو يسمع، يسألك
+   عن الناقص وينفّذ فعلياً — نفس عقل NΞX بالمحادثة بس بالصوت.
+
+   يشتغل بمحرّك التعرف على الكلام المدمج بالمتصفح (كروم) وبمحرّك
+   النطق. ما يحتاج WebRTC لأن الطرف الثاني بوت مو شخص.
+   ═══════════════════════════════════════════════════════════════ */
+(function(){
+  const css=document.createElement('style');
+  css.textContent=`
+#bcall{position:fixed;inset:0;z-index:150;display:none;flex-direction:column;align-items:center;
+  justify-content:center;color:#fff;padding:28px 22px calc(34px + env(safe-area-inset-bottom));
+  background:linear-gradient(165deg,#0A0A0A 0%,#1A1A1A 48%,#0A0A0A 100%)}
+#bcall.on{display:flex}
+#bcall::before{content:"";position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(90% 60% at 50% 12%,rgba(240,217,154,.14),transparent 62%)}
+.bc-av{position:relative;z-index:1;width:124px;height:124px;border-radius:50%;overflow:hidden;
+  display:grid;place-items:center;background:#141414;border:2px solid #D6B36A;
+  box-shadow:0 0 0 8px rgba(214,179,106,.10),0 18px 44px rgba(0,0,0,.5);margin-bottom:20px}
+.bc-av img{width:100%;height:100%;object-fit:cover;display:block}
+.bc-av b{font-size:38px;font-weight:900;color:#D6B36A;direction:ltr}
+.bc-av.speaking{animation:bcpulse 1.4s ease-in-out infinite}
+@keyframes bcpulse{0%,100%{box-shadow:0 0 0 8px rgba(214,179,106,.10),0 18px 44px rgba(0,0,0,.5)}
+  50%{box-shadow:0 0 0 18px rgba(214,179,106,.05),0 18px 44px rgba(0,0,0,.5)}}
+.bc-name{position:relative;z-index:1;font-size:23px;font-weight:800;margin-bottom:5px}
+.bc-state{position:relative;z-index:1;font-size:14px;color:#D6B36A;margin-bottom:6px;min-height:20px}
+.bc-timer{position:relative;z-index:1;font-size:15px;font-family:"IBM Plex Mono",monospace;
+  direction:ltr;color:rgba(255,255,255,.55);margin-bottom:22px}
+.bc-log{position:relative;z-index:1;width:100%;max-width:420px;flex:0 1 auto;max-height:32vh;
+  overflow:auto;margin-bottom:24px;display:flex;flex-direction:column;gap:9px}
+.bc-b{padding:10px 14px;border-radius:16px;font-size:14px;line-height:1.55;max-width:88%;
+  white-space:pre-wrap;word-break:break-word}
+.bc-b.me{align-self:flex-start;background:rgba(255,255,255,.10)}
+.bc-b.bot{align-self:flex-end;background:linear-gradient(140deg,#F0D99A,#D6B36A);color:#0A0A0A;font-weight:600}
+.bc-wave{position:relative;z-index:1;display:flex;align-items:center;gap:4px;height:34px;margin-bottom:22px}
+.bc-wave i{width:4px;border-radius:3px;background:#D6B36A;height:8px;animation:bcw 1s ease-in-out infinite}
+.bc-wave.off i{animation:none;height:6px;opacity:.28}
+@keyframes bcw{0%,100%{height:8px}50%{height:28px}}
+.bc-acts{position:relative;z-index:1;display:flex;gap:26px;align-items:center}
+.bc-act{width:62px;height:62px;border:0;border-radius:50%;display:grid;place-items:center;cursor:pointer;
+  background:rgba(255,255,255,.13);color:#fff}
+.bc-act svg{width:26px;height:26px;stroke:currentColor;fill:none;stroke-width:2;
+  stroke-linecap:round;stroke-linejoin:round}
+.bc-act.end{background:#E2685A;width:68px;height:68px}
+.bc-act.end svg{transform:rotate(135deg)}
+.bc-act.on{background:#fff;color:#0A0A0A}
+.bc-act:active{transform:scale(.92)}`;
+  document.head.appendChild(css);
+})();
+
+const BC_SR = window.SpeechRecognition || window.webkitSpeechRecognition || null;
+let bcOn=false, bcRec=null, bcListening=false, bcMuted=false,
+    bcT0=0, bcTick=null, bcBusy=false, bcStopping=false;
+
+function bcEl(){
+  let d=document.getElementById('bcall');
+  if(d) return d;
+  d=document.createElement('div');
+  d.id='bcall';
+  d.innerHTML=`
+    <div class="bc-av" id="bc-av"><b>N</b></div>
+    <div class="bc-name" id="bc-name">BotFather</div>
+    <div class="bc-state" id="bc-state">يرن…</div>
+    <div class="bc-timer" id="bc-timer">00:00</div>
+    <div class="bc-log" id="bc-log"></div>
+    <div class="bc-wave off" id="bc-wave"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+    <div class="bc-acts">
+      <button class="bc-act" id="bc-mute" aria-label="كتم">
+        <svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>
+      <button class="bc-act end" id="bc-end" aria-label="إنهاء">
+        <svg viewBox="0 0 24 24"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2z"/></svg></button>
+      <button class="bc-act" id="bc-again" aria-label="أعد">
+        <svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 4v4h4"/></svg></button>
+    </div>`;
+  document.body.appendChild(d);
+  d.querySelector('#bc-end').onclick=bcEnd;
+  d.querySelector('#bc-mute').onclick=bcToggleMute;
+  d.querySelector('#bc-again').onclick=()=>{ bcSay("نعم، آمر.",true) };
+  return d;
+}
+
+function bcSetState(t){ const e=document.getElementById('bc-state'); if(e) e.textContent=t }
+function bcWave(on){ const w=document.getElementById('bc-wave'); if(w) w.classList.toggle('off',!on) }
+function bcBubble(who,text){
+  const l=document.getElementById('bc-log'); if(!l) return;
+  const b=document.createElement('div');
+  b.className='bc-b '+(who==='me'?'me':'bot');
+  b.textContent=text;
+  l.appendChild(b);
+  l.scrollTop=l.scrollHeight;
+}
+
+/* ── صوت ذكر بالعربي، وأحسن صوت موجود ── */
+function bcVoice(){
+  let list=[];
+  try{ list=speechSynthesis.getVoices()||[] }catch(e){ return null }
+  if(!list.length) return null;
+  const ar=list.filter(v=>/^ar/i.test(v.lang||""));
+  const pool=ar.length?ar:list;
+  const female=/female|amira|hala|zariyah|laila|salma|woman|siri.*female/i;
+  const male=/male|hamed|naayf|shakir|omar|majed|man/i;
+  /* نفضّل صوت طبيعي (Google/Neural) وذكر */
+  const nice=v=>/google|neural|natural|enhanced|premium/i.test(v.name||"");
+  return pool.find(v=>male.test(v.name||"")&&nice(v)) ||
+         pool.find(v=>male.test(v.name||"")) ||
+         pool.find(v=>nice(v)&&!female.test(v.name||"")) ||
+         pool.find(v=>!female.test(v.name||"")) || pool[0] || null;
+}
+
+/* ── ينطق ثم يرجع يسمع ── */
+function bcSay(text,thenListen){
+  return new Promise(res=>{
+    const clean=String(text||"").replace(/[*_`#>]/g,"")
+      .replace(/https?:\/\/\S+/g,"رابط").slice(0,700);
+    bcBubble('bot',String(text||""));
+    if(!clean||!("speechSynthesis" in window)){
+      if(thenListen) bcListen();
+      return res();
+    }
+    try{ speechSynthesis.cancel() }catch(e){}
+    bcRecStop();
+    const u=new SpeechSynthesisUtterance(clean);
+    const v=bcVoice();
+    if(v){ u.voice=v; u.lang=v.lang } else u.lang="ar-SA";
+    u.rate=0.98; u.pitch=0.82;      /* أوطى شوي = صوت ذكر أدفأ */
+    const av=document.getElementById('bc-av');
+    bcSetState("يحچي…"); if(av) av.classList.add('speaking'); bcWave(true);
+    const done=()=>{
+      if(av) av.classList.remove('speaking');
+      bcWave(false);
+      if(bcOn&&thenListen) bcListen(); else if(bcOn) bcSetState("");
+      res();
+    };
+    u.onend=done;
+    u.onerror=done;
+    try{ speechSynthesis.speak(u) }catch(e){ done() }
+    /* احتياط: بعض المتصفحات ما تطلق onend */
+    setTimeout(()=>{ if(bcOn&&av&&av.classList.contains('speaking')) done() },
+      Math.min(30000, 2500+clean.length*90));
+  });
+}
+
+/* ── السماع ── */
+function bcRecStop(){
+  bcListening=false;
+  try{ if(bcRec){ bcRec.onend=null; bcRec.stop() } }catch(e){}
+}
+function bcListen(){
+  if(!bcOn||bcBusy||bcMuted) { if(bcMuted) bcSetState("المايك مكتوم"); return }
+  if(!BC_SR){ bcSetState("متصفحك ما يدعم السمع — استعمل كروم"); return }
+  try{
+    bcRec=new BC_SR();
+    bcRec.lang="ar-IQ";
+    bcRec.interimResults=false;
+    bcRec.maxAlternatives=1;
+    bcRec.continuous=false;
+    bcListening=true;
+    bcSetState("يسمعك… احچي");
+    bcWave(true);
+    let got="";
+    bcRec.onresult=e=>{
+      try{ got=(e.results[0][0].transcript||"").trim() }catch(x){}
+    };
+    bcRec.onerror=e=>{
+      bcListening=false; bcWave(false);
+      const k=String(e&&e.error||"");
+      if(k==="not-allowed"||k==="service-not-allowed"){
+        bcSetState("لازم تسمح بالمايك");
+        bcSay("ما وصلني إذن المايك. افتح إعدادات الموقع واسمحله، وبعدين اتصل بيّ مرة ثانية.",false);
+        return;
+      }
+      if(k==="no-speech"){ bcSetState("ما سمعت شي"); setTimeout(bcListen,400); return }
+      setTimeout(()=>{ if(bcOn) bcListen() },600);
+    };
+    bcRec.onend=()=>{
+      bcListening=false; bcWave(false);
+      if(!bcOn) return;
+      if(got) bcHeard(got);
+      else setTimeout(bcListen,300);
+    };
+    bcRec.start();
+  }catch(e){ bcSetState("ما گدرت أفتح المايك") }
+}
+
+/* ── وصلت جملة من المستخدم ── */
+async function bcHeard(text){
+  if(!bcOn) return;
+  bcBubble('me',text);
+  /* إنهاء بالصوت */
+  if(/^(باي|مع السلامة|سكر|اقفل|انهي|إنهاء|خلص|bye)\b/i.test(text.trim())){
+    await bcSay("تمام، بالخدمة دوم. مع السلامة.",false);
+    setTimeout(bcEnd,300);
+    return;
+  }
+  bcBusy=true;
+  bcSetState("يفكّر…");
+  let out="";
+  try{
+    out=await nexBrain(text);
+    if(!out) out=await bfReply(text);
+  }catch(e){ out="صار خلل بسيط. عيد الطلب." }
+  bcBusy=false;
+  if(!bcOn) return;
+  await bcSay(out||"ما فهمت. عيدها مرة ثانية.",true);
+}
+
+function bcToggleMute(){
+  bcMuted=!bcMuted;
+  const b=document.getElementById('bc-mute');
+  if(b) b.classList.toggle('on',bcMuted);
+  if(bcMuted){ bcRecStop(); bcSetState("المايك مكتوم"); bcWave(false) }
+  else bcListen();
+}
+
+function bcEnd(){
+  bcOn=false; bcStopping=true;
+  bcRecStop();
+  try{ speechSynthesis.cancel() }catch(e){}
+  clearInterval(bcTick); bcTick=null;
+  const d=document.getElementById('bcall');
+  if(d) d.classList.remove('on');
+  bcBusy=false; bcMuted=false;
+  setTimeout(()=>{ bcStopping=false },300);
+}
+
+/* ── بدء المكالمة ── */
+async function bcCall(phone,name,avatar){
+  if(typeof isLoggedMsg==="function" && !isLoggedMsg()){ toast("سجّل دخولك أول"); return }
+  if(!BC_SR){
+    toast("مكالمة البوت تحتاج متصفح كروم");
+  }
+  const d=bcEl();
+  bcOn=true; bcMuted=false; bcBusy=false;
+  document.getElementById('bc-log').innerHTML="";
+  document.getElementById('bc-name').textContent=name||"BotFather";
+  const av=document.getElementById('bc-av');
+  av.innerHTML = avatar ? `<img src="${esc(avatar)}" alt="">` : `<b>N</b>`;
+  document.getElementById('bc-mute').classList.remove('on');
+  bcSetState("يرن…");
+  document.getElementById('bc-timer').textContent="00:00";
+  d.classList.add('on');
+
+  /* نطلب إذن المايك بدري حتى ما ينقطع بالنص */
+  try{ const s=await navigator.mediaDevices.getUserMedia({audio:true});
+       s.getTracks().forEach(t=>t.stop()); }catch(e){}
+
+  bcT0=Date.now();
+  clearInterval(bcTick);
+  bcTick=setInterval(()=>{
+    const s=Math.floor((Date.now()-bcT0)/1000);
+    const e=document.getElementById('bc-timer');
+    if(e) e.textContent=String(Math.floor(s/60)).padStart(2,"0")+":"+String(s%60).padStart(2,"0");
+  },1000);
+
+  await new Promise(r=>setTimeout(r,900));
+  if(!bcOn) return;
+  const cfg=await nexCfg();
+  const hasAI=cfg&&aiKeyList(cfg).length;
+  await bcSay(hasAI
+    ? "هلا بيك، آني NΞX. گلّي شتريد وآني أسويلك ياه."
+    : "هلا بيك. الذكاء مو مربوط بمفتاح بعد، فآني أرد على الأوامر بس.",
+    true);
+}
+
+/* ── نعترض زر الاتصال: البوت ماذر يروح للمكالمة الصوتية ── */
+if(typeof callStart==="function" && !callStart._bcWrapped){
+  const _cs=callStart;
+  callStart=async function(phone,name,avatar,isVideo){
+    try{
+      const ph=msgNormPhone(phone);
+      if(typeof isBotPhone==="function" && isBotPhone(ph)){
+        if(isVideo){ toast("البوت يرد بالصوت بس"); }
+        return bcCall(ph,name,avatar);
+      }
+    }catch(e){}
+    return _cs.apply(this,arguments);
+  };
+  callStart._bcWrapped=true;
+}
+
+/* زر الرجوع يسكّر المكالمة قبل أي شي */
+setTimeout(function(){
+  try{
+    if(typeof topLayer!=="undefined") return;
+  }catch(e){}
+},100);
+addEventListener('popstate',function(){
+  if(bcOn && !bcStopping){ bcEnd(); try{ history.pushState({nxBack:1},"") }catch(e){} }
+},true);
+
+/* نحفّز تحميل الأصوات */
+try{ speechSynthesis.getVoices(); speechSynthesis.addEventListener('voiceschanged',()=>{}) }catch(e){}
+
 </script>
 </body>
 </html>
