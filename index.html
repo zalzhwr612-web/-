@@ -1419,6 +1419,10 @@ body.msgview.msgdark .sheet .btn-o{border-color:#3A3A3A;color:#F0F0F0}
         <div class="sechead"><h2 id="t-new"></h2><button class="link" data-go="shop" id="t-all2"></button></div>
         <div class="grid" id="new-grid"></div>
       </section>
+      <section class="sec" id="sec-people" hidden>
+        <div class="sechead"><h2 id="t-peopleT"></h2><span class="sub" id="t-peopleN"></span></div>
+      </section>
+      <div class="rail" id="people-rail" hidden></div>
       <section class="sec">
         <div class="sechead"><h2 id="t-howT"></h2></div>
         <div class="steps" id="steps"></div>
@@ -3973,9 +3977,13 @@ function botPackCmds(cmds,ai,qa){
 async function aiAsk(cfg,history,text){
   if(!cfg||!cfg.key) return "الذكاء الاصطناعي مو مربوط بهذا البوت بعد.";
   const model=String(cfg.model||AI_MODELS[0]).trim();
-  const url="https://generativelanguage.googleapis.com/v1beta/models/"+
-    encodeURIComponent(model)+":generateContent?key="+encodeURIComponent(cfg.key);
-  const run=async withWeb=>{
+  const key=String(cfg.key).trim();
+  const base="https://generativelanguage.googleapis.com/v1beta/models/"+
+    encodeURIComponent(model)+":generateContent";
+  /* المفتاح ينبعث بهيدر x-goog-api-key — هاي الطريقة الرسمية وتشتغل
+     ويّا المفاتيح الجديدة (AQ.) والقديمة (AIza) سوا. qsKey=true احتياط
+     إذا الهيدر انحجب (preflight/CORS) فنرجع للطريقة القديمة ?key= */
+  const run=async(withWeb,qsKey)=>{
     const body={
       contents:(history||[]).concat([{role:"user",parts:[{text:String(text||"").slice(0,4000)}]}]),
       generationConfig:{temperature:.7,maxOutputTokens:900}
@@ -3983,20 +3991,28 @@ async function aiAsk(cfg,history,text){
     if(cfg.sys) body.systemInstruction={parts:[{text:String(cfg.sys).slice(0,4000)}]};
     if(withWeb) body.tools=[{google_search:{}}];
     let r,j=null;
-    try{ r=await fetch(url,{method:"POST",headers:{"Content-Type":"application/json"},
-      body:JSON.stringify(body)}) }
+    const url=qsKey?(base+"?key="+encodeURIComponent(key)):base;
+    const headers={"Content-Type":"application/json"};
+    if(!qsKey) headers["x-goog-api-key"]=key;
+    try{ r=await fetch(url,{method:"POST",headers,body:JSON.stringify(body)}) }
     catch(e){ return {ok:false,status:0,j:null} }
     try{ j=await r.json() }catch(e){}
     return {ok:r.ok,status:r.status,j};
   };
   const web=cfg.web!==false;
-  let res=await run(web);
+  let qs=false;
+  let res=await run(web,qs);
+  /* ما وصل الطلب أصلاً؟ يمكن الهيدر انحجب — نجرّب ?key= */
+  if(!res.status){ qs=true; res=await run(web,qs) }
   /* موديل ما يدعم بحث الويب؟ نعيد بلا بحث بدل ما نفشل */
-  if(!res.ok&&web&&(res.status===400||res.status===404)) res=await run(false);
+  if(!res.ok&&web&&(res.status===400||res.status===404)) res=await run(false,qs);
   if(!res.ok){
     if(!res.status) return "ما وصلت لخدمة الذكاء الاصطناعي — تأكد من الإنترنت.";
     const m=String((res.j&&res.j.error&&res.j.error.message)||("خطأ "+res.status));
     if(res.status===400&&/api key|API_KEY/i.test(m)) return "مفتاح الذكاء الاصطناعي مو صحيح.";
+    if(res.status===401&&/ACCESS_TOKEN_TYPE_UNSUPPORTED/i.test(m))
+      return "المفتاح مرفوض (401). المفاتيح الجديدة اللي تبدي بـ AQ. لازم تكون Auth key مربوطة بمشروع فعّال — سوّي مفتاح جديد من AI Studio وجرّب.";
+    if(res.status===401) return "المفتاح مو مقبول (401) — سوّي مفتاح جديد من Google AI Studio.";
     if(res.status===403) return "المفتاح مرفوض — تأكد إن الخدمة مفعّلة عليه.";
     if(res.status===429) return "وصلنا حد الاستخدام بالمفتاح. جرّب بعد شوية.";
     return "ما گدرت أجاوب هسه: "+m.slice(0,140);
@@ -4077,9 +4093,9 @@ function btaHTML(){
           <button class="setopt" id="bta-aion" aria-pressed="false"><span><b>شغّل الذكاء</b></span><span class="dot"></span></button>
           <button class="setopt" id="bta-aiweb" aria-pressed="true"><span><b>بحث الويب</b></span><span class="dot"></span></button></div>
         <div class="opt" style="margin-top:12px"><label for="bta-aikey">مفتاح Gemini API</label>
-          <input class="ctrl" id="bta-aikey" dir="ltr" placeholder="AIza…" autocomplete="off"
+          <input class="ctrl" id="bta-aikey" dir="ltr" placeholder="AQ.… أو AIza…" autocomplete="off"
             autocapitalize="none" autocorrect="off" spellcheck="false"></div>
-        <p class="avhint" style="text-align:start;margin-top:6px">تاخذ المفتاح مجاناً من Google AI Studio. المفتاح يوصل جهاز أي شخص يحچي ويّا البوت — استعمل مفتاح محدود وحطّله سقف استهلاك.</p>
+        <p class="avhint" style="text-align:start;margin-top:6px">تاخذ المفتاح مجاناً من Google AI Studio. المفاتيح الجديدة تبدي بـ <b dir="ltr">AQ.</b> والقديمة بـ <b dir="ltr">AIza</b> — الاثنين مقبولين هنا. المفتاح يوصل جهاز أي شخص يحچي ويّا البوت — استعمل مفتاح محدود وحطّله سقف استهلاك.</p>
         <div class="opt"><label for="bta-aimodel">الموديل</label>
           <input class="ctrl" id="bta-aimodel" dir="ltr" list="bta-models" placeholder="${AI_MODELS[0]}"
             autocomplete="off" autocapitalize="none" spellcheck="false">
@@ -8523,7 +8539,7 @@ async function bfReply(text){
     if(cmd==="/setcommands")    return "ابعثلي أوامر @"+u+" بسطر لكل أمر، بهاي الصيغة:\n\nأمر - الرد\n\nمثال:\nstart - أهلاً بيك بمعرضنا\nprice - الأسعار تبدي من ٢٥ ألف\nlocation - بلد، شارع المحيط";
     if(cmd==="/setuserpic")     return "ابعثلي الصورة اللي تريدها لـ@"+u+" — أرسلها كصورة عادية بالمحادثة.";
     if(cmd==="/setqa")          return "ابعثلي الأسئلة والأجوبة، سطر لكل سؤال بهاي الصيغة:\n\nالسؤال | الجواب\n\nمثال:\nشكد سعر الباب؟ | الأسعار تبدي من ٢٥ ألف\nوين موقعكم؟ | بلد، شارع المحيط\n\nوإذا عندك ملف كبير، ارفعه من لوحة المالك — قسم «أسئلة وأجوبة».";
-    if(cmd==="/setai")          return "ابعثلي مفتاح Gemini API مالتك حتى أربط @"+u+" بالذكاء الاصطناعي.\n\nتاخذ المفتاح مجاناً من Google AI Studio: aistudio.google.com/apikey\n\nانتبه: المفتاح يوصل جهاز أي شخص يحچي ويّا البوت، فاستعمل مفتاح محدود وحطّله سقف استهلاك.";
+    if(cmd==="/setai")          return "ابعثلي مفتاح Gemini API مالتك حتى أربط @"+u+" بالذكاء الاصطناعي.\n\nتاخذ المفتاح مجاناً من Google AI Studio: aistudio.google.com/apikey\nالمفتاح الجديد يبدي بـ AQ. والقديم بـ AIza — الاثنين يشتغلون.\n\nانتبه: المفتاح يوصل جهاز أي شخص يحچي ويّا البوت، فاستعمل مفتاح محدود وحطّله سقف استهلاك.";
     if(cmd==="/setaiprompt")    return "اكتب شخصية @"+u+" وتعليماته — بأي طول تريد.\n\nمثال:\nأنت مساعد معرض ألمنيوم. جاوب بالعربي باختصار، وإذا انسأل عن الأسعار كول تبدي من ٢٥ ألف.";
     if(cmd==="/deletebot")      return "تأكيد الحذف: اكتب يوزر البوت مرة ثانية بلا @.\n\nهذي خطوة ما ترجع.";
   }
@@ -8766,6 +8782,241 @@ if(typeof msgRefreshChat==="function" && !msgRefreshChat._fixWrapped){
   color:var(--mMuted);line-height:1.7}`;
   document.head.appendChild(css);
 })();
+
+
+/* ═══════════════════════════════════════════════════════════════
+   بطاقات البوتات بالصفحة الرئيسية
+   عمود جنب بطاقات «الأكثر طلباً»: BotFather فوق و@samer_bot تحته.
+   الضغط على البطاقة يفتح محادثة البوت مباشرة.
+   ═══════════════════════════════════════════════════════════════ */
+(function(){
+  const css=document.createElement('style');
+  css.textContent=`
+.botcol{flex:none;width:158px;display:flex;flex-direction:column;gap:12px}
+.botcard{flex:1 1 0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;
+  background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:12px 10px;
+  min-height:92px;cursor:pointer;font-family:var(--font);text-align:center;color:var(--ink);
+  transition:transform .12s ease,border-color var(--T,.25s)}
+.botcard:active{transform:scale(.985)}
+.bc-av{width:46px;height:46px;border-radius:50%;overflow:hidden;background:var(--art);
+  display:grid;place-items:center;flex:none;border:1px solid var(--line)}
+.bc-av img{width:100%;height:100%;object-fit:cover;display:block}
+.bc-av svg{width:26px;height:26px;fill:none;stroke:var(--muted);stroke-width:1.7;
+  stroke-linecap:round;stroke-linejoin:round}
+.bc-av .ini{font-weight:800;font-size:15px;color:var(--muted)}
+.bc-n{display:flex;align-items:center;justify-content:center;gap:4px;font-weight:700;font-size:13px;line-height:1.3}
+.bc-u{font-size:11px;color:var(--muted);direction:ltr}`;
+  document.head.appendChild(css);
+})();
+
+/* البوتات المعروضة بالرئيسية — الترتيب هو ترتيب الظهور من فوق لتحت */
+const HOME_BOTS = [
+  {by:"phone",    val:(typeof BF_PHONE!=="undefined"?BF_PHONE:"0900000000")},
+  {by:"username", val:"samer_bot"}
+];
+let homeBotRows=[];
+
+async function homeBotsLoad(){
+  const out=[];
+  for(const it of HOME_BOTS){
+    try{
+      const q="select=phone,name,username,avatar,verified&"+
+        (it.by==="phone"?"phone=eq.":"username=eq.")+encodeURIComponent(it.val)+"&limit=1";
+      const r=await sbSelect("user_profiles",q);
+      if(r&&r[0]&&!out.some(x=>msgNormPhone(x.phone)===msgNormPhone(r[0].phone))) out.push(r[0]);
+    }catch(e){ /* ماكو نت أو الصف مو موجود — نتجاهل */ }
+  }
+  homeBotRows=out;
+  homeBotsPaint();
+}
+
+function homeBotAv(b){
+  if(b.avatar) return `<img src="${esc(b.avatar)}" alt="">`;
+  const n=String(b.name||"").trim();
+  if(!n||/^[\d\s+()-]+$/.test(n))
+    return `<svg viewBox="0 0 24 24"><rect x="4" y="8" width="16" height="11" rx="3"/><path d="M12 8V4.8M9.5 13h.01M14.5 13h.01M9.5 16h5"/><circle cx="12" cy="4" r="1.2"/></svg>`;
+  return `<span class="ini">${esc(n.charAt(0).toUpperCase())}</span>`;
+}
+
+function homeBotsPaint(){
+  const rail=document.getElementById('rail'); if(!rail) return;
+  const old=rail.querySelector('.botcol'); if(old) old.remove();
+  if(!homeBotRows.length) return;
+  const col=document.createElement('div');
+  col.className='botcol';
+  col.innerHTML=homeBotRows.map(b=>{
+    const ph=msgNormPhone(b.phone);
+    const nm=(typeof nameHTML==="function")?nameHTML(b):esc(b.name||"");
+    return `<button class="botcard" type="button" data-botph="${esc(ph)}">
+      <span class="bc-av">${homeBotAv(b)}</span>
+      <span class="bc-n">${nm}</span>
+      <span class="bc-u">@${esc(b.username||"")}</span>
+    </button>`;
+  }).join('');
+  rail.appendChild(col);
+  rail.hidden=false;
+  col.querySelectorAll('[data-botph]').forEach(el=>{
+    el.onclick=()=>{
+      const b=homeBotRows.find(x=>msgNormPhone(x.phone)===el.dataset.botph);
+      if(!b) return;
+      const nm=(typeof msgDisplayName==="function")?msgDisplayName(b):(b.name||"");
+      if(typeof go==="function") go('messages');
+      setTimeout(()=>msgOpenChat(b.phone,nm,b.avatar||""),120);
+    };
+  });
+}
+
+/* نرسم البطاقات بعد كل إعادة رسم للرئيسية */
+if(typeof renderAll==="function" && !renderAll._botColWrapped){
+  const _renderAllOrig=renderAll;
+  renderAll=function(){
+    const r=_renderAllOrig.apply(this,arguments);
+    try{ homeBotsPaint() }catch(e){}
+    return r;
+  };
+  renderAll._botColWrapped=true;
+}
+
+/* أول تحميل + تحديث خفيف كل دقيقتين حتى تظهر أي تغييرات من لوحة المالك */
+setTimeout(homeBotsLoad,900);
+setInterval(homeBotsLoad,120000);
+
+
+/* ═══════════════════════════════════════════════════════════════
+   أشخاص على الموقع — بين قائمة المنتجات و«كيف تطلب»
+   يعرض أصحاب الحسابات مع زر متابعة، والضغط على البطاقة يفتح ملفهم.
+   ═══════════════════════════════════════════════════════════════ */
+(function(){
+  const css=document.createElement('style');
+  css.textContent=`
+#people-rail{align-items:stretch}
+.pcard{flex:none;width:132px;display:flex;flex-direction:column;align-items:center;gap:8px;
+  background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:14px 10px 12px;
+  text-align:center;box-sizing:border-box}
+.pc-open{display:flex;flex-direction:column;align-items:center;gap:7px;background:none;border:0;
+  padding:0;width:100%;cursor:pointer;font-family:var(--font);color:var(--ink)}
+.pc-open:active{transform:scale(.985)}
+.pc-av{width:58px;height:58px;border-radius:50%;overflow:hidden;background:var(--art);
+  display:grid;place-items:center;flex:none;border:1px solid var(--line)}
+.pc-av img{width:100%;height:100%;object-fit:cover;display:block}
+.pc-av svg{width:30px;height:30px;fill:none;stroke:var(--muted);stroke-width:1.7;
+  stroke-linecap:round;stroke-linejoin:round}
+.pc-av .ini{font-weight:800;font-size:18px;color:var(--muted)}
+.pc-n{display:flex;align-items:center;justify-content:center;gap:4px;font-weight:700;font-size:13px;
+  line-height:1.3;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pc-u{font-size:11px;color:var(--muted);direction:ltr;max-width:100%;overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap}
+.pc-f{width:100%;border:1px solid var(--brand);background:var(--brand);color:#fff;border-radius:11px;
+  padding:7px 6px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:var(--font)}
+.pc-f.on{background:transparent;color:var(--muted);border-color:var(--line)}
+.pc-f:active{opacity:.85}
+.pc-skel{flex:none;width:132px;height:150px;border-radius:var(--r);border:1px solid var(--line);
+  background:var(--art);opacity:.6}`;
+  document.head.appendChild(css);
+})();
+
+const PEOPLE_MAX = 30;
+const PEOPLE_TXT = {
+  ar:{t:"أشخاص على الموقع", n:v=>v+" حساب", f:"متابعة", u:"يتابعه", need:"سجّل دخول حتى تتابع وتراسل"},
+  en:{t:"People on the site", n:v=>v+" accounts", f:"Follow", u:"Following", need:"Sign in to follow and message"},
+  ku:{t:"کەسەکانی ماڵپەڕ", n:v=>v+" هەژمار", f:"بەدواداچوون", u:"بەدوایدا دەچیت", need:"بچۆ ژوورەوە بۆ بەدواداچوون"}
+};
+const pTxt = () => PEOPLE_TXT[typeof lang!=="undefined"?lang:"ar"] || PEOPLE_TXT.ar;
+
+let peopleRows=[], peopleFollows={}, peopleBusy=false;
+
+function peopleAv(p){
+  if(p.avatar) return `<img src="${esc(p.avatar)}" alt="" loading="lazy">`;
+  const n=String((typeof msgDisplayName==="function"?msgDisplayName(p):p.name)||"").trim();
+  if(!n||/^[\d\s+()-]+$/.test(n))
+    return `<svg viewBox="0 0 24 24"><circle cx="12" cy="8.5" r="3.6"/><path d="M4.5 20c.6-4 3.7-6.3 7.5-6.3S18.9 16 19.5 20"/></svg>`;
+  const w=n.split(/\s+/).filter(Boolean);
+  const ini=((w[0]||"").charAt(0)+(w[1]||"").charAt(0)).toUpperCase()||n.charAt(0).toUpperCase();
+  return `<span class="ini">${esc(ini)}</span>`;
+}
+
+async function peopleLoad(){
+  if(peopleBusy) return; peopleBusy=true;
+  try{
+    const rows=await sbSelect("user_profiles",
+      "select=phone,name,username,avatar,verified,last_seen&order=last_seen.desc.nullslast&limit=80");
+    const me=(typeof isLoggedMsg==="function"&&isLoggedMsg())?myPhone():"";
+    const bot=p=>(typeof isBotPhone==="function")&&isBotPhone(p);
+    peopleRows=(rows||[]).filter(r=>{
+      const ph=msgNormPhone(r.phone);
+      return ph && ph!==me && !bot(ph);
+    }).slice(0,PEOPLE_MAX);
+  }catch(e){ /* ماكو نت — نخلي القديم */ }
+  if(typeof isLoggedMsg==="function" && isLoggedMsg()){
+    try{
+      const r=await sbSelect("follows","select=following&follower=eq."+encodeURIComponent(myPhone()));
+      peopleFollows={}; (r||[]).forEach(x=>{ peopleFollows[msgNormPhone(x.following)]=true });
+    }catch(e){}
+  }else peopleFollows={};
+  peopleBusy=false;
+  peoplePaint();
+}
+
+function peoplePaint(){
+  const sec=document.getElementById('sec-people'), rail=document.getElementById('people-rail');
+  if(!sec||!rail) return;
+  const x=pTxt();
+  const ttl=document.getElementById('t-peopleT'); if(ttl) ttl.textContent=x.t;
+  const cnt=document.getElementById('t-peopleN');
+  if(cnt) cnt.textContent=peopleRows.length?x.n(peopleRows.length):"";
+  if(!peopleRows.length){ sec.hidden=true; rail.hidden=true; rail.innerHTML=""; return }
+  sec.hidden=false; rail.hidden=false;
+  rail.innerHTML=peopleRows.map(p=>{
+    const ph=msgNormPhone(p.phone);
+    const nm=(typeof nameHTML==="function")?nameHTML(p):esc(p.name||ph);
+    const on=!!peopleFollows[ph];
+    return `<div class="pcard">
+      <button class="pc-open" type="button" data-pph="${esc(ph)}">
+        <span class="pc-av">${peopleAv(p)}</span>
+        <span class="pc-n">${nm}</span>
+        <span class="pc-u">${p.username?("@"+esc(p.username)):"&nbsp;"}</span>
+      </button>
+      <button class="pc-f${on?' on':''}" type="button" data-pfollow="${esc(ph)}">${on?x.u:x.f}</button>
+    </div>`;
+  }).join('');
+
+  rail.querySelectorAll('[data-pph]').forEach(el=>{
+    el.onclick=()=>{
+      const ph=el.dataset.pph;
+      if(typeof msgOpenProfile==="function") msgOpenProfile(ph);
+      else msgOpenChat(ph,"","");
+    };
+  });
+  rail.querySelectorAll('[data-pfollow]').forEach(el=>{
+    el.onclick=async()=>{
+      const ph=el.dataset.pfollow, t=pTxt();
+      if(typeof isLoggedMsg!=="function"||!isLoggedMsg()){ toast(t.need); return }
+      el.disabled=true;
+      try{
+        if(peopleFollows[ph]){ await msgUnfollow(ph); delete peopleFollows[ph] }
+        else{ await msgFollow(ph); peopleFollows[ph]=true }
+      }catch(e){}
+      el.disabled=false;
+      const on=!!peopleFollows[ph];
+      el.classList.toggle('on',on);
+      el.textContent=on?t.u:t.f;
+    };
+  });
+}
+
+/* نعيد الرسم مع كل إعادة رسم للرئيسية (تبديل اللغة مثلاً) */
+if(typeof renderAll==="function" && !renderAll._peopleWrapped){
+  const _renderAllPeople=renderAll;
+  renderAll=function(){
+    const r=_renderAllPeople.apply(this,arguments);
+    try{ peoplePaint() }catch(e){}
+    return r;
+  };
+  renderAll._peopleWrapped=true;
+}
+
+setTimeout(peopleLoad,1100);
+setInterval(peopleLoad,120000);
 
 </script>
 </body>
