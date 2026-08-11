@@ -84,3 +84,17 @@ self.addEventListener('notificationclick', e => {
 self.addEventListener('notificationclose', e => {
   /* مكالمة انصرفت بدون رد — ما نسوي شي، الموقع يتكفّل بالمهلة */
 });
+const CACHE = "ha-v1";
+self.addEventListener("fetch", e => {
+  const r = e.request;
+  if (r.method !== "GET" || !r.url.startsWith("http")) return;
+  e.respondWith(
+    fetch(r).then(res => {
+      if (res && res.ok && res.type === "basic") {
+        const copy = res.clone();
+        caches.open(CACHE).then(c => c.put(r, copy)).catch(()=>{});
+      }
+      return res;
+    }).catch(() => caches.match(r).then(m => m || caches.match("./")))
+  );
+});
