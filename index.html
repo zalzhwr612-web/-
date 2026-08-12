@@ -13478,9 +13478,138 @@ function ttsPulseOn(){
   },7000);
 }
 
-async function aiSpeak(text,gender){
-  if(!("speechSynthesis" in window)) return false;
-  const t=String(text||"")
+
+/* ══════════════════════════════════════════════════════════════
+   صوت طبيعي بدل صوت المتصفح
+
+   ليش الصوت القديم كان يتقطّع: محرّك النطق بالمتصفح ما يعرف
+   ينطق نص طويل بنفس واحد، فكنا نقسم الكلام على جُمل ونرسلها
+   وحدة وحدة — وبين كل جملة سكتة، وأحياناً المحرّك يوقف بالنص.
+   وأصوات أندرويد العربية أصلاً آلية.
+
+   الحل: Gemini يولّد الصوت كملف واحد كامل. ما في تقطيع لأنه
+   ما في تقسيم أصلاً، والنبرة طبيعية لأن الموديل يفهم الجملة
+   قبل ما ينطقها. نفس مفتاح البوت الموجود — بلا اشتراك جديد.
+
+   وإذا فشل لأي سبب (نت، حد يومي، مفتاح)، ينزل تلقائياً لصوت
+   المتصفح القديم — فما يبقى البوت ساكت أبداً.
+   ══════════════════════════════════════════════════════════════ */
+const AI_TTS_MODEL = "gemini-3.1-flash-tts-preview";
+
+/* أصوات ذكورية — مرتّبة من الأهدأ للأحيوى */
+const TTS_MALE = [
+  ["Charon",    "هادئ وواضح"],
+  ["Orus",      "ثابت وواثق"],
+  ["Iapetus",   "دافئ وقريب"],
+  ["Algieba",   "عميق"],
+  ["Puck",      "شاب وحيوي"],
+  ["Fenrir",    "قوي وحماسي"],
+  ["Rasalgethi","إخباري"],
+  ["Enceladus", "هامس وناعم"]
+];
+const TTS_FEMALE = [
+  ["Kore",     "واضح ومرتّب"],
+  ["Aoede",    "دافئ"],
+  ["Leda",     "شاب"],
+  ["Zephyr",   "مشرق"],
+  ["Autonoe",  "هادئ"]
+];
+const TTS_DEFAULT_MALE   = "Charon";
+const TTS_DEFAULT_FEMALE = "Kore";
+
+const LS_TTS_VOICE = "ha_tts_voice_v1";
+function ttsVoiceName(gender){
+  try{
+    const v=localStorage.getItem(LS_TTS_VOICE);
+    if(v) return v;
+  }catch(e){}
+  return gender==="female" ? TTS_DEFAULT_FEMALE : TTS_DEFAULT_MALE;
+}
+function ttsVoiceSet(name){
+  try{ localStorage.setItem(LS_TTS_VOICE,name) }catch(e){}
+}
+
+/* Gemini يرجّع PCM خام بلا ترويسة — نلبسه ترويسة WAV حتى يشتغل بالمتصفح */
+function pcmToWavBlob(base64, rate){
+  const bin=atob(base64);
+  const n=bin.length;
+  const buf=new ArrayBuffer(44+n);
+  const dv=new DataView(buf);
+  const put=(off,str)=>{ for(let i=0;i<str.length;i++) dv.setUint8(off+i,str.charCodeAt(i)) };
+  put(0,"RIFF");            dv.setUint32(4,36+n,true);
+  put(8,"WAVEfmt ");        dv.setUint32(16,16,true);
+  dv.setUint16(20,1,true);  dv.setUint16(22,1,true);          /* PCM، قناة وحدة */
+  dv.setUint32(24,rate||24000,true);
+  dv.setUint32(28,(rate||24000)*2,true);
+  dv.setUint16(32,2,true);  dv.setUint16(34,16,true);
+  put(36,"data");           dv.setUint32(40,n,true);
+  const u8=new Uint8Array(buf);
+  for(let i=0;i<n;i++) u8[44+i]=bin.charCodeAt(i);
+  return new Blob([buf],{type:"audio/wav"});
+}
+
+let _ttsAudio=null, _ttsBusy=false;
+
+async function aiTTSOne(key,text,voice){
+  const url="https://generativelanguage.googleapis.com/v1beta/models/"+
+    encodeURIComponent(AI_TTS_MODEL)+":generateContent";
+  const body={
+    contents:[{parts:[{text:
+      /* توجيه النبرة — Gemini يفهم التعليمة قبل النص */
+      "اقرأ النص التالي بالعربية بصوت واضح وهادئ وطبيعي، بسرعة معتدلة "+
+      "ونطق سليم، بلا مبالغة:\n\n"+String(text).slice(0,3000)}]}],
+    generationConfig:{
+      responseModalities:["AUDIO"],
+      speechConfig:{voiceConfig:{prebuiltVoiceConfig:{voiceName:voice}}}
+    }
+  };
+  const r=await fetch(url,{method:"POST",
+    headers:{"Content-Type":"application/json","x-goog-api-key":String(key).trim()},
+    body:JSON.stringify(body)});
+  const j=await r.json().catch(()=>null);
+  if(!r.ok){
+    const msg=(j&&j.error&&j.error.message)||("HTTP "+r.status);
+    const e=new Error(msg); e.status=r.status; throw e;
+  }
+  const part=j&&j.candidates&&j.candidates[0]&&j.candidates[0].content&&
+             j.candidates[0].content.parts&&j.candidates[0].content.parts[0];
+  const data=part&&part.inlineData&&part.inlineData.data;
+  if(!data) throw new Error("ماكو صوت بالرد");
+  /* نوع الرد يجي مثل audio/L16;codec=pcm;rate=24000 */
+  const mt=(part.inlineData.mimeType||"");
+  const rate=parseInt((mt.match(/rate=(\d+)/)||[])[1],10)||24000;
+  return pcmToWavBlob(data,rate);
+}
+
+/* يجرّب مفاتيح البوت بالتسلسل مثل باقي وظائف الذكاء */
+async function aiTTS(cfg,text,voice){
+  const keys=(typeof aiKeyList==="function")?aiKeyList(cfg):[];
+  if(!keys.length) return null;
+  const live=keys.filter(k=>!aiDeadIs(k));
+  const order=live.length?live:keys;
+  for(const k of order){
+    try{ return await aiTTSOne(k,text,voice) }
+    catch(e){
+      const m=String(e.message||"").toLowerCase();
+      if(e.status===429||m.includes("quota")) aiDeadMark(k,24);
+      else if(e.status===403||e.status===400) aiDeadMark(k,72);
+      else { nxLog("tts",e); break }
+    }
+  }
+  return null;
+}
+
+function aiSpeakStopServer(){
+  if(_ttsAudio){
+    try{ _ttsAudio.pause(); _ttsAudio.src="" }catch(e){}
+    if(_ttsAudio._url) try{ URL.revokeObjectURL(_ttsAudio._url) }catch(e){}
+    _ttsAudio=null;
+  }
+  _ttsBusy=false;
+}
+
+async function aiSpeak(text,gender,cfg){
+  const t0=String(text||"")
     .replace(/```[\s\S]*?```/g," ")
     .replace(/[*_`#>|]/g," ")
     .replace(/https?:\/\/\S+/g,"رابط")
@@ -13489,6 +13618,31 @@ async function aiSpeak(text,gender){
     .trim();
   if(!t) return false;
 
+  /* ═══ المحاولة الأولى: صوت Gemini الطبيعي، ملف واحد بلا تقطيع ═══ */
+  aiSpeakStopServer();
+  try{ speechSynthesis.cancel() }catch(e){}
+  const conf = cfg || null;
+  if(conf && !_ttsBusy){
+    _ttsBusy=true;
+    try{
+      const blob=await aiTTS(conf,t,ttsVoiceName(gender));
+      if(blob){
+        const url=URL.createObjectURL(blob);
+        const a=new Audio(url);
+        a._url=url;
+        a.onended=()=>aiSpeakStopServer();
+        a.onerror=()=>aiSpeakStopServer();
+        _ttsAudio=a;
+        await a.play();
+        _ttsBusy=false;
+        return true;
+      }
+    }catch(e){ nxLog("tts-play",e) }
+    _ttsBusy=false;
+  }
+
+  /* ═══ الرجعة الآمنة: صوت المتصفح القديم ═══ */
+  if(!("speechSynthesis" in window)) return false;
   ttsUnlock();
   await ttsReady();
 
@@ -13525,12 +13679,52 @@ async function aiSpeak(text,gender){
 
 function aiSpeakStop(){
   clearInterval(_ttsPulse); _ttsPulse=null;
+  aiSpeakStopServer();
   try{ speechSynthesis.cancel() }catch(e){}
 }
 /* المتصفح يحمّل الأصوات متأخر — نحفّزه بدري */
 try{ speechSynthesis.getVoices(); speechSynthesis.onvoiceschanged=()=>{} }catch(e){}
 
 /* ── توليد صورة بمفتاح البوت ── */
+
+/* ══════════════════════════════════════════════════════════════
+   تحسين وصف الصورة
+
+   وصف قصير مثل «باب ألمنيوم أسود» يطلع صورة عادية، لأن الموديل
+   ما عنده معلومات كافية فيخمّن كل شي: الإضاءة، الزاوية، الخلفية،
+   نوع العدسة. النتيجة تطلع مسطّحة.
+
+   فنخلي الموديل النصي يوسّع الوصف أول — يضيف تفاصيل الإضاءة
+   والزاوية والمزاج بالإنجليزي (موديلات الصور تفهمه أدق) — وبعدين
+   نمرّره لموديل الصور. نفس المفتاح، طلب إضافي واحد صغير.
+
+   وإذا فشل التوسيع لأي سبب، نرسل الوصف الأصلي مثل ما هو.
+   ══════════════════════════════════════════════════════════════ */
+async function imgEnhance(cfg,prompt){
+  const raw=String(prompt||"").trim();
+  if(!raw) return raw;
+  if(raw.length>400) return raw;          /* وصف طويل أصلاً — ما يحتاج */
+
+  const brief=
+    "Rewrite this into one rich English image-generation prompt. "+
+    "Add concrete detail for lighting, camera angle, lens, materials, "+
+    "background and mood. Keep the subject exactly as asked — do not "+
+    "add or remove objects. Output the prompt only, no preamble, "+
+    "under 90 words.\n\nSubject: "+raw;
+
+  try{
+    const out=await Promise.race([
+      aiAsk(cfg,[],brief),                           /* التوقيع: (cfg, history, text) */
+      new Promise(r=>setTimeout(()=>r(null),9000))   /* ما نخلي المستخدم ينتظر */
+    ]);
+    const clean=String(out||"").replace(/^["'`\s]+|["'`\s]+$/g,"").trim();
+    /* لو رجّع رسالة خطأ عربية بدل الوصف، نتجاهلها */
+    if(/[\u0600-\u06FF]{6,}/.test(clean)) return raw;
+    if(clean.length>25 && clean.length<1200) return clean;
+  }catch(e){ nxLog("img-enhance",e) }
+  return raw;
+}
+
 async function aiImage(cfg,prompt){
   const keys=aiKeyList(cfg);
   if(!keys.length) return {err:"الذكاء الاصطناعي مو مربوط بهذا البوت."};
@@ -13616,13 +13810,41 @@ async function aiHandleExtra(botPhone, text, convId){
     if(/بنت|أنثى|انثى|female|girl|woman/.test(arg)){
       aiVoiceSet(ph,"female");
       await botSay(convId,ph,"صار صوتي صوت بنت. أي رد أرسله راح تسمعه.\nلتغييره: /صوت ولد — ولإطفائه: /صوت وقف");
-      aiSpeak("هلا بيك، هذا صوتي هسه","female");
+      try{ aiSpeak("هلا بيك، هذا صوتي هسه","female",botAI(await botInfo(ph))) }
+      catch(e){ aiSpeak("هلا بيك، هذا صوتي هسه","female") }
       return true;
     }
+    /* اختيار صوت معيّن بالاسم — /صوت charon أو /صوت 2 */
+    const named=TTS_MALE.concat(TTS_FEMALE)
+      .find(v=>v[0].toLowerCase()===arg || arg===v[1]);
+    const byNum=/^[1-8]$/.test(arg) ? TTS_MALE[parseInt(arg,10)-1] : null;
+    const pick=named||byNum;
+    if(pick){
+      ttsVoiceSet(pick[0]);
+      const isF=TTS_FEMALE.some(v=>v[0]===pick[0]);
+      aiVoiceSet(ph,isF?"female":"male");
+      await botSay(convId,ph,"صار صوتي «"+pick[0]+"» — "+pick[1]+"\n\nلعرض كل الأصوات: /صوت اصوات");
+      try{ aiSpeak("تمام، هذا صوتي هسه. أي رد أرسله راح تسمعه بهذا الصوت.",
+        isF?"female":"male",botAI(await botInfo(ph))) }catch(e){}
+      return true;
+    }
+
+    /* عرض قائمة الأصوات */
+    if(/اصوات|أصوات|قائمة|list|voices/.test(arg)){
+      const cur=ttsVoiceName("male");
+      const line=v=>(v[0]===cur?"◉ ":"○ ")+v[0]+" — "+v[1];
+      await botSay(convId,ph,
+        "الأصوات الذكورية:\n"+TTS_MALE.map(line).join("\n")+
+        "\n\nالأصوات النسائية:\n"+TTS_FEMALE.map(line).join("\n")+
+        "\n\nللاختيار اكتب: /صوت Charon\nأو بالرقم: /صوت 1");
+      return true;
+    }
+
     if(/ولد|ذكر|male|boy|man/.test(arg)){
       aiVoiceSet(ph,"male");
       await botSay(convId,ph,"صار صوتي صوت ولد. أي رد أرسله راح تسمعه.\nلتغييره: /صوت بنت — ولإطفائه: /صوت وقف");
-      aiSpeak("هلا بيك، هذا صوتي هسه","male");
+      try{ aiSpeak("هلا بيك، هذا صوتي هسه","male",botAI(await botInfo(ph))) }
+      catch(e){ aiSpeak("هلا بيك، هذا صوتي هسه","male") }
       return true;
     }
     if(/وقف|اطفي|أطفئ|off|stop/.test(arg)){
@@ -13652,7 +13874,8 @@ async function aiHandleExtra(botPhone, text, convId){
     }
     await botSay(convId,ph,"يسوي الصورة… انتظر شوية 🎨");
     try{ if(typeof msgRefreshChat==="function") setTimeout(msgRefreshChat,200) }catch(e){}
-    const res=await aiImage(cfg,prompt);
+    const rich=await imgEnhance(cfg,prompt);
+    const res=await aiImage(cfg,rich);
     if(res.err) await botSay(convId,ph,res.err);
     else await botSayImg(convId,ph,res.dataURL,prompt.slice(0,80));
     try{ if(typeof msgRefreshChat==="function") setTimeout(msgRefreshChat,250) }catch(e){}
@@ -13693,7 +13916,12 @@ if(typeof botSay==="function" && !botSay._voiceWrapped){
       if(eff==="male"||eff==="female"){
         let inCall=false;
         try{ inCall=!!bcOn }catch(e){}
-        if(!inCall) aiSpeak(text,eff);   /* بالمكالمة الصوت مالها هي */
+        if(!inCall){
+          /* نمرّر إعدادات البوت حتى يشتغل الصوت الطبيعي بمفتاحه */
+          let cfg=null;
+          try{ cfg=botAI(await botInfo(msgNormPhone(botPhone))) }catch(e){}
+          aiSpeak(text,eff,cfg);
+        }
       }
     }catch(e){}
     return r;
@@ -13723,7 +13951,8 @@ function aiVoiceBtnPaint(){
       const ph=msgNormPhone(chatWith);
       const cur=aiVoiceGet(ph);
       const eff=(cur==="off"&&ph===BF_PHONE&&aiVoiceRaw(ph)===undefined)?"male":cur;
-      if(eff==="off"){ aiVoiceSet(ph,"male"); toast("صار يحچي بصوت ذكر"); aiSpeak("تمام، صرت أحچي وياك.","male") }
+      if(eff==="off"){ aiVoiceSet(ph,"male"); toast("صار يحچي بصوت ذكر");
+        botInfo(ph).then(b=>aiSpeak("تمام، صرت أحچي وياك.","male",botAI(b))).catch(()=>aiSpeak("تمام، صرت أحچي وياك.","male")) }
       else{ aiVoiceSet(ph,"off"); aiSpeakStop(); toast("انطفى الصوت") }
       aiVoiceBtnPaint();
     };
