@@ -526,6 +526,84 @@ body.dark .chat-follow-btn{color:var(--brand-3);border-color:var(--brand-3)}
 /* مدة الرنين */
 .inc-timer{margin-top:6px;font-size:13px;opacity:.72;letter-spacing:.5px}
 
+
+/* ══════════════════════════════════════════════════════════════
+   هوية NΞXA البصرية
+
+   الفكرة: هذا مو تطبيق مراسلة عام — هذا مراسل بناه صاحب معرض
+   ألمنيوم ببلد. فالمادة اللي ياخذ منها شكله هي مادته: صفيحة
+   ألمنيوم مؤكسدة. خطوط سحب رفيعة جداً، حافة مخرّطة، وسطح
+   يمسك الضوء بزاوية وحدة بس.
+
+   والبرتقالي من لوكو النسر يبقى اللون الوحيد الحاد بالشاشة —
+   ما ينحط إلا على شي يستاهل نظرة: بادج غير مقروء، نقطة متصل،
+   إشارة. كل شي ثاني رمادي معدني هادي.
+
+   لمسنا هنا شاشة NΞXA والشريط العلوي بس — فقاعات المحادثة
+   (أبيض وأسود) ما انلمست لأنها اختيار مستقر.
+   ══════════════════════════════════════════════════════════════ */
+:root{
+  --nx-orange:#FF6600;
+  --nx-orange-soft:rgba(255,102,0,.12);
+  --nx-graphite:#171719;
+  --nx-graphite-2:#232326;
+  --nx-edge:rgba(255,255,255,.08);
+}
+
+/* صفيحة الألمنيوم: خطوط سحب رفيعة + لمعة بزاوية وحدة */
+#v-messages .sechead{
+  position:relative;
+  background:
+    linear-gradient(103deg,rgba(255,255,255,.07) 0%,rgba(255,255,255,0) 34%),
+    repeating-linear-gradient(97deg,
+      rgba(255,255,255,.030) 0px, rgba(255,255,255,.030) 1px,
+      rgba(0,0,0,0) 1px,        rgba(0,0,0,0) 3px),
+    linear-gradient(180deg,var(--nx-graphite-2),var(--nx-graphite));
+  border-bottom:1px solid var(--nx-edge);
+  box-shadow:inset 0 -1px 0 rgba(0,0,0,.4);
+}
+/* الحافة المخرّطة — خيط برتقالي رفيع تحت الترويسة */
+#v-messages .sechead::after{
+  content:"";position:absolute;inset-inline:0;bottom:0;height:2px;
+  background:linear-gradient(90deg,
+    transparent, var(--nx-orange) 22%, var(--nx-orange) 78%, transparent);
+  opacity:.55;
+}
+
+.nexa-logo{
+  box-shadow:0 0 0 1px rgba(255,102,0,.30), 0 3px 10px rgba(0,0,0,.45);
+}
+
+/* شريط علوي واضح فوق قائمة المحادثات */
+.nx-strip{
+  display:flex;align-items:center;gap:8px;
+  padding:9px var(--pad) 8px;
+  background:var(--nx-graphite);
+  border-bottom:1px solid var(--nx-edge);
+  font-size:11px;letter-spacing:.16em;text-transform:uppercase;
+  color:rgba(255,255,255,.42);font-family:"IBM Plex Mono"}
+.nx-strip .nx-dot{width:6px;height:6px;border-radius:50%;flex:none;
+  background:var(--nx-orange);box-shadow:0 0 8px rgba(255,102,0,.7)}
+.nx-strip .nx-count{margin-inline-start:auto;color:rgba(255,255,255,.72);
+  font-weight:600;letter-spacing:.05em}
+
+/* الحالات الفارغة: دعوة للتصرّف مو لوحة اعتذار */
+.nx-empty{padding:44px 26px;text-align:center}
+.nx-empty-mark{width:52px;height:52px;margin:0 auto 16px;border-radius:14px;
+  display:grid;place-items:center;
+  background:var(--nx-orange-soft);
+  border:1px solid rgba(255,102,0,.28)}
+.nx-empty-mark svg{width:24px;height:24px;fill:none;stroke:var(--nx-orange);
+  stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.nx-empty h4{font-family:"Reem Kufi",var(--font);font-size:17px;font-weight:600;
+  margin:0 0 6px;color:var(--ink)}
+.nx-empty p{font-size:13px;line-height:1.75;color:var(--muted);margin:0 auto;max-width:32ch}
+.nx-empty .btn{margin-top:18px}
+
+/* الأرقام ما تظهر عارية — كل رقم إله اسم تحته */
+.up-stat b{font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.up-stat b:empty::after{content:"—";color:var(--muted)}
+
 /* شريط النسخة الجديدة */
 .sw-pill{position:fixed;inset-inline:12px;bottom:calc(env(safe-area-inset-bottom,0px) + 74px);
   z-index:9997;display:flex;align-items:center;gap:10px;padding:11px 14px;border-radius:14px;
@@ -599,6 +677,23 @@ body.dark .chat-follow-btn{color:var(--brand-3);border-color:var(--brand-3)}
 @media (prefers-reduced-motion:reduce){.chat-ticks.pending svg{animation:none}}
 
 /* شريط البحث داخل المحادثة */
+/* فحص الإعداد */
+.ad-check{margin:0 var(--pad) 14px;padding:14px;border-radius:var(--r);
+  background:var(--card);border:1px solid var(--line);box-shadow:var(--shadow)}
+.ad-check-sum{font-size:12.5px;color:var(--muted);margin-bottom:10px;line-height:1.6}
+.ad-check-sum.bad{color:#E2685A;font-weight:600}
+.ad-check-sum.good{color:#12A150;font-weight:600}
+.ck{display:flex;gap:10px;padding:10px 0;border-top:1px solid var(--line)}
+.ck-dot{flex:none;width:18px;height:18px;border-radius:50%;margin-top:2px;
+  display:grid;place-items:center;font-size:11px;font-weight:700;color:#fff}
+.ck-dot.ok{background:#12A150}
+.ck-dot.no{background:#E2685A}
+.ck-dot.warn{background:#F5A524}
+.ck-dot.wait{background:var(--art);color:var(--muted)}
+.ck-body{flex:1;min-width:0}
+.ck-name{font-size:13.5px;font-weight:600;color:var(--ink)}
+.ck-fix{font-size:11.5px;color:var(--muted);line-height:1.65;margin-top:2px}
+
 /* لوحة الإحصائيات بلوحة المالك */
 .ad-stats{margin:0 var(--pad) 14px;padding:14px;border-radius:var(--r);
   background:var(--card);border:1px solid var(--line);box-shadow:var(--shadow)}
@@ -3839,7 +3934,15 @@ function renderAdmin(){
   const list=adAll(), st=document.getElementById('ad-status');
   if(st) st.textContent=list.length?list.length+" "+AD.count:"";
   setTimeout(adStatsLoad,60);
+  const ckb=document.getElementById('ad-check-rf');
+  if(ckb) ckb.onclick=adCheckRun;
   box.innerHTML=`
+    <div class="ad-check" id="ad-check">
+      <div class="ad-stats-head"><b>فحص الإعداد</b>
+        <button class="ad-stats-rf" id="ad-check-rf" type="button">افحص</button></div>
+      <div class="ad-check-sum" id="ad-check-sum">اضغط «افحص» حتى أشوف شنو شغّال وشنو ناقص.</div>
+      <div id="ad-check-list"></div>
+    </div>
     <div class="ad-stats" id="ad-stats">
       <div class="ad-stats-head"><b>نظرة سريعة</b>
         <button class="ad-stats-rf" id="ad-stats-rf" type="button">تحديث</button></div>
@@ -7959,6 +8062,173 @@ function findBoot(){
   document.getElementById('cf-next').onclick=()=>findGo(_findAt+1);
 }
 
+
+
+/* ══════════════════════════════════════════════════════════════
+   فحص الإعداد
+
+   نص المشروع يعتمد على شغلات تنضبط بحساب Supabase — مو بالكود.
+   بلا فحص، الشي الناقص ما ينكشف إلا لما يشتكي مستخدم. هذي اللوحة
+   تفحص كل شرط بطلب صغير حقيقي وتقول شنو ينصار بالضبط لو ناقص.
+   كل الفحوص قراءة فقط — ما تعدّل ولا تحذف شي.
+   ══════════════════════════════════════════════════════════════ */
+let _ckBusy=false;
+
+function ckRow(state,name,fix){
+  const mark={ok:"✓",no:"✕",warn:"!",wait:"…"}[state]||"…";
+  return `<div class="ck"><span class="ck-dot ${state}">${mark}</span>
+    <div class="ck-body"><div class="ck-name">${esc(name)}</div>
+    ${fix?`<div class="ck-fix">${esc(fix)}</div>`:''}</div></div>`;
+}
+
+/* هل الجدول موجود ومقروء؟ */
+async function ckTable(table,cols){
+  try{
+    const r=await fetch(sbBase()+"/rest/v1/"+table+"?select="+(cols||"*")+"&limit=1",
+      {headers:sbHead()});
+    if(r.ok) return {ok:true};
+    const t=await r.text().catch(()=>"");
+    return {ok:false,code:r.status,msg:t.slice(0,120)};
+  }catch(e){ return {ok:false,msg:String(e.message||e)} }
+}
+
+/* هل الدالة موجودة؟ ننادي بوسائط غلط عمداً — المهم مو ترجع 404 */
+async function ckRpc(fn,args){
+  try{
+    const r=await fetch(sbBase()+"/rest/v1/rpc/"+fn,
+      {method:"POST",headers:sbHead({"Content-Type":"application/json"}),
+       body:JSON.stringify(args||{})});
+    if(r.status===404) return false;
+    const t=await r.text().catch(()=>"");
+    if(/PGRST202|could not find/i.test(t)) return false;
+    return true;                    /* موجودة — حتى لو رفضت الوسائط */
+  }catch(e){ return false }
+}
+
+async function adCheckRun(){
+  if(_ckBusy) return;
+  _ckBusy=true;
+  const box=document.getElementById('ad-check-list');
+  const sum=document.getElementById('ad-check-sum');
+  const btn=document.getElementById('ad-check-rf');
+  if(!box) { _ckBusy=false; return }
+  btn.disabled=true; btn.textContent="…";
+  sum.className="ad-check-sum"; sum.textContent="يفحص…";
+  box.innerHTML=ckRow("wait","جاري الفحص","");
+
+  const rows=[];
+  const add=(st,n,f)=>rows.push([st,n,f]);
+
+  /* ١ — الرابط */
+  if(location.protocol!=="https:")
+    add("no","الموقع مفتوح بلا https",
+      "الإشعارات والمكالمات ما تشتغل من ملف منزّل. افتحه من رابط الموقع.");
+  else add("ok","الموقع مفتوح من رابط آمن","");
+
+  /* ٢ — Service Worker */
+  let reg=null;
+  try{ reg=await navigator.serviceWorker.getRegistration() }catch(e){}
+  if(reg) add("ok","ملف sw.js مسجّل","");
+  else add("no","ملف sw.js مو مسجّل",
+    "ارفع sw.js لجذر الموقع جنب index.html. بدونه ماكو إشعارات إطلاقاً.");
+
+  /* ٣ — إذن الإشعارات */
+  const perm=("Notification" in window)?Notification.permission:"unsupported";
+  if(perm==="granted") add("ok","إذن الإشعارات مفعّل","");
+  else if(perm==="denied") add("no","إذن الإشعارات محظور",
+    "إعدادات المتصفح ← إعدادات الموقع ← الإشعارات ← اسمح.");
+  else add("warn","إذن الإشعارات ما انطلب بعد","افتح الإعدادات وفعّل الإشعارات.");
+
+  /* ٤ — اشتراك الجهاز محفوظ بالقاعدة */
+  if(isLoggedMsg()){
+    const ps=await ckTable("push_subs","id&phone=eq."+encodeURIComponent(myPhone()));
+    if(!ps.ok) add("no","جدول push_subs ما ينقرا","تأكد إن الجدول موجود وسياسة القراءة مفتوحة.");
+    else{
+      try{
+        const r=await fetch(sbBase()+"/rest/v1/push_subs?select=id&phone=eq."
+          +encodeURIComponent(myPhone())+"&limit=1",{headers:sbHead()});
+        const j=await r.json().catch(()=>[]);
+        if(j&&j.length) add("ok","جهازك مشترك بالإشعارات","");
+        else add("no","جهازك مو مشترك بالإشعارات","فعّل الإشعارات من الإعدادات.");
+      }catch(e){ add("warn","ما گدرت أتأكد من الاشتراك",""); }
+    }
+  }
+
+  /* ٥ — القناة اللحظية لكل جدول */
+  const tabs=["messages","conversations","follows","calls"];
+  const proven=(typeof NXRT!=="undefined"&&NXRT.proven)||{};
+  const live=(typeof NXRT!=="undefined")&&NXRT.connected();
+  const okTabs=tabs.filter(t=>proven[t]);
+  if(!live) add("warn","القناة اللحظية مو متصلة هسه",
+    "التطبيق يشتغل بالفحص الدوري — أبطأ بثواني بس شغّال.");
+  else if(okTabs.length===tabs.length) add("ok","القناة اللحظية شغّالة لكل الجداول","");
+  else add("warn","القناة اللحظية مثبتة لـ"+okTabs.length+" من "+tabs.length,
+    "الباقي يثبت أول ما يوصل منه حدث. لو بقى ناقص، أضف الجداول لـsupabase_realtime.");
+
+  /* ٦ — خادم TURN */
+  try{
+    const r=await fetch(sbBase()+"/rest/v1/turn_config?select=urls,active&limit=1",
+      {headers:sbHead()});
+    if(!r.ok) add("no","جدول turn_config مو موجود",
+      "شغّل الجزء ٢ من calls.sql. بدون TURN المكالمات تفشل على بيانات الموبايل.");
+    else{
+      const j=await r.json().catch(()=>[]);
+      const c=j&&j[0];
+      const raw=JSON.stringify((c&&c.urls)||"");
+      if(!c) add("no","ماكو خادم TURN محفوظ",
+        "المكالمات راح تفشل على شبكات الموبايل. جيب بيانات TURN وشغّل الجزء ٣.");
+      else if(/YOUR_HOST|YOUR_USERNAME/i.test(raw)) add("no","بيانات TURN لسه وهمية",
+        "بدّل YOUR_HOST واليوزر والباسورد ببيانات حقيقية من مزوّد TURN.");
+      else if(c.active===false) add("warn","خادم TURN مطفي","خلّي active = true.");
+      else add("ok","خادم TURN مضبوط","");
+    }
+  }catch(e){ add("warn","ما گدرت أفحص TURN","") }
+
+  /* ٧ — دوال الأمان */
+  const hasAuth=await ckRpc("auth_ok",{p_phone:"x",p_pin:"x"});
+  if(hasAuth) add("ok","دوال الأمان موجودة","");
+  else add("no","دوال الأمان مو مضافة",
+    "شغّل security.sql. بدونها الحذف والتعديل يصيرون مباشرة على القاعدة بلا تحقّق.");
+
+  const hasCall=await ckRpc("call_create",{p_phone:"x",p_pin:"x",p_callee:"x",p_video:false,p_offer:{}});
+  add(hasCall?"ok":"warn","حماية المكالمات من الانتحال",
+    hasCall?"":"شغّل الجزء ٤ من calls.sql (يحتاج auth_ok أول).");
+
+  /* ٨ — أعمدة وجداول */
+  const cEd=await ckTable("messages","id,edited");
+  add(cEd.ok?"ok":"no","عمود «معدّلة» بالرسائل",
+    cEd.ok?"":"شغّل الجزء ٢ من setup.sql.");
+
+  const cRep=await ckTable("reports","id");
+  add(cRep.ok?"ok":"no","جدول البلاغات",
+    cRep.ok?"":"شغّل الجزء ٣ من setup.sql.");
+
+  const cCall=await ckTable("calls","id,answered_at");
+  add(cCall.ok?"ok":"no","أعمدة حالات المكالمة",
+    cCall.ok?"":"شغّل الجزء ١ من calls.sql.");
+
+  /* ٩ — مخزن الوسائط */
+  try{
+    const r=await fetch(sbBase()+"/storage/v1/object/list/"+SB_BUCKET,
+      {method:"POST",headers:sbHead({"Content-Type":"application/json"}),
+       body:JSON.stringify({limit:1,prefix:""})});
+    add(r.ok?"ok":"warn","مخزن الوسائط",
+      r.ok?"":"باكت media ما يستجيب — القصص والصور ممكن تفشل عند المستخدمين.");
+  }catch(e){ add("warn","ما گدرت أفحص المخزن","") }
+
+  /* العرض */
+  box.innerHTML=rows.map(r=>ckRow(r[0],r[1],r[2])).join('');
+  const bad=rows.filter(r=>r[0]==="no").length;
+  const warn=rows.filter(r=>r[0]==="warn").length;
+  if(bad){ sum.className="ad-check-sum bad";
+    sum.textContent=bad+" شغلة ناقصة تعطّل ميزات فعلاً"+(warn?" و"+warn+" تحتاج نظرة":"")+"."; }
+  else if(warn){ sum.className="ad-check-sum";
+    sum.textContent="كل الأساسيات شغّالة، "+warn+" نقطة تحتاج نظرة."; }
+  else { sum.className="ad-check-sum good"; sum.textContent="كل شي مضبوط ✓"; }
+
+  btn.disabled=false; btn.textContent="افحص مرة ثانية";
+  _ckBusy=false;
+}
 
 /* ══════════════════════════════════════════════════════════════
    إحصائيات لوحة المالك
