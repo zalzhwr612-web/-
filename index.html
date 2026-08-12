@@ -78,6 +78,30 @@ body.dark{
 html,body{margin:0;padding:0}
 /* حاجز التمرير الأفقي — أي عنصر يطلع برّا الشاشة ينقص بدل ما يزحلگ الصفحة */
 html,body{max-width:100%;overflow-x:hidden;overscroll-behavior-x:none}
+
+/* ─────────── صقل الموبايل ─────────── */
+/* منع تكبير الصفحة بالنقر المزدوج (يصير غلط كثير بالأزرار الصغيرة) */
+html{touch-action:manipulation;-webkit-text-size-adjust:100%}
+/* تمرير سلس بأسلوب iOS داخل الحاويات القابلة للتمرير */
+.chat-msgs,.rail,.legal,.opt-list,#msg-conv-list,.sheet-body{-webkit-overflow-scrolling:touch}
+/* منع سحب الصفحة كلها لما تمرّر داخل قائمة */
+.chat-msgs,#msg-conv-list,.sheet-body{overscroll-behavior-y:contain}
+/* حقول الإدخال بحجم 16px على الأقل — أقل من هيك آيفون يزوّم تلقائياً */
+@media (max-width:820px){
+  input,select,textarea{font-size:16px}
+  #chat-text{font-size:16px}
+}
+/* منطقة لمس مريحة للإبهام: أي زر صغير ينوسّع بمنطقة غير مرئية */
+.hbtn,.chat-ic,.cf-btn,.chat-back,.stv-x,.up-nav{position:relative}
+.hbtn::before,.chat-ic::before,.cf-btn::before,.chat-back::before,.up-nav::before{
+  content:"";position:absolute;inset:-6px;border-radius:inherit}
+/* احترام الحواف المنحنية والشق العلوي */
+.tabbar{padding-bottom:env(safe-area-inset-bottom,0px)}
+#chat-input-bar{padding-bottom:calc(env(safe-area-inset-bottom,0px) + 8px)}
+/* الشاشات العريضة: ما نمدّ النص لعرض شاشة كاملة */
+@media (min-width:900px){
+  .legal{max-width:680px;margin-inline:auto}
+}
 img,video,canvas,svg,iframe{max-width:100%}
 pre,code,.mono{overflow-wrap:anywhere;word-break:break-word}
 /* لمسة الإبهام: أي زر أصغر من 44px ينوسّع بمنطقة لمس غير مرئية */
@@ -498,6 +522,25 @@ body.dark .chat-follow-btn{color:var(--brand-3);border-color:var(--brand-3)}
 .chat-bubble .chat-ts{font-size:10.5px;opacity:.62;margin-top:4px;text-align:end;font-family:"IBM Plex Mono"}
 .chat-bubble .edited-mark{font-family:var(--font);font-size:10px;opacity:.75}
 #chat-sub.typing-now{color:var(--green,#12A150);font-weight:600}
+
+/* مؤشّر حالة الاتصال */
+.net-pill{position:fixed;top:calc(env(safe-area-inset-top,0px) + 10px);inset-inline:0;
+  z-index:9998;margin:0 auto;width:max-content;max-width:88vw;
+  display:flex;align-items:center;gap:8px;padding:7px 15px;border-radius:99px;
+  background:rgba(20,22,30,.90);color:#fff;font-size:12.5px;font-weight:600;
+  box-shadow:0 6px 22px rgba(0,0,0,.28);backdrop-filter:blur(8px);
+  animation:netIn .22s ease}
+.net-pill[hidden]{display:none}
+.net-pill.ok{background:rgba(18,161,80,.94)}
+.net-pill.bad{background:rgba(226,104,90,.94)}
+.net-pill .spin{width:12px;height:12px;border-width:2px;border-color:rgba(255,255,255,.35);
+  border-top-color:#fff;flex:none}
+.net-pill.ok .spin,.net-pill.bad .spin{display:none}
+@keyframes netIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.net-pill{animation:none}}
+
+/* شريط تحميل الرسائل الأقدم */
+.older-load{display:flex;justify-content:center;padding:14px 0}
 
 /* زر إعادة المحاولة داخل شريط التنبيه */
 .tw-retry{margin-inline-start:auto;flex:none;border:0;border-radius:99px;
@@ -1917,6 +1960,7 @@ body.msgview.msgdark .sheet .btn-o{border-color:#3A3A3A;color:#F0F0F0}
 
 <div class="scrim" id="scrim"></div>
 <div class="sheet" id="sheet" role="dialog" aria-modal="true"><div class="handle"></div><div id="sheet-body"></div></div>
+<div class="net-pill" id="net-pill" hidden><span class="spin"></span><span id="net-pill-txt"></span></div>
 <div class="up-prog" id="up-prog" hidden>
   <div class="up-prog-bar"><i id="up-prog-fill"></i></div>
   <span class="up-prog-txt" id="up-prog-txt">جاري الرفع…</span>
@@ -5820,7 +5864,47 @@ function chatBindScroll(){
   box.addEventListener('scroll',()=>{
     const near=box.scrollHeight-box.scrollTop-box.clientHeight<150;
     if(near){ _newWhileUp=0; chatDownBtn(false) }
+    if(box.scrollTop<120) msgLoadOlder();       /* قرب الأعلى → نجيب الأقدم */
   },{passive:true});
+}
+
+/* ═══════════════════════════════════════════════════════════
+   تحميل الأقدم
+   نفتح المحادثة بآخر ٨٠ رسالة حتى تفتح فوراً، وكل ما يوصل
+   المستخدم للأعلى نجيب ٨٠ أقدم منها ونثبّت موضعه بالضبط
+   حتى ما تقفز الشاشة تحت رجليه.
+   ═══════════════════════════════════════════════════════════ */
+let _olderBusy=false, _olderDone=false;
+
+async function msgLoadOlder(){
+  if(_olderBusy||_olderDone||!chatConvId||!chatMsgs.length) return;
+  _olderBusy=true;
+  const box=document.getElementById('chat-msgs');
+  const prevH=box.scrollHeight, prevTop=box.scrollTop;
+  const oldest=chatMsgs[0].created_at;
+  const convAtStart=chatConvId;
+  box.insertAdjacentHTML('afterbegin','<div class="older-load" id="older-load"><span class="spin"></span></div>');
+  try{
+    const rows=await sbSelect("messages",
+      "select=*&conv_id=eq."+encodeURIComponent(chatConvId)
+      +"&created_at=lt."+encodeURIComponent(oldest)
+      +"&order=created_at.desc&limit="+MSG_PAGE);
+    if(chatConvId!==convAtStart) return;
+    const older=(rows||[]).slice().reverse().filter(m=>!isHiddenMsg(m.id));
+    if(!older.length){ _olderDone=true; toast("وصلت لبداية المحادثة"); return }
+    chatMsgs=older.concat(chatMsgs);
+    await rxFetch(older.map(m=>m.id));
+    _lastChatHTML="";
+    msgPaintChat();
+    /* نرجّعه لنفس المكان اللي كان يقرا فيه */
+    box.scrollTop = box.scrollHeight - prevH + prevTop;
+  }catch(e){
+    nxLog("load-older",e);
+    warnTop("ما گدرت أجيب الرسائل الأقدم",()=>{ _olderBusy=false; msgLoadOlder() });
+  }finally{
+    const l=document.getElementById('older-load'); if(l) l.remove();
+    _olderBusy=false;
+  }
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -6294,11 +6378,56 @@ async function msgCountFollowing(phone){
   catch(e){return 0}
 }
 /* جلب ملف مستخدم واحد */
-async function msgGetProfile(phone){
+/* ذاكرة مؤقتة للملفات — تمنع تكرار نفس الطلب عشر مرات بالدقيقة */
+const _profCache=new Map();
+const PROF_TTL=90000;
+
+function profCacheGet(ph){
+  const e=_profCache.get(ph);
+  if(e && Date.now()-e.t < PROF_TTL) return e.v;
+  return null;
+}
+function profCacheSet(ph,v){
+  _profCache.set(ph,{t:Date.now(),v});
+  if(_profCache.size>300) _profCache.delete(_profCache.keys().next().value);
+}
+
+async function msgGetProfile(phone,fresh){
   phone=msgNormPhone(phone);
-  try{const r=await sbSelect("user_profiles","select=*&phone=eq."+encodeURIComponent(phone)+"&limit=1");
-    return (r&&r[0])||{phone,name:phone}}
-  catch(e){return {phone,name:phone}}
+  if(!fresh){ const c=profCacheGet(phone); if(c) return c }
+  try{
+    const r=await sbSelect("user_profiles","select=*&phone=eq."+encodeURIComponent(phone)+"&limit=1");
+    const v=(r&&r[0])||{phone,name:phone};
+    if(r&&r[0]) profCacheSet(phone,v);
+    return v;
+  }catch(e){ return {phone,name:phone} }
+}
+
+/* جلب عدة ملفات بطلب واحد بدل طلب لكل رقم */
+async function msgGetProfiles(phones){
+  const out={}, need=[];
+  (phones||[]).forEach(ph=>{
+    ph=msgNormPhone(ph); if(!ph) return;
+    const c=profCacheGet(ph);
+    if(c) out[ph]=c; else if(!need.includes(ph)) need.push(ph);
+  });
+  if(!need.length) return out;
+  try{
+    /* دفعات ٤٠ حتى ما يطول الرابط ويرفضه السيرفر */
+    for(let i=0;i<need.length;i+=40){
+      const chunk=need.slice(i,i+40);
+      const list=chunk.map(p=>'"'+p.replace(/"/g,'')+'"').join(",");
+      const rows=await sbSelect("user_profiles","select=*&phone=in.("+encodeURIComponent(list)+")");
+      (rows||[]).forEach(p=>{ if(p&&p.phone){ out[p.phone]=p; profCacheSet(p.phone,p) } });
+    }
+  }catch(e){
+    nxLog("profiles-batch",e);
+    /* رجعة آمنة: الطريقة القديمة رقم برقم */
+    const res=await Promise.all(need.map(ph=>msgGetProfile(ph).catch(()=>null)));
+    res.forEach(p=>{ if(p&&p.phone) out[p.phone]=p });
+  }
+  need.forEach(ph=>{ if(!out[ph]) out[ph]={phone:ph,name:ph} });
+  return out;
 }
 
 /* ═══ المحادثات ═══ */
@@ -6351,10 +6480,17 @@ async function msgSend(convId,body,imgData,voiceData,voiceDur,replyToId,fileObj)
     return true;
   }catch(e){console.warn("[msg] send:",e);return null}
 }
+const MSG_PAGE=80;          /* آخر ٨٠ رسالة — تفتح أسرع وتاكل ذاكرة أقل */
+
 async function msgFetch(convId,limit){
   if(!convId) return [];
-  try{return await sbSelect("messages","select=*&conv_id=eq."+convId+"&order=created_at.asc&limit="+(limit||100))||[]}
-  catch(e){return null}
+  const n=limit||MSG_PAGE;
+  try{
+    /* نطلب الأحدث ثم نقلبها — حتى ما نسحب من بداية محادثة عمرها سنة */
+    const rows=await sbSelect("messages",
+      "select=*&conv_id=eq."+convId+"&order=created_at.desc&limit="+n);
+    return rows?rows.slice().reverse():[];
+  }catch(e){ return null }
 }
 
 /* ═══ ضغط صورة الشات ═══ */
@@ -6618,10 +6754,7 @@ async function msgRenderConvs(){
      الملف الشخصي (msgGetProfile) بدل استعلام in.() الهش اللي كان يفشل بصمت */
   const phones=[...new Set(convs.map(c=>c.user1===me?c.user2:c.user1))].filter(Boolean);
   let profiles={};
-  try{
-    const results=await Promise.all(phones.map(ph=>msgGetProfile(ph)));
-    results.forEach(p=>{ if(p&&p.phone) profiles[p.phone]=p });
-  }catch(e){}
+  try{ profiles=await msgGetProfiles(phones) }catch(e){ nxLog("convs-profiles",e) }
   convs=convs.filter(c=>{
     if(isHiddenConv(c.id)) return false;
     const other=c.user1===myPhone()?c.user2:c.user1;
@@ -6715,6 +6848,7 @@ async function msgOpenChat(phone,name,avatar,convId){
   chatImgData=null;document.getElementById('chat-img-preview').style.display='none';
   replyClear(); wallApply(); fileClear();
   _lastChatHTML=""; _chatForceBottom=true; _newWhileUp=0; _firstMsgId="";
+  _olderDone=false; _olderBusy=false;
   chatDownBtn(false); chatBindScroll();
   blockRefresh().then(msgUpdateBlockUI);
   /* زر المتابعة — بدون await حتى ما نأخر عرض الرسائل */
@@ -6741,7 +6875,8 @@ async function msgOpenChat(phone,name,avatar,convId){
   if(convId) chatConvId=convId;
   else{const c=await msgGetOrCreateConv(phone);chatConvId=c?c.id:null}
   /* جلب الرسائل مع إعادة محاولة إذا فشل */
-  await msgRefreshChat();
+  _chatSig="";
+  await msgRefreshChat(true);
   if(chatConvId && !chatMsgs.length){
     await new Promise(r=>setTimeout(r,800));
     if(chatWith===phone) await msgRefreshChat();
@@ -6751,11 +6886,46 @@ async function msgOpenChat(phone,name,avatar,convId){
   msgPollTimer=setInterval(()=>{ if(NXRT.skip('chat')) return; msgRefreshChat() },4000);
 }
 
-async function msgRefreshChat(){
+/* ═══════════════════════════════════════════════════════════
+   مجسّ التغيير
+   المشكلة: كنا نسحب ٢٠٠ رسالة كاملة — بنصوصها وصورها — كل دورة
+   تحديث، حتى لو ما تغيّر ولا حرف. الصور المخزونة داخل الصف
+   (base64) تخلي الدورة الوحدة بميجابايتات.
+   الحل: أول نسأل سؤال رخيص — أعطني id و read و edited لآخر ٤٠
+   رسالة بس. لو البصمة نفسها، ما نسحب شي أصلاً. ولو تغيّرت،
+   نسحب كامل مثل ما كنا. يمسك: رسالة جديدة، قراءة، تعديل، حذف.
+   ═══════════════════════════════════════════════════════════ */
+let _chatSig="";
+
+async function msgProbeChat(convId){
+  try{
+    const rows=await sbSelect("messages",
+      "select=id,read,edited&conv_id=eq."+encodeURIComponent(convId)
+      +"&order=created_at.desc&limit=40");
+    if(!rows) return null;
+    return rows.map(r=>r.id+(r.read?"1":"0")+(r.edited?"e":"")).join(",");
+  }catch(e){ return null }
+}
+
+async function msgRefreshChat(force){
   if(!chatConvId) return;
+  const convAtStart=chatConvId;
+
+  /* المجسّ الرخيص — نتخطاه بأول تحميل وبالتحديث المفروض */
+  if(!force && chatMsgs.length){
+    const sig=await msgProbeChat(chatConvId);
+    if(chatConvId!==convAtStart) return;
+    if(sig!==null && sig===_chatSig){
+      if(_pending.length) msgPaintChat();   /* في رسالة معلّقة تحتاج رسم */
+      return;
+    }
+    if(sig!==null) _chatSig=sig;
+  }
+
   let msgs;
-  try{ msgs=await msgFetch(chatConvId,200); }
+  try{ msgs=await msgFetch(chatConvId,MSG_PAGE); }
   catch(e){ msgs=null; }
+  if(chatConvId!==convAtStart) return;
   /* إذا فشل الجلب (null) والشاشة فيها سبنر التحميل — نخلي السبنر بدل شاشة فارغة */
   const box=document.getElementById('chat-msgs');
   if(msgs===null && box.querySelector('.chat-loading')) return;
@@ -6763,6 +6933,7 @@ async function msgRefreshChat(){
   msgMarkRead(chatConvId);
   msgs=msgs.filter(m=>!isHiddenMsg(m.id));
   chatMsgs=msgs;
+  _chatSig=msgs.slice(-40).map(r=>r.id+(r.read?"1":"0")+(r.edited?"e":"")).reverse().join(",");
   await rxFetch(msgs.map(m=>m.id));
   pendingPrune(msgs);
   msgPaintChat();
@@ -7375,20 +7546,26 @@ function hideMsgLocal(id){
 /* حذف رسالة — عندي أو عند الطرفين */
 async function msgDelete(msgId,forAll){
   if(forAll){
-    try{
-      await sbReq("msg_reactions?msg_id=eq."+encodeURIComponent(msgId),
-        {method:"DELETE",headers:{Prefer:"return=minimal"}});
-    }catch(e){}
-    try{
-      await sbReq("messages?id=eq."+encodeURIComponent(msgId),
-        {method:"DELETE",headers:{Prefer:"return=minimal"}});
-      toast("انحذفت الرسالة عند الطرفين");
-    }catch(e){ toast("ما قدرت أحذفها"); return }
+    const r=await secCall("msg_delete",{p_msg:String(msgId)});
+    if(r==="denied"){ toast("ما تكدر تحذف هذي الرسالة"); return }
+    if(r==="no-rpc"){
+      /* القاعدة لسه ما بيها دوال الأمان — الطريقة القديمة */
+      try{
+        await sbReq("msg_reactions?msg_id=eq."+encodeURIComponent(msgId),
+          {method:"DELETE",headers:{Prefer:"return=minimal"}});
+      }catch(e){}
+      try{
+        await sbReq("messages?id=eq."+encodeURIComponent(msgId),
+          {method:"DELETE",headers:{Prefer:"return=minimal"}});
+      }catch(e){ toast("ما قدرت أحذفها"); return }
+    }
+    toast("انحذفت الرسالة عند الطرفين");
   }else{
     hideMsgLocal(msgId);
     toast("انحذفت عندك");
   }
-  await msgRefreshChat();
+  _chatSig="";
+  await msgRefreshChat(true);
 }
 
 /* لوحة خيارات الرسالة */
@@ -7824,7 +8001,7 @@ async function pendingRetry(tmpId){
   m._failed=false; m._pending=true;
   _lastChatHTML=""; msgPaintChat();
   const ok=await msgSend(m.conv_id,m.body,m.img,null,null,m.reply_to,m.file);
-  if(ok){ pendingDone(tmpId); await msgRefreshChat() }
+  if(ok){ pendingDone(tmpId); _chatSig=""; await msgRefreshChat(true) }
   else pendingFail(tmpId);
 }
 
@@ -7857,6 +8034,96 @@ function keyboardBoot(){
   document.addEventListener('visibilitychange',()=>{
     if(screen&&!screen.classList.contains('on')) screen.style.height="";
   });
+}
+
+
+/* ══════════════════════════════════════════════════════════════
+   مؤشّر حالة الاتصال
+   المستخدم لازم يعرف إذا التطبيق دا يحاول يتصل أو منقطع —
+   بدل ما يقعد يستنى ويفكّر إن التطبيق معلّق.
+   ══════════════════════════════════════════════════════════════ */
+let _netState="", _netHideT=null;
+
+function netShow(state,text,autoHide){
+  const el=document.getElementById('net-pill'); if(!el) return;
+  if(_netState===state && !autoHide) return;
+  _netState=state;
+  el.classList.remove('ok','bad');
+  if(state==='ok')  el.classList.add('ok');
+  if(state==='bad') el.classList.add('bad');
+  document.getElementById('net-pill-txt').textContent=text;
+  el.hidden=false;
+  clearTimeout(_netHideT);
+  if(autoHide) _netHideT=setTimeout(netHide,autoHide);
+}
+
+function netHide(){
+  const el=document.getElementById('net-pill'); if(!el) return;
+  el.hidden=true; _netState="";
+}
+
+function netWatch(){
+  const tick=()=>{
+    if(!navigator.onLine){ netShow('bad','ماكو إنترنت'); return }
+    if(typeof NXRT==="undefined"){ netHide(); return }
+    /* القناة اللحظية سقطت وهو يحاول يرجعها */
+    if(NXRT.tries>0 && !NXRT.joined){ netShow('wait','جاري الاتصال…'); return }
+    if(_netState==='bad'||_netState==='wait'){ netShow('ok','رجع الاتصال ✓',1600); return }
+    netHide();
+  };
+  setInterval(tick,2500);
+  addEventListener('online',tick);
+  addEventListener('offline',tick);
+  tick();
+}
+
+
+/* ══════════════════════════════════════════════════════════════
+   العمليات المدمّرة — تنفّذ بالسيرفر مو بالواجهة
+
+   المشكلة اللي نحلّها: حذف الرسالة وحذف المحادثة والتعديل كانوا
+   ينصارون بطلب DELETE/PATCH مباشر للقاعدة. والقاعدة سياستها
+   مفتوحة، فأي شخص يفتح كود الصفحة يكدر يحذف رسائل أي أحد.
+
+   بعد هذا التغيير: العملية تمرّ على دالة بالقاعدة تتحقّق من
+   الرقم والرمز السري وتتأكّد إن الرسالة فعلاً لك قبل ما تحذفها.
+   الرمز محفوظ بجهازك من وقت الدخول فما ينطلب منك كل مرة.
+
+   إذا الدوال مو مضافة بعد بالقاعدة (ملف security.sql)، الكود
+   ينزل للطريقة القديمة تلقائياً — فما ينكسر شي بالانتظار.
+   ══════════════════════════════════════════════════════════════ */
+let _secRPC=null;          /* null=ما جرّبنا، true=موجودة، false=منزلين للقديم */
+
+function secCreds(){
+  const ph=(typeof myPhone==="function")?myPhone():null;
+  const pin=(typeof memberPin==="function")?memberPin():null;
+  return (ph&&pin)?{p_phone:ph,p_pin:pin}:null;
+}
+
+/* ينادي دالة بالقاعدة. يرجّع "ok" أو "no-rpc" أو "denied" */
+async function secCall(fn,args){
+  if(_secRPC===false) return "no-rpc";
+  const c=secCreds();
+  if(!c) return "no-rpc";
+  try{
+    await sbRpc(fn,Object.assign({},c,args||{}));
+    _secRPC=true;
+    return "ok";
+  }catch(e){
+    const m=String(e&&e.message||e).toLowerCase();
+    /* الدالة نفسها مو موجودة → ننزل للقديم مرّة وحدة ونوقف المحاولة */
+    if(m.includes("404")||m.includes("not found")||m.includes("pgrst202")||m.includes("does not exist")){
+      _secRPC=false;
+      nxLog("sec-rpc-missing",e,fn);
+      return "no-rpc";
+    }
+    if(m.includes("bad_login")||m.includes("not_owner")||m.includes("403")){
+      nxLog("sec-denied",e,fn);
+      return "denied";
+    }
+    nxLog("sec-rpc",e,fn);
+    return "denied";
+  }
 }
 
 /* ══════════ تعديل رسالة ══════════ */
@@ -7895,6 +8162,18 @@ async function msgEditSave(msgId,newBody){
     if(r){ text=r.clean; if(r.hits) warnTop("انشالت كلمات غير لائقة من الرسالة") }
   }catch(e){}
 
+  /* المسار الآمن أول: السيرفر يتأكّد إنها رسالتك قبل ما يعدّلها */
+  const sec=await secCall("msg_edit",{p_msg:String(msgId),p_body:text});
+  if(sec==="denied"){ return false }
+  if(sec==="ok"){
+    const mine=chatMsgs.find(x=>String(x.id)===String(msgId));
+    if(mine){ mine.body=text; mine.edited=true }
+    _lastChatHTML=""; _chatSig="";
+    await msgRefreshChat(true);
+    if(typeof msgRenderConvs==="function") msgRenderConvs();
+    return true;
+  }
+
   const body={body:text};
   if(_editedCol){ body.edited=true; body.edited_at=new Date().toISOString() }
   try{
@@ -7918,8 +8197,8 @@ async function msgEditSave(msgId,newBody){
     }
     const local=chatMsgs.find(x=>String(x.id)===String(msgId));
     if(local){ local.body=text; if(_editedCol) local.edited=true }
-    _lastChatHTML="";                       /* نجبر إعادة الرسم */
-    await msgRefreshChat();
+    _lastChatHTML=""; _chatSig="";          /* نجبر إعادة الرسم والجلب */
+    await msgRefreshChat(true);
     if(typeof msgRenderConvs==="function") msgRenderConvs();
     return true;
   }catch(e){ console.warn("[msg] edit:",e); return false }
@@ -7928,13 +8207,17 @@ async function msgEditSave(msgId,newBody){
 /* حذف المحادثة كاملة */
 async function convDelete(convId,forAll){
   if(forAll){
-    try{
-      await sbReq("messages?conv_id=eq."+encodeURIComponent(convId),
-        {method:"DELETE",headers:{Prefer:"return=minimal"}});
-      await sbReq("conversations?id=eq."+encodeURIComponent(convId),
-        {method:"DELETE",headers:{Prefer:"return=minimal"}});
-      toast("انحذفت المحادثة عند الطرفين");
-    }catch(e){ toast("ما قدرت أحذفها"); return }
+    const r=await secCall("conv_delete",{p_conv:String(convId)});
+    if(r==="denied"){ toast("ما تكدر تحذف هذي المحادثة"); return }
+    if(r==="no-rpc"){
+      try{
+        await sbReq("messages?conv_id=eq."+encodeURIComponent(convId),
+          {method:"DELETE",headers:{Prefer:"return=minimal"}});
+        await sbReq("conversations?id=eq."+encodeURIComponent(convId),
+          {method:"DELETE",headers:{Prefer:"return=minimal"}});
+      }catch(e){ toast("ما قدرت أحذفها"); return }
+    }
+    toast("انحذفت المحادثة عند الطرفين");
   }else{
     const s=String(convId);
     if(!isHiddenConv(s)){ hiddenConvs.push(s); lsSet(LS_HIDE_C,hiddenConvs) }
@@ -9256,6 +9539,7 @@ function msgBoot(){
   NXRT.boot();
   findBoot();
   keyboardBoot();
+  netWatch();
   document.getElementById('uprof-back').onclick=msgCloseProfile;
   /* أزرار الملف الشخصي */
   document.getElementById('up-av-edit').onclick=()=>upPickImage('avatar');
@@ -9367,7 +9651,7 @@ function msgBoot(){
     /* تبين فوراً — ما ننتظر القاعدة */
     const tmp=pendingAdd(chatConvId,txt,img,fObj,rp);
     const ok=await msgSend(chatConvId,txt,img,null,null,rp,fObj);
-    if(ok){ pendingDone(tmp.id); await msgRefreshChat() }
+    if(ok){ pendingDone(tmp.id); _chatSig=""; await msgRefreshChat(true) }
     else pendingFail(tmp.id);
   };
   document.getElementById('chat-send').onclick=sendMsg;
