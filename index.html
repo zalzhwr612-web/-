@@ -523,6 +523,21 @@ body.dark .chat-follow-btn{color:var(--brand-3);border-color:var(--brand-3)}
 .chat-bubble .edited-mark{font-family:var(--font);font-size:10px;opacity:.75}
 #chat-sub.typing-now{color:var(--green,#12A150);font-weight:600}
 
+/* شريط النسخة الجديدة */
+.sw-pill{position:fixed;inset-inline:12px;bottom:calc(env(safe-area-inset-bottom,0px) + 74px);
+  z-index:9997;display:flex;align-items:center;gap:10px;padding:11px 14px;border-radius:14px;
+  background:var(--card);border:1px solid var(--line);box-shadow:0 10px 30px rgba(0,0,0,.22);
+  font-size:13px;color:var(--ink);animation:netIn .24s ease}
+.sw-pill[hidden]{display:none}
+.sw-pill span{flex:1;min-width:0}
+.sw-pill #sw-pill-go{flex:none;border:0;border-radius:99px;padding:6px 15px;cursor:pointer;
+  background:var(--brand);color:#fff;font-size:12.5px;font-weight:700;font-family:var(--font)}
+.sw-pill #sw-pill-x{flex:none;border:0;background:transparent;color:var(--muted);
+  font-size:20px;line-height:1;cursor:pointer;padding:0 4px}
+
+/* الزر أثناء التنفيذ */
+.is-busy{opacity:.6;pointer-events:none;position:relative}
+
 /* مؤشّر حالة الاتصال */
 .net-pill{position:fixed;top:calc(env(safe-area-inset-top,0px) + 10px);inset-inline:0;
   z-index:9998;margin:0 auto;width:max-content;max-width:88vw;
@@ -1960,6 +1975,11 @@ body.msgview.msgdark .sheet .btn-o{border-color:#3A3A3A;color:#F0F0F0}
 
 <div class="scrim" id="scrim"></div>
 <div class="sheet" id="sheet" role="dialog" aria-modal="true"><div class="handle"></div><div id="sheet-body"></div></div>
+<div class="sw-pill" id="sw-pill" hidden>
+  <span>صدرت نسخة جديدة من NΞXA</span>
+  <button id="sw-pill-go" type="button">تحديث</button>
+  <button id="sw-pill-x" type="button" aria-label="لاحقاً">&times;</button>
+</div>
 <div class="net-pill" id="net-pill" hidden><span class="spin"></span><span id="net-pill-txt"></span></div>
 <div class="up-prog" id="up-prog" hidden>
   <div class="up-prog-bar"><i id="up-prog-fill"></i></div>
@@ -6859,10 +6879,10 @@ async function msgOpenChat(phone,name,avatar,convId){
     fb.textContent=isF?mt().unfollow:mt().follow;
     fb.classList.toggle('following',isF);
   });
-  fb.onclick=async()=>{
+  fb.onclick=()=>once('follow:'+phone,fb,async()=>{
     if(await msgIsFollowing(phone)){await msgUnfollow(phone);fb.textContent=mt().follow;fb.classList.remove('following')}
     else{await msgFollow(phone);fb.textContent=mt().unfollow;fb.classList.add('following')}
-  };
+  });
   /* حالة الاتصال + أزرار الاتصال */
   msgGetProfile(phone).then(pr=>{
     if(chatWith!==phone) return;
@@ -8125,6 +8145,101 @@ async function secCall(fn,args){
     return "denied";
   }
 }
+
+
+/* ══════════════════════════════════════════════════════════════
+   ١. تحديث النسخة — Service Worker ما يحبس المستخدم بنسخة قديمة
+
+   المشكلة الكلاسيكية بالـPWA: ترفع تحديث للموقع، والمستخدم يبقى
+   شهر يشوف النسخة القديمة لأن الـService Worker يخدمها من الكاش
+   وما يخبره بشي. الحل: نراقب وصول نسخة جديدة، ونعرض له زر
+   «تحديث» يضغطه وقت ما يريد — ما نعيد التحميل تحت رجليه.
+   ══════════════════════════════════════════════════════════════ */
+let _swWaiting=null, _swReloading=false;
+
+async function swUpdateWatch(){
+  if(!("serviceWorker" in navigator)) return;
+  try{
+    const reg=await navigator.serviceWorker.getRegistration();
+    if(!reg) return;
+
+    if(reg.waiting) swNewVersion(reg.waiting);
+
+    reg.addEventListener("updatefound",()=>{
+      const nw=reg.installing; if(!nw) return;
+      nw.addEventListener("statechange",()=>{
+        /* نسخة جديدة جاهزة وفي نسخة شغّالة حالياً = تحديث حقيقي */
+        if(nw.state==="installed"&&navigator.serviceWorker.controller) swNewVersion(nw);
+      });
+    });
+
+    /* لما النسخة الجديدة تاخذ السيطرة، نعيد التحميل مرة وحدة بس */
+    navigator.serviceWorker.addEventListener("controllerchange",()=>{
+      if(_swReloading) return;
+      _swReloading=true;
+      location.reload();
+    });
+
+    /* نتحقّق من وجود تحديث كل نص ساعة وكل ما يرجع للتطبيق */
+    const check=()=>{ try{ reg.update() }catch(e){} };
+    setInterval(check,1800000);
+    document.addEventListener("visibilitychange",()=>{ if(!document.hidden) check() });
+  }catch(e){ nxLog("sw-update",e) }
+}
+
+function swNewVersion(worker){
+  _swWaiting=worker;
+  const el=document.getElementById('sw-pill'); if(!el) return;
+  el.hidden=false;
+  el.querySelector('#sw-pill-go').onclick=()=>{
+    el.hidden=true;
+    try{ _swWaiting.postMessage({type:"SKIP_WAITING"}) }catch(e){}
+    /* لو الـService Worker ما يفهم الرسالة، نعيد التحميل يدوياً */
+    setTimeout(()=>{ if(!_swReloading){ _swReloading=true; location.reload() } },1200);
+  };
+  el.querySelector('#sw-pill-x').onclick=()=>{ el.hidden=true };
+}
+
+/* ══════════════════════════════════════════════════════════════
+   ٢. حارس الضغط المتكرر
+   يمنع إرسال نفس الطلب مرتين إذا المستخدم ضغط الزر بسرعة —
+   ويطفي الزر أثناء التنفيذ حتى يعرف إن في شي دا يصير.
+   ══════════════════════════════════════════════════════════════ */
+const _busyKeys=new Set();
+
+async function once(key,btn,fn){
+  if(_busyKeys.has(key)) return;
+  _busyKeys.add(key);
+  let prevDisabled=false;
+  if(btn){ prevDisabled=btn.disabled; btn.disabled=true; btn.classList.add('is-busy') }
+  try{ return await fn() }
+  catch(e){ nxLog("once:"+key,e); nxTellUser(e) }
+  finally{
+    _busyKeys.delete(key);
+    if(btn){ btn.disabled=prevDisabled; btn.classList.remove('is-busy') }
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   ٣. رجوع الإنترنت → تحديث البيانات بلا ما يعيد المستخدم التحميل
+   ══════════════════════════════════════════════════════════════ */
+let _reconnectT=null;
+function reconnectRefresh(){
+  clearTimeout(_reconnectT);
+  _reconnectT=setTimeout(async()=>{
+    try{
+      if(typeof NXRT!=="undefined") NXRT.open();
+      if(typeof chatConvId!=="undefined"&&chatConvId){
+        _chatSig="";
+        await msgRefreshChat(true);
+      }
+      if(typeof msgTab!=="undefined"&&msgTab==='chats'&&typeof msgRenderConvs==="function"){
+        await msgRenderConvs();
+      }
+    }catch(e){ nxLog("reconnect",e) }
+  },600);
+}
+addEventListener("online",reconnectRefresh);
 
 /* ══════════ تعديل رسالة ══════════ */
 let _editedCol=true;                 /* يطفي نفسه إذا عمود edited مو موجود بالقاعدة */
@@ -9540,6 +9655,7 @@ function msgBoot(){
   findBoot();
   keyboardBoot();
   netWatch();
+  swUpdateWatch();
   document.getElementById('uprof-back').onclick=msgCloseProfile;
   /* أزرار الملف الشخصي */
   document.getElementById('up-av-edit').onclick=()=>upPickImage('avatar');
@@ -9580,17 +9696,31 @@ function msgBoot(){
     msgRenderPanel();
   }});
   /* البحث */
-  let sTimer=null;
+  let sTimer=null, _searchSeq=0;
   document.getElementById('msg-q').addEventListener('input',e=>{
     clearTimeout(sTimer);
     const q=e.target.value.trim();
-    if(!q){document.getElementById('msg-search-results').hidden=true;msgRenderPanel();return}
+    const box=document.getElementById('msg-search-results');
+    if(!q){ box.hidden=true; _searchSeq++; msgRenderPanel(); return }
+    /* هيكل تحميل فوري — ما نخلي نتائج البحث القديم قاعدة بالشاشة */
+    box.hidden=false;
+    box.innerHTML=`<div class="msg-list">${skeletonConvs(3)}</div>`;
+    document.getElementById('msg-conv-list').innerHTML='';
+    document.getElementById('msg-empty-box').hidden=true;
+    const seq=++_searchSeq;
     sTimer=setTimeout(async()=>{
-      const results=await msgSearchUsers(q);
-      const box=document.getElementById('msg-search-results');
+      let results=[];
+      try{ results=await msgSearchUsers(q)||[] }
+      catch(err){
+        if(seq!==_searchSeq) return;
+        nxLog("search",err);
+        box.innerHTML=`<div class="msg-empty"><b>ما گدرت أدوّر</b>
+          <span>تحقّق من الإنترنت وجرّب مرة ثانية</span></div>`;
+        return;
+      }
+      /* وصل رد بحث قديم بعد ما المستخدم كتب شي جديد → نتجاهله */
+      if(seq!==_searchSeq) return;
       box.hidden=false;
-      document.getElementById('msg-conv-list').innerHTML='';
-      document.getElementById('msg-empty-box').hidden=true;
       if(!results.length){box.innerHTML=`<div class="msg-empty"><b>${mt().noResults}</b></div>`;return}
       box.innerHTML=`<div class="msg-list">${results.map(p=>{
         const un=p.username?`<span class="username-tag">@${esc(p.username)}</span>`:'';
@@ -9600,11 +9730,13 @@ function msgBoot(){
         <button class="follow-btn" data-fphone="${esc(p.phone)}" data-fname="${esc(p.name||'')}" data-fav="${esc(p.avatar||'')}">${mt().follow}</button>
         <button class="follow-btn" data-mphone="${esc(p.phone)}" data-mname="${esc(p.name||'')}" data-mav="${esc(p.avatar||'')}">💬</button>
       </div>`}).join('')}</div>`;
-      box.querySelectorAll('[data-fphone]').forEach(b=>{b.onclick=async()=>{
-        await msgFollow(b.dataset.fphone);b.textContent='✓';b.disabled=true}});
+      box.querySelectorAll('[data-fphone]').forEach(b=>{b.onclick=()=>
+        once('follow:'+b.dataset.fphone,b,async()=>{
+          await msgFollow(b.dataset.fphone); b.textContent='✓'; b.disabled=true;
+        })});
       box.querySelectorAll('[data-mphone]').forEach(b=>{b.onclick=()=>
         msgOpenChat(b.dataset.mphone,b.dataset.mname,b.dataset.mav)});
-    },400);
+    },280);
   });
   /* الرجوع من المحادثة */
   document.getElementById('chat-back').onclick=msgCloseChat;
@@ -9654,7 +9786,8 @@ function msgBoot(){
     if(ok){ pendingDone(tmp.id); _chatSig=""; await msgRefreshChat(true) }
     else pendingFail(tmp.id);
   };
-  document.getElementById('chat-send').onclick=sendMsg;
+  document.getElementById('chat-send').onclick=()=>
+    once('send:'+(chatConvId||''),document.getElementById('chat-send'),sendMsg);
   document.getElementById('chat-text').addEventListener('keydown',e=>{
     if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMsg()}
   });
