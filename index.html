@@ -8945,7 +8945,7 @@ function upBootImages(){
    وبالعراق أعلى لأن أغلب الاستخدام على بيانات الموبايل.
 
    TURN يحل هذا: خادم وسيط يمرّر الصوت لما الاتصال المباشر يفشل.
-   بيانات TURN تنجلب من جدول app_config وقت المكالمة — مو مكتوبة
+   بيانات TURN تنجلب من جدول turn_config وقت المكالمة — مو مكتوبة
    بالكود — حتى تكدر تبدّلها بلا ما تعيد نشر الموقع.
 
    شوف calls.sql للتفاصيل ولخيارات مزوّدي TURN.
@@ -8960,13 +8960,15 @@ async function iceServers(){
   /* نخزّنها ١٠ دقايق حتى ما نسأل القاعدة بكل مكالمة */
   if(_iceCache && Date.now()-_iceCacheAt < 600000) return _iceCache;
   try{
-    const rows=await sbSelect("app_config","select=value&key=eq.turn&limit=1");
-    const v=rows&&rows[0]&&rows[0].value;
-    const cfg=(typeof v==="string")?JSON.parse(v):v;
-    if(cfg&&cfg.urls){
-      base.push({urls:cfg.urls,username:cfg.username,credential:cfg.credential});
-      _iceCache=base; _iceCacheAt=Date.now();
-      return base;
+    const rows=await sbSelect("turn_config","select=urls,username,credential&active=is.true&limit=1");
+    const c=rows&&rows[0];
+    if(c&&c.urls){
+      const urls=(typeof c.urls==="string")?JSON.parse(c.urls):c.urls;
+      if(urls&&urls.length){
+        base.push({urls,username:c.username||undefined,credential:c.credential||undefined});
+        _iceCache=base; _iceCacheAt=Date.now();
+        return base;
+      }
     }
   }catch(e){ nxLog("ice-config",e) }
   _iceCache=base; _iceCacheAt=Date.now();
@@ -9172,13 +9174,16 @@ async function callStart(phone,name,avatar,isVideo){
         _callId=await sbRpc("call_create",Object.assign({},c,
           {p_callee:phone,p_video:_callVideo,p_offer:off}));
       }catch(e1){
-        const m=String(e1&&e1.message||e1).toLowerCase();
-        if(m.includes("blocked")){ toast("ما تكدر تتصل بهذا الشخص"); callCleanup(); return }
-        if(!m.includes("404")&&!m.includes("pgrst202")&&!m.includes("not found")) throw e1;
+        /* الحظر قرار نهائي — نوقف. أي خطأ ثاني (الدالة مو مضافة، auth_ok
+           ناقصة، حساب جوجل بلا رمز سري) ما يستاهل يمنع المكالمة، فننزل
+           للإدخال المباشر ونكمّل. */
+        if(String(e1&&e1.message||e1).toLowerCase().includes("blocked")){
+          toast("ما تكدر تتصل بهذا الشخص"); callCleanup(); return;
+        }
+        nxLog("call_create",e1);
       }
     }
     if(!_callId){
-      /* دالة call_create مو مضافة بعد — الطريقة القديمة */
       const rows=await sbReq("calls",{method:"POST",headers:{Prefer:"return=representation"},
         body:JSON.stringify({caller:myPhone(),callee:phone,is_video:_callVideo,status:"calling",
           offer:off})});
@@ -9186,8 +9191,19 @@ async function callStart(phone,name,avatar,isVideo){
     }
     if(!_callId) throw new Error("no-id");
   }catch(e){
-    console.warn("[call] start:",e);
-    toast('تعذّر بدء المكالمة — تأكد من جدول calls');
+    nxLog("call-start",e);
+    /* رسالة تقول شنو الخلل بالضبط بدل «تأكد من جدول calls» */
+    const m=String(e&&e.message||e);
+    let why='تعذّر بدء المكالمة';
+    if(m.includes("401")||m.includes("403")||m.includes("row-level"))
+      why='القاعدة ترفض إنشاء المكالمة — سياسة الإدخال بجدول calls مقفلة';
+    else if(m.includes("404")||m.includes("PGRST205"))
+      why='جدول calls مو موجود بالقاعدة';
+    else if(m.includes("400")||m.includes("PGRST204"))
+      why='جدول calls ناقصه عمود — شغّل الجزء ١ من calls.sql';
+    else if(m.includes("supabase-off")||m.includes("Failed to fetch")||m.includes("abort"))
+      why='ماكو اتصال بالقاعدة — تحقّق من الإنترنت';
+    warnTop(why);
     callCleanup();return;
   }
   ringStart(true);
