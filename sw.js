@@ -1,3 +1,6 @@
+self.addEventListener('message', e => {
+  if (e.data && e.data.type === 'SKIP_WAITING') self.skipWaiting();
+});
 /* ═══════════════════════════════════════════════════
    Service Worker — إشعارات الرسائل والمكالمات
    لازم يكون بجذر الموقع (نفس مكان index.html)
