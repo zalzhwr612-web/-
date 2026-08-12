@@ -1,0 +1,42 @@
+NΞXA — PROFESSIONAL SECURITY MIGRATION
+====================================
+
+الهدف
+-----
+تحويل نظام الحساب الحالي إلى مصادقة حقيقية بمستوى مواقع الشركات، وليس مجرد إخفاء كلمة السر في JavaScript.
+
+مهم جداً
+--------
+ملف HTML وحده لا يستطيع جعل الحسابات "غير قابلة للاختراق". الأمان الحقيقي يجب أن يكون في Supabase Auth + RLS + Edge Functions/Database RPC.
+
+ما تم تحسينه في نسخة HTML
+-------------------------
+1) عدم تخزين PIN المستخدم داخل localStorage.
+2) عدم إعادة تسجيل الدخول تلقائياً باستخدام PIN محفوظ.
+3) منع fallback إلى عمليات DELETE/PATCH المباشرة إذا كانت دوال الحماية غير موجودة.
+4) إضافة no-store لطلبات Supabase.
+5) إضافة طبقة throttle محلية لمحاولات الدخول.
+6) إضافة مؤشرات أمان وتجربة استخدام أكثر احترافية.
+
+المطلوب على Supabase قبل الإطلاق
+--------------------------------
+[ ] نقل الحسابات من customer_login/customer_register المبنية على PIN إلى Supabase Auth.
+[ ] استخدام email/password أو phone OTP مع جلسات Supabase Auth.
+[ ] تفعيل تأكيد البريد/الهاتف.
+[ ] تفعيل MFA للحسابات الحساسة.
+[ ] تفعيل RLS لكل جدول خاص.
+[ ] كل policy تعتمد على auth.uid()، وليس على رقم الهاتف القادم من المتصفح.
+[ ] منع anon من SELECT/UPDATE/DELETE على messages/conversations/follows/user_profiles.
+[ ] عمليات الرسائل والحذف والتعديل الحساسة تمر عبر RPC/Edge Function تتحقق من auth.uid().
+[ ] منع service_role/secret keys من HTML نهائياً.
+[ ] نقل MEDIA_TOKEN وأي أسرار إلى Edge Function/Server.
+[ ] تفعيل rate limiting على login/reset/OTP والعمليات الحساسة.
+[ ] تسجيل أحداث الأمان: login failure, password change, MFA, suspicious activity.
+[ ] تفعيل حماية الملفات في Storage عبر RLS وسياسات نوع/حجم الملف.
+[ ] مراجعة CORS وAllowed Redirect URLs.
+[ ] مراجعة سياسات Realtime حتى لا يستطيع مستخدم الاشتراك بقناة تخص مستخدماً آخر.
+
+ملاحظة عن الكود الحالي
+----------------------
+المشروع الحالي يستخدم جداول الرسائل والمحادثات بسياسات واسعة جداً في SQL المضمن داخل index.html.
+لا ينبغي اعتبار هذه السياسات "أمان شركات" قبل استبدالها بسياسات تعتمد على هوية Supabase Auth.
