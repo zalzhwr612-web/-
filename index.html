@@ -523,6 +523,9 @@ body.dark .chat-follow-btn{color:var(--brand-3);border-color:var(--brand-3)}
 .chat-bubble .edited-mark{font-family:var(--font);font-size:10px;opacity:.75}
 #chat-sub.typing-now{color:var(--green,#12A150);font-weight:600}
 
+/* مدة الرنين */
+.inc-timer{margin-top:6px;font-size:13px;opacity:.72;letter-spacing:.5px}
+
 /* شريط النسخة الجديدة */
 .sw-pill{position:fixed;inset-inline:12px;bottom:calc(env(safe-area-inset-bottom,0px) + 74px);
   z-index:9997;display:flex;align-items:center;gap:10px;padding:11px 14px;border-radius:14px;
@@ -1875,6 +1878,7 @@ body.msgview.msgdark .sheet .btn-o{border-color:#3A3A3A;color:#F0F0F0}
         <div class="call-av inc-bounce" id="inc-av"></div>
         <div class="call-name" id="inc-name"></div>
         <div class="call-status ringing" id="inc-type">مكالمة واردة</div>
+        <div class="inc-timer mono" id="inc-timer">00:00</div>
         <div class="call-wave"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
         <div class="call-actions">
           <button class="call-act end" id="inc-decline" aria-label="رفض المكالمة" title="رفض">
@@ -3238,7 +3242,10 @@ const okPhone=v=>/^07\d{9}$/.test(String(v).replace(/\s/g,""));
 const okPin=v=>/^\d{4,6}$/.test(String(v).trim());
 
 function memberSave(m,pin){ member=m; lsSet(LS_MEM,{phone:m.phone,pin,name:m.name}); renderAcct() }
-function memberOut(){ member=null; lsDel(LS_MEM); renderAcct(); toast(t().tLoggedOut) }
+function memberOut(){
+  try{ callEndOnLogout() }catch(e){}      /* ما نخلي مكالمة معلّقة بعد الخروج */
+  member=null; lsDel(LS_MEM); renderAcct(); toast(t().tLoggedOut);
+}
 const noteTxt=()=>t().memberNote;
 function memberPin(){ const d=lsGet(LS_MEM); return d&&d.pin?d.pin:null }
 
@@ -8929,6 +8936,43 @@ function upBootImages(){
    الإشارات (signaling) تمرّ عبر جدولَي calls و call_ice بـ Supabase.
    لازم تنشئ الجدولين بلوحة Supabase (شوف SQL بالشرح).
    ═══════════════════════════════════════════════════════════ */
+/* ══════════════════════════════════════════════════════════════
+   خوادم ICE
+
+   STUN لحاله ما يكفي. على شبكات الموبايل (زين، آسياسيل، كورك)
+   الجهازين غالباً وراء NAT متماثل، فالاتصال المباشر بينهم يفشل
+   ويبقى الطرفان يسمعون رنين بلا صوت. النسبة عالمياً ١٥-٢٠٪،
+   وبالعراق أعلى لأن أغلب الاستخدام على بيانات الموبايل.
+
+   TURN يحل هذا: خادم وسيط يمرّر الصوت لما الاتصال المباشر يفشل.
+   بيانات TURN تنجلب من جدول app_config وقت المكالمة — مو مكتوبة
+   بالكود — حتى تكدر تبدّلها بلا ما تعيد نشر الموقع.
+
+   شوف calls.sql للتفاصيل ولخيارات مزوّدي TURN.
+   ══════════════════════════════════════════════════════════════ */
+let _iceCache=null, _iceCacheAt=0;
+
+async function iceServers(){
+  const base=[
+    {urls:["stun:stun.l.google.com:19302","stun:stun1.l.google.com:19302"]},
+    {urls:["stun:stun2.l.google.com:19302","stun:stun3.l.google.com:19302"]}
+  ];
+  /* نخزّنها ١٠ دقايق حتى ما نسأل القاعدة بكل مكالمة */
+  if(_iceCache && Date.now()-_iceCacheAt < 600000) return _iceCache;
+  try{
+    const rows=await sbSelect("app_config","select=value&key=eq.turn&limit=1");
+    const v=rows&&rows[0]&&rows[0].value;
+    const cfg=(typeof v==="string")?JSON.parse(v):v;
+    if(cfg&&cfg.urls){
+      base.push({urls:cfg.urls,username:cfg.username,credential:cfg.credential});
+      _iceCache=base; _iceCacheAt=Date.now();
+      return base;
+    }
+  }catch(e){ nxLog("ice-config",e) }
+  _iceCache=base; _iceCacheAt=Date.now();
+  return base;
+}
+
 const RTC_CFG={iceServers:[
   {urls:["stun:stun.l.google.com:19302","stun:stun1.l.google.com:19302"]},
   {urls:["stun:stun2.l.google.com:19302","stun:stun3.l.google.com:19302"]},
@@ -9018,7 +9062,8 @@ function callOnLive(){
 
 /* ───── إنشاء اتصال الند ───── */
 async function callSetupPC(){
-  _pc=new RTCPeerConnection(RTC_CFG);
+  const servers=await iceServers();
+  _pc=new RTCPeerConnection({iceServers:servers,iceCandidatePoolSize:2});
   _remoteStream=new MediaStream();
   _pc.ontrack=e=>{
     (e.streams[0]?e.streams[0].getTracks():[e.track]).forEach(t=>{
@@ -9034,8 +9079,9 @@ async function callSetupPC(){
     if(!_pc) return;
     const s=_pc.connectionState;
     if(s==="connected") callOnLive();
-    else if(s==="failed"){ toast('انقطع الاتصال'); callHangup(true) }
+    /* الفشل ينمسك بـ oniceconnectionstatechange اللي يحاول يرجّع الاتصال أول */
   };
+  callBindConnState();
   if(_callVideo){
     const lv=document.getElementById('call-local-video');
     if(lv){lv.srcObject=_localStream;lv.play().catch(()=>{})}
@@ -9081,8 +9127,14 @@ function callWatchState(){
     try{ const rows=await sbSelect("calls","select=*&id=eq."+_callId+"&limit=1"); r=rows&&rows[0] }
     catch(e){ return }
     if(!r) return;
-    if(r.status==="declined"){ toast('ما رد عليك'); callCleanup(); return }
+    if(r.status==="declined"){ toast('رفض المكالمة'); callCleanup(); return }
+    if(r.status==="missed"){ toast('ما رد عليك'); callCleanup(); return }
+    if(r.status==="failed"){ toast('فشل الاتصال'); callCleanup(); return }
     if(r.status==="ended"){ toast('انتهت المكالمة'); callCleanup(); return }
+    if(_callRole==="caller"&&r.status==="ringing"){
+      const lbl=document.getElementById('call-status');
+      if(lbl&&!_callLive) lbl.textContent='يرنّ…';
+    }
     if(_callRole==="caller"&&r.status==="accepted"&&r.answer&&_pc&&!_pc.currentRemoteDescription){
       ringStop();
       document.getElementById('call-status').textContent='يتم الربط…';
@@ -9112,10 +9164,26 @@ async function callStart(phone,name,avatar,isVideo){
     await callSetupPC();
     const offer=await _pc.createOffer({offerToReceiveAudio:true,offerToReceiveVideo:_callVideo});
     await _pc.setLocalDescription(offer);
-    const rows=await sbReq("calls",{method:"POST",headers:{Prefer:"return=representation"},
-      body:JSON.stringify({caller:myPhone(),callee:phone,is_video:_callVideo,status:"ringing",
-        offer:{type:offer.type,sdp:offer.sdp}})});
-    _callId=rows&&rows[0]&&rows[0].id;
+    /* المسار الآمن: السيرفر يتأكّد إنك أنت المتصل فعلاً قبل ما ينشئ المكالمة */
+    const off={type:offer.type,sdp:offer.sdp};
+    const c=secCreds();
+    if(c){
+      try{
+        _callId=await sbRpc("call_create",Object.assign({},c,
+          {p_callee:phone,p_video:_callVideo,p_offer:off}));
+      }catch(e1){
+        const m=String(e1&&e1.message||e1).toLowerCase();
+        if(m.includes("blocked")){ toast("ما تكدر تتصل بهذا الشخص"); callCleanup(); return }
+        if(!m.includes("404")&&!m.includes("pgrst202")&&!m.includes("not found")) throw e1;
+      }
+    }
+    if(!_callId){
+      /* دالة call_create مو مضافة بعد — الطريقة القديمة */
+      const rows=await sbReq("calls",{method:"POST",headers:{Prefer:"return=representation"},
+        body:JSON.stringify({caller:myPhone(),callee:phone,is_video:_callVideo,status:"calling",
+          offer:off})});
+      _callId=rows&&rows[0]&&rows[0].id;
+    }
     if(!_callId) throw new Error("no-id");
   }catch(e){
     console.warn("[call] start:",e);
@@ -9125,8 +9193,15 @@ async function callStart(phone,name,avatar,isVideo){
   ringStart(true);
   callWatchIce();
   callWatchState();
-  /* ما رد خلال 45 ثانية → إلغاء */
-  _callTO=setTimeout(()=>{ if(!_callLive){ toast('ما رد عليك'); callHangup(true) } },45000);
+  _callStartedAt=Date.now();
+  /* ما رد خلال مدة الرنين → تنسجّل «فائتة» مو «انتهت» */
+  _callTO=setTimeout(async()=>{
+    if(_callLive) return;
+    const id=_callId;
+    toast('ما رد عليك');
+    callCleanup();
+    if(id) await callSetStatus(id,"missed");
+  },CALL_RING_MS);
 }
 
 /* ───── مكالمة واردة: شاشة الرد ───── */
@@ -9140,11 +9215,28 @@ async function callShowIncoming(row){
   document.getElementById('inc-type').textContent=row.is_video?'مكالمة فيديو واردة':'مكالمة صوتية واردة';
   document.getElementById('incoming-screen').classList.add('on');
   ringStart(false);
+  incTimerStart();
+  /* نأشّر للمتصل إن الجهاز وصله ودا يرنّ فعلاً */
+  callSetStatus(row.id,"ringing");
 }
+
+/* مؤقت الرنين المعروض بشاشة المكالمة الواردة */
+let _incTimer=null;
+function incTimerStart(){
+  clearInterval(_incTimer);
+  const el=document.getElementById('inc-timer'); if(!el) return;
+  const t0=Date.now();
+  const tick=()=>{
+    const sec=Math.floor((Date.now()-t0)/1000);
+    el.textContent=String(Math.floor(sec/60)).padStart(2,'0')+":"+String(sec%60).padStart(2,'0');
+  };
+  tick(); _incTimer=setInterval(tick,1000);
+}
+function incTimerStop(){ clearInterval(_incTimer); _incTimer=null }
 
 async function callAccept(){
   const c=_incoming;if(!c) return;
-  ringStop();_incoming=null;
+  ringStop(); incTimerStop(); callClearNotif(c.id); _incoming=null;
   _callId=c.id;_callRole="callee";_callPeer=c.caller;_callVideo=!!c.is_video;_callLive=false;
   _seenIce={};_pendingIce=[];
   try{ _localStream=await navigator.mediaDevices.getUserMedia({audio:true,video:_callVideo}) }
@@ -9169,10 +9261,10 @@ async function callAccept(){
 
 async function callDecline(){
   const c=_incoming;if(!c) return;
-  ringStop();_incoming=null;_ignoredCalls[c.id]=1;
+  ringStop(); incTimerStop(); _incoming=null; _ignoredCalls[c.id]=1;
   document.getElementById('incoming-screen').classList.remove('on');
-  try{ await sbReq("calls?id=eq."+c.id,{method:"PATCH",headers:{Prefer:"return=minimal"},
-    body:JSON.stringify({status:"declined"})}) }catch(e){}
+  callClearNotif(c.id);
+  await callSetStatus(c.id,"declined");
 }
 
 /* ───── إنهاء / تنظيف ───── */
@@ -9185,7 +9277,8 @@ async function callHangup(notify){
   }
 }
 function callCleanup(){
-  ringStop();
+  ringStop(); incTimerStop();
+  clearTimeout(_callRcT); _callRcT=null; _reconnectTries=0;
   clearInterval(_callWatch);_callWatch=null;
   clearInterval(_iceWatch);_iceWatch=null;
   clearInterval(_callTimer);_callTimer=null;
@@ -9218,17 +9311,243 @@ async function callToggleSpeaker(){
 }
 
 /* ───── مراقبة المكالمات الواردة (تشتغل دائماً وأنت مسجّل) ───── */
+/* ══════════════════════════════════════════════════════════════
+   المكالمات الواردة
+
+   قبل: تصفّح كل ٢٫٥ ثانية — يعني تأخير لين ٢٫٥ ثانية قبل ما يرنّ
+   الجهاز، وسؤال للقاعدة كل ثانيتين ونص طول اليوم لكل مستخدم.
+
+   هسه: القناة اللحظية تدزّ المكالمة أول ما تنكتب بالقاعدة، فالرنين
+   يجي فوراً. والتصفّح باقي كشبكة أمان بس على مهل (كل ٨ ثواني)،
+   وينطفي لما تثبت القناة إنها شغّالة.
+   ══════════════════════════════════════════════════════════════ */
+function callRealtimeEvent(type,row){
+  if(!row||!isLoggedMsg()) return;
+  const me=myPhone();
+
+  /* مكالمة جديدة إلي */
+  if(row.callee===me && (type==="INSERT"||type==="UPDATE")){
+    if(_callId||_incoming) return;
+    if(_ignoredCalls[row.id]) return;
+    if(!["calling","ringing"].includes(row.status)) return;
+    if(iBlocked(row.caller)) { callSetStatus(row.id,"declined"); return }
+    if(Date.now()-new Date(row.created_at).getTime() > CALL_RING_MS) return;  /* قديمة */
+    callShowIncoming(row);
+    return;
+  }
+
+  /* المتصل ألغى قبل ما أرد */
+  if(_incoming && String(row.id)===String(_incoming.id) &&
+     ["ended","missed","failed"].includes(row.status)){
+    ringStop(); incTimerStop();
+    _incoming=null; _ignoredCalls[row.id]=1;
+    document.getElementById('incoming-screen').classList.remove('on');
+    toast("انتهت المكالمة");
+  }
+}
+
 function callWatchIncoming(){
   clearInterval(_ringWatch);
   _ringWatch=setInterval(async()=>{
     if(!isLoggedMsg()||_callId||_incoming) return;
-    const since=new Date(Date.now()-50000).toISOString();
+    if(typeof NXRT!=="undefined"&&NXRT.live()) return;   /* القناة تكفي */
+    const since=new Date(Date.now()-CALL_RING_MS).toISOString();
     let rows;
     try{ rows=await sbSelect("calls","select=*&callee=eq."+encodeURIComponent(myPhone())
-      +"&status=eq.ringing&created_at=gte."+since+"&order=created_at.desc&limit=3") }catch(e){ return }
+      +"&status=in.(calling,ringing)&created_at=gte."+since+"&order=created_at.desc&limit=3") }
+    catch(e){ return }
     const c=(rows||[]).find(r=>!_ignoredCalls[r.id]&&!iBlocked(r.caller));
     if(c) callShowIncoming(c);
-  },2500);
+  },8000);
+}
+
+/* ══════════════════════════════════════════════════════════════
+   فتح التطبيق من إشعار مكالمة  →  #call=<id>
+   ══════════════════════════════════════════════════════════════ */
+async function callOpenFromLink(){
+  const m=(location.hash||"").match(/[#&]call=([^&]+)/);
+  if(!m) return;
+  const id=decodeURIComponent(m[1]);
+  history.replaceState(null,"",location.pathname+location.search);
+  if(!isLoggedMsg()||_callId||_incoming||_ignoredCalls[id]) return;
+  try{
+    const rows=await sbSelect("calls","select=*&id=eq."+encodeURIComponent(id)+"&limit=1");
+    const c=rows&&rows[0];
+    if(!c) return;
+    if(c.callee!==myPhone()) return;
+    if(!["calling","ringing"].includes(c.status)){
+      toast(callStatusText(c.status,c.is_video));
+      return;
+    }
+    if(Date.now()-new Date(c.created_at).getTime() > CALL_RING_MS){
+      toast("المكالمة انتهت"); return;
+    }
+    callShowIncoming(c);
+  }catch(e){ nxLog("call-link",e) }
+}
+addEventListener("hashchange",callOpenFromLink);
+
+
+/* ══════════════════════════════════════════════════════════════
+   حالات المكالمة
+   calling  → أُنشئت وما وصلت الطرف الثاني بعد
+   ringing  → وصلت وجهاز المستقبل دا يرنّ
+   accepted → رد
+   declined → رفض
+   missed   → ما رد خلال مدة الرنين
+   ended    → انتهت (أي طرف أنهاها)
+   failed   → فشل الربط تقنياً
+   ══════════════════════════════════════════════════════════════ */
+const CALL_RING_MS=45000;      /* مدة الرنين قبل ما تنحسب فائتة */
+let _callStartedAt=0, _reconnectTries=0, _callRcT=null;
+
+async function callSetStatus(id,status,extra){
+  if(!id) return false;
+  const body=Object.assign({status},extra||{});
+  if(status==="accepted") body.answered_at=new Date().toISOString();
+  if(["ended","missed","declined","failed"].includes(status)) body.ended_at=new Date().toISOString();
+  try{
+    await sbReq("calls?id=eq."+encodeURIComponent(id),
+      {method:"PATCH",headers:{Prefer:"return=minimal"},body:JSON.stringify(body)});
+    return true;
+  }catch(e){ nxLog("call-status:"+status,e); return false }
+}
+
+/* نص عربي مفهوم لكل حالة — يبين بسجل المكالمات وبالتنبيهات */
+function callStatusText(st,isVideo){
+  const k=isVideo?"مكالمة فيديو":"مكالمة صوتية";
+  return ({
+    calling :k+" — جاري الاتصال",
+    ringing :k+" — يرنّ",
+    accepted:k,
+    declined:k+" — مرفوضة",
+    missed  :k+" — فائتة",
+    ended   :k+" — انتهت",
+    failed  :k+" — فشل الاتصال"
+  })[st]||k;
+}
+
+/* ═══════════ انقطاع الشبكة أثناء المكالمة ═══════════ */
+function callBindConnState(){
+  if(!_pc) return;
+  _pc.oniceconnectionstatechange=()=>{
+    if(!_pc) return;
+    const st=_pc.iceConnectionState;
+    const lbl=document.getElementById('call-status');
+
+    if(st==="connected"||st==="completed"){
+      _reconnectTries=0;
+      clearTimeout(_callRcT); _callRcT=null;
+      return;
+    }
+
+    if(st==="disconnected"){
+      /* ممكن ترجع لحالها خلال ثواني — ما نقطع المكالمة فوراً */
+      if(lbl) lbl.textContent="جاري إعادة الاتصال…";
+      clearTimeout(_callRcT);
+      _callRcT=setTimeout(()=>{
+        if(_pc&&["disconnected","failed"].includes(_pc.iceConnectionState)) callTryRestart();
+      },4000);
+      return;
+    }
+
+    if(st==="failed"){
+      if(lbl) lbl.textContent="جاري إعادة الاتصال…";
+      callTryRestart();
+    }
+  };
+}
+
+async function callTryRestart(){
+  if(!_pc||!_callId) return;
+  _reconnectTries++;
+  if(_reconnectTries>2){
+    toast("انقطع الاتصال");
+    await callSetStatus(_callId,"failed");
+    callCleanup();
+    return;
+  }
+  try{
+    /* إعادة تفاوض ICE — يجرّب مسارات جديدة بضمنها TURN */
+    if(_callRole==="caller"){
+      const offer=await _pc.createOffer({iceRestart:true});
+      await _pc.setLocalDescription(offer);
+      await sbReq("calls?id=eq."+encodeURIComponent(_callId),
+        {method:"PATCH",headers:{Prefer:"return=minimal"},
+         body:JSON.stringify({offer:{type:offer.type,sdp:offer.sdp},restart_at:new Date().toISOString()})});
+    }
+  }catch(e){ nxLog("ice-restart",e) }
+}
+
+/* ═══════════ إغلاق الصفحة / تسجيل الخروج ═══════════ */
+/* تسجيل الخروج → إنهاء المكالمة وقطع الصوت */
+async function callEndOnLogout(){
+  if(!_callId&&!_incoming) return;
+  const id=_callId||(_incoming&&_incoming.id);
+  callCleanup();
+  if(id) await callSetStatus(id,"ended");
+}
+
+function callBindLifecycle(){
+  const bail=()=>{
+    if(!_callId) return;
+    /* sendBeacon يوصل حتى والصفحة تنسكّر */
+    try{
+      const url=sbBase()+"/rest/v1/calls?id=eq."+encodeURIComponent(_callId);
+      const blob=new Blob([JSON.stringify({status:"ended",ended_at:new Date().toISOString()})],
+        {type:"application/json"});
+      if(navigator.sendBeacon){
+        /* PostgREST يحتاج PATCH، وsendBeacon يرسل POST — فنستعمل fetch بـkeepalive */
+        fetch(url,{method:"PATCH",keepalive:true,headers:sbHead(),body:blob});
+      }
+    }catch(e){}
+  };
+  addEventListener("pagehide",bail);
+  addEventListener("beforeunload",bail);
+}
+
+
+/* ══════════════════════════════════════════════════════════════
+   إشعارات المكالمات
+
+   كيف تشتغل السلسلة كاملة:
+   ١. المتصل يكتب صفاً بجدول calls
+   ٢. Database Webhook على الجدول ينادي Edge Function اسمها call-push
+   ٣. الدالة تجيب اشتراك المستقبل من push_subs وتدزّ إشعار Web Push
+      (المفتاح الخاص VAPID يبقى بالسيرفر — ما ينزل للواجهة أبداً)
+   ٤. sw.js يستقبله ويعرض إشعاراً بزرَّي «رد» و«رفض»
+   ٥. الضغط عليه يفتح الموقع على ‎#call=<id> فتظهر شاشة الرد
+
+   الملفات: calls.sql (الجدول والصلاحيات) و call-push.ts (الدالة)
+   وقطعة sw.js موجودة بآخر calls.sql.
+   ══════════════════════════════════════════════════════════════ */
+function callPushBoot(){
+  if(!("serviceWorker" in navigator)) return;
+  navigator.serviceWorker.addEventListener("message",async ev=>{
+    const d=ev.data||{};
+    if(d.type!=="call-action") return;
+    /* المستخدم ضغط زر بالإشعار نفسه */
+    if(!d.callId) return;
+    if(d.action==="decline"){
+      _ignoredCalls[d.callId]=1;
+      await callSetStatus(d.callId,"declined");
+      return;
+    }
+    if(d.action==="accept"){
+      location.hash="#call="+encodeURIComponent(d.callId);
+      callOpenFromLink();
+    }
+  });
+}
+
+/* نسكّت إشعار المكالمة إذا المستخدم رد من داخل التطبيق */
+async function callClearNotif(callId){
+  try{
+    const reg=await navigator.serviceWorker.getRegistration();
+    if(!reg) return;
+    const list=await reg.getNotifications({tag:"call-"+callId});
+    list.forEach(n=>{ try{ n.close() }catch(e){} });
+  }catch(e){}
 }
 
 /* ربط أزرار شاشتَي المكالمة */
@@ -9557,7 +9876,8 @@ const NXRT={
         postgres_changes:[
           {event:"*",schema:"public",table:"messages"},
           {event:"*",schema:"public",table:"conversations"},
-          {event:"INSERT",schema:"public",table:"follows"}
+          {event:"INSERT",schema:"public",table:"follows"},
+          {event:"*",schema:"public",table:"calls"}
         ]}});
       clearInterval(this._hb);
       this._hb=setInterval(()=>this.push("phoenix","heartbeat",{}),25000);
@@ -9611,6 +9931,8 @@ const NXRT={
                      String(row.conv_id)===String(chatConvId);
       if(inChat) this.fire("chat",()=>{ if(typeof msgRefreshChat==="function") msgRefreshChat() },120);
       else       this.fire("convs",()=>{ if(typeof msgRenderConvs==="function") msgRenderConvs() },700);
+    }else if(d.table==="calls"){
+      callRealtimeEvent(d.type,row);
     }else if(d.table==="follows"){
       if(row.following===myPhone()&&d.type==="INSERT") followerAlert(row.follower);
     }else if(d.table==="conversations"){
@@ -9862,7 +10184,10 @@ logVisit();       /* يسجّل الزيارة بجدول visits */
 reelsBoot();      /* يهيّئ نظام الريلز ويربطه بالتنقّل */
 msgBoot();        /* يهيّئ نظام المراسلات والمتابعة */
 msgStartPresence(); /* نبضة الحضور: تخلي "متصل الآن" تشتغل */
-callWatchIncoming(); /* يراقب المكالمات الواردة ويرنّ */
+callWatchIncoming(); /* شبكة أمان — القناة اللحظية هي الأساس */
+callBindLifecycle();
+callPushBoot();
+setTimeout(callOpenFromLink,900);   /* فتح من إشعار مكالمة */
 pushBoot();          /* يسجّل service worker ويفحص حالة الإشعارات */
 notifWatchMessages();/* يراقب الرسائل الجديدة ويشعّرك */
 notifHandleHash();   /* يفتح المحادثة/المكالمة إذا جيت من إشعار */
