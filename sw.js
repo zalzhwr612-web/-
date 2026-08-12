@@ -7,7 +7,7 @@
    ══════════════════════════════════════════════════════════════ */
 
 const SUPABASE_URL  = 'https://gygjpwmcuiqjelmpgxtp.supabase.co';
-const SUPABASE_ANON = 'ضع هنا نفس المفتاح العلني الموجود بـ index.html';
+const SUPABASE_ANON ='sb_publishable_0ygCWcILkVvTRhHse0N6aw_PnJfGsOt';
 /*  ↑ المفتاح العلني بس (اللي يبدي بـ sb_publishable_).
     لا تحط service_role هنا أبداً — هذا الملف ينزل لجهاز أي زائر. */
 
