@@ -4075,6 +4075,14 @@ async function bfaBind(){
    ═══════════════════════════════════════════════════════════ */
 const AI_TAG     = "__ai";                     /* الأمر المخفي اللي يخزن الإعدادات */
 const AI_MODELS  = ["gemini-2.5-flash","gemini-2.5-pro","gemini-2.0-flash"];
+/* البوت كان يرد «ما أقدر أتكلم بصوت» لأن ماحد خبّره إن ردوده
+   تنقرا بصوت فعلاً. هذي الملاحظة تنضاف لتعليماته لما الصوت شغّال. */
+function ttsSysNote(){
+  return "\n\nملاحظة: ردودك تُقرأ بصوت مسموع للمستخدم عبر محرّك نطق. "+
+    "فلا تگول إنك تكتب فقط أو ما تكدر تتكلم بصوت. اكتب بجُمل قصيرة واضحة "+
+    "تنقرا بسهولة، وتجنّب النجوم والرموز والقوائم لأنها ما تنقرا زين بالصوت.";
+}
+
 const AI_SYS_DEF = "أنت بوت مساعد داخل تطبيق عربي. جاوب بالعربي بلهجة بسيطة وواضحة، وباختصار.";
 
 /* أوامر البوت المعروضة — بلا الأوامر المخفية */
@@ -4291,7 +4299,8 @@ async function aiAskOne(cfg,history,text){
       contents:(history||[]).concat([{role:"user",parts:[{text:String(text||"").slice(0,4000)}]}]),
       generationConfig:{temperature:.7,maxOutputTokens:900}
     };
-    if(cfg.sys) body.systemInstruction={parts:[{text:String(cfg.sys).slice(0,4000)}]};
+    if(cfg.sys) body.systemInstruction={parts:[{text:
+      String(cfg.sys).slice(0,4000)+ttsSysNote()}]};
     if(withWeb) body.tools=[{google_search:{}}];
     let r,j=null;
     const url=qsKey?(base+"?key="+encodeURIComponent(key)):base;
@@ -4341,7 +4350,8 @@ async function aiAskOne(cfg,history,text){
           encodeURIComponent(alt)+":generateContent";
         const body={contents:(history||[]).concat([{role:"user",parts:[{text:String(text||"").slice(0,4000)}]}]),
           generationConfig:{temperature:.7,maxOutputTokens:900}};
-        if(cfg.sys) body.systemInstruction={parts:[{text:String(cfg.sys).slice(0,4000)}]};
+        if(cfg.sys) body.systemInstruction={parts:[{text:
+          String(cfg.sys).slice(0,4000)+ttsSysNote()}]};
         let r2,j2=null;
         const u2=qs?(altBase+"?key="+encodeURIComponent(key)):altBase;
         const h2={"Content-Type":"application/json"};
@@ -13494,7 +13504,18 @@ function ttsPulseOn(){
    وإذا فشل لأي سبب (نت، حد يومي، مفتاح)، ينزل تلقائياً لصوت
    المتصفح القديم — فما يبقى البوت ساكت أبداً.
    ══════════════════════════════════════════════════════════════ */
-const AI_TTS_MODEL = "gemini-3.1-flash-tts-preview";
+/* أسماء موديلات النطق تتغيّر وتختلف من حساب لحساب — نجرّبهن
+   بالتسلسل ونحفظ اللي اشتغل حتى ما نعيد التجربة كل مرة. */
+const AI_TTS_MODELS = [
+  "gemini-3.1-flash-tts-preview",
+  "gemini-2.5-flash-preview-tts",
+  "gemini-2.5-pro-preview-tts",
+  "gemini-2.5-flash-tts"
+];
+const LS_TTS_MODEL="ha_tts_model_v1";
+let AI_TTS_MODEL = (()=>{ try{ return localStorage.getItem(LS_TTS_MODEL)||AI_TTS_MODELS[0] }
+                          catch(e){ return AI_TTS_MODELS[0] } })();
+let TTS_LAST_ERR="";
 
 /* أصوات ذكورية — مرتّبة من الأهدأ للأحيوى */
 const TTS_MALE = [
@@ -13550,9 +13571,9 @@ function pcmToWavBlob(base64, rate){
 
 let _ttsAudio=null, _ttsBusy=false;
 
-async function aiTTSOne(key,text,voice){
+async function aiTTSOne(key,text,voice,model){
   const url="https://generativelanguage.googleapis.com/v1beta/models/"+
-    encodeURIComponent(AI_TTS_MODEL)+":generateContent";
+    encodeURIComponent(model||AI_TTS_MODEL)+":generateContent";
   const body={
     contents:[{parts:[{text:
       /* توجيه النبرة — Gemini يفهم التعليمة قبل النص */
@@ -13584,17 +13605,37 @@ async function aiTTSOne(key,text,voice){
 /* يجرّب مفاتيح البوت بالتسلسل مثل باقي وظائف الذكاء */
 async function aiTTS(cfg,text,voice){
   const keys=(typeof aiKeyList==="function")?aiKeyList(cfg):[];
-  if(!keys.length) return null;
+  if(!keys.length){ TTS_LAST_ERR="ماكو مفتاح ذكاء اصطناعي مربوط بالبوت"; return null }
   const live=keys.filter(k=>!aiDeadIs(k));
   const order=live.length?live:keys;
-  for(const k of order){
-    try{ return await aiTTSOne(k,text,voice) }
-    catch(e){
-      const m=String(e.message||"").toLowerCase();
-      if(e.status===429||m.includes("quota")) aiDeadMark(k,24);
-      else if(e.status===403||e.status===400) aiDeadMark(k,72);
-      else { nxLog("tts",e); break }
+
+  /* الموديل اللي اشتغل قبل يجي أول، وبعده الباقي */
+  const models=[AI_TTS_MODEL].concat(AI_TTS_MODELS.filter(m=>m!==AI_TTS_MODEL));
+
+  for(const model of models){
+    let modelMissing=false;
+    for(const k of order){
+      try{
+        const blob=await aiTTSOne(k,text,voice,model);
+        if(AI_TTS_MODEL!==model){
+          AI_TTS_MODEL=model;
+          try{ localStorage.setItem(LS_TTS_MODEL,model) }catch(e){}
+        }
+        TTS_LAST_ERR="";
+        return blob;
+      }catch(e){
+        const m=String(e.message||"").toLowerCase();
+        TTS_LAST_ERR=(model+": "+(e.message||e)).slice(0,220);
+        /* الموديل نفسه مو متاح لهذا الحساب → ننتقل للموديل الجاي */
+        if(e.status===404||m.includes("not found")||m.includes("is not supported")){
+          modelMissing=true; break;
+        }
+        if(e.status===429||m.includes("quota")) aiDeadMark(k,24);
+        else if(e.status===403) aiDeadMark(k,72);
+        else break;                 /* خطأ ما إله علاقة بالمفتاح */
+      }
     }
+    if(!modelMissing) break;        /* المشكلة مو بالموديل — ما ينفع نجرّب غيره */
   }
   return null;
 }
@@ -13810,8 +13851,8 @@ async function aiHandleExtra(botPhone, text, convId){
     if(/بنت|أنثى|انثى|female|girl|woman/.test(arg)){
       aiVoiceSet(ph,"female");
       await botSay(convId,ph,"صار صوتي صوت بنت. أي رد أرسله راح تسمعه.\nلتغييره: /صوت ولد — ولإطفائه: /صوت وقف");
-      try{ aiSpeak("هلا بيك، هذا صوتي هسه","female",botAI(await botInfo(ph))) }
-      catch(e){ aiSpeak("هلا بيك، هذا صوتي هسه","female") }
+      try{ await aiSpeak("هلا بيك، هذا صوتي هسه","female",botAI(await botInfo(ph))) }
+      catch(e){ nxLog("speak",e) }
       return true;
     }
     /* اختيار صوت معيّن بالاسم — /صوت charon أو /صوت 2 */
@@ -13824,8 +13865,27 @@ async function aiHandleExtra(botPhone, text, convId){
       const isF=TTS_FEMALE.some(v=>v[0]===pick[0]);
       aiVoiceSet(ph,isF?"female":"male");
       await botSay(convId,ph,"صار صوتي «"+pick[0]+"» — "+pick[1]+"\n\nلعرض كل الأصوات: /صوت اصوات");
-      try{ aiSpeak("تمام، هذا صوتي هسه. أي رد أرسله راح تسمعه بهذا الصوت.",
-        isF?"female":"male",botAI(await botInfo(ph))) }catch(e){}
+      try{ await aiSpeak("تمام، هذا صوتي هسه. أي رد أرسله راح تسمعه بهذا الصوت.",
+        isF?"female":"male",botAI(await botInfo(ph))) }catch(e){ nxLog("speak",e) }
+      return true;
+    }
+
+    /* فحص الصوت — يوري شنو الخلل بالضبط */
+    if(/فحص|تشخيص|debug|test/.test(arg)){
+      await botSay(convId,ph,"يفحص محرّك الصوت…");
+      let cfg=null; try{ cfg=botAI(await botInfo(ph)) }catch(e){}
+      const keys=(cfg&&typeof aiKeyList==="function")?aiKeyList(cfg):[];
+      TTS_LAST_ERR="";
+      const blob=keys.length?await aiTTS(cfg,"تجربة صوت","Charon"):null;
+      const lines=[
+        "المفاتيح المربوطة: "+keys.length,
+        "الموديل المستعمل: "+AI_TTS_MODEL,
+        "النتيجة: "+(blob?"نجح ✓ ("+Math.round(blob.size/1024)+" كيلو)":"فشل ✗")
+      ];
+      if(!blob&&TTS_LAST_ERR) lines.push("السبب: "+TTS_LAST_ERR);
+      if(!blob) lines.push("\nالصوت راح يشتغل بمحرّك المتصفح بدلاً منه.");
+      await botSay(convId,ph,lines.join("\n"));
+      if(blob){ try{ await aiSpeak("تجربة ناجحة، الصوت شغّال.","male",cfg) }catch(e){ nxLog("speak",e) } }
       return true;
     }
 
@@ -13843,8 +13903,8 @@ async function aiHandleExtra(botPhone, text, convId){
     if(/ولد|ذكر|male|boy|man/.test(arg)){
       aiVoiceSet(ph,"male");
       await botSay(convId,ph,"صار صوتي صوت ولد. أي رد أرسله راح تسمعه.\nلتغييره: /صوت بنت — ولإطفائه: /صوت وقف");
-      try{ aiSpeak("هلا بيك، هذا صوتي هسه","male",botAI(await botInfo(ph))) }
-      catch(e){ aiSpeak("هلا بيك، هذا صوتي هسه","male") }
+      try{ await aiSpeak("هلا بيك، هذا صوتي هسه","male",botAI(await botInfo(ph))) }
+      catch(e){ nxLog("speak",e) }
       return true;
     }
     if(/وقف|اطفي|أطفئ|off|stop/.test(arg)){
@@ -13917,10 +13977,12 @@ if(typeof botSay==="function" && !botSay._voiceWrapped){
         let inCall=false;
         try{ inCall=!!bcOn }catch(e){}
         if(!inCall){
-          /* نمرّر إعدادات البوت حتى يشتغل الصوت الطبيعي بمفتاحه */
+          /* نمرّر إعدادات البوت حتى يشتغل الصوت الطبيعي بمفتاحه.
+             والـcatch مهم: فشل النطق شي ثانوي، ما يستاهل يطلع
+             تنبيه أحمر بوجه المستخدم — ينزل لصوت المتصفح بصمت. */
           let cfg=null;
           try{ cfg=botAI(await botInfo(msgNormPhone(botPhone))) }catch(e){}
-          aiSpeak(text,eff,cfg);
+          aiSpeak(text,eff,cfg).catch(e=>nxLog("speak",e));
         }
       }
     }catch(e){}
@@ -13952,7 +14014,8 @@ function aiVoiceBtnPaint(){
       const cur=aiVoiceGet(ph);
       const eff=(cur==="off"&&ph===BF_PHONE&&aiVoiceRaw(ph)===undefined)?"male":cur;
       if(eff==="off"){ aiVoiceSet(ph,"male"); toast("صار يحچي بصوت ذكر");
-        botInfo(ph).then(b=>aiSpeak("تمام، صرت أحچي وياك.","male",botAI(b))).catch(()=>aiSpeak("تمام، صرت أحچي وياك.","male")) }
+        botInfo(ph).then(b=>aiSpeak("تمام، صرت أحچي وياك.","male",botAI(b)))
+          .catch(e=>nxLog("speak",e)) }
       else{ aiVoiceSet(ph,"off"); aiSpeakStop(); toast("انطفى الصوت") }
       aiVoiceBtnPaint();
     };
