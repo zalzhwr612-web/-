@@ -76,6 +76,12 @@ body.dark{
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;padding:0}
+/* حاجز التمرير الأفقي — أي عنصر يطلع برّا الشاشة ينقص بدل ما يزحلگ الصفحة */
+html,body{max-width:100%;overflow-x:hidden;overscroll-behavior-x:none}
+img,video,canvas,svg,iframe{max-width:100%}
+pre,code,.mono{overflow-wrap:anywhere;word-break:break-word}
+/* لمسة الإبهام: أي زر أصغر من 44px ينوسّع بمنطقة لمس غير مرئية */
+button,[role="button"],a.btn{touch-action:manipulation}
 body{background:var(--wash);color:var(--ink);font-family:var(--font);font-size:15px;line-height:1.75;
   overscroll-behavior-y:none;transition:background-color .5s,color .5s}
 h1,h2,h3{font-family:var(--font);font-weight:700;line-height:1.45;margin:0}
@@ -479,6 +485,11 @@ body.dark .chat-follow-btn{color:var(--brand-3);border-color:var(--brand-3)}
 .chat-bubble.them{background:var(--m-bubble-them);color:var(--ink);align-self:flex-start;border-end-start-radius:7px;
   transition:background-color var(--T),color var(--T)}
 .chat-bubble .chat-img{max-width:100%;border-radius:14px;margin-bottom:4px;display:block;cursor:pointer}
+/* نحجز مساحة قبل ما تنزل الصورة حتى ما تقفز الرسائل */
+.chat-img-wrap{position:relative;border-radius:14px;background:var(--art);min-height:130px;
+  transition:min-height .2s ease}
+.chat-img-wrap.img-ready{min-height:0;background:transparent}
+.chat-img-wrap.img-bad{min-height:0}
 .chat-img-wrap{position:relative;display:inline-block}
 .chat-img-dl{position:absolute;bottom:11px;inset-inline-end:9px;width:32px;height:32px;border-radius:50%;
   background:rgba(0,0,0,.5);border:0;display:grid;place-items:center;cursor:pointer;backdrop-filter:blur(4px)}
@@ -487,6 +498,37 @@ body.dark .chat-follow-btn{color:var(--brand-3);border-color:var(--brand-3)}
 .chat-bubble .chat-ts{font-size:10.5px;opacity:.62;margin-top:4px;text-align:end;font-family:"IBM Plex Mono"}
 .chat-bubble .edited-mark{font-family:var(--font);font-size:10px;opacity:.75}
 #chat-sub.typing-now{color:var(--green,#12A150);font-weight:600}
+
+/* زر إعادة المحاولة داخل شريط التنبيه */
+.tw-retry{margin-inline-start:auto;flex:none;border:0;border-radius:99px;
+  padding:5px 13px;font-size:12px;font-weight:700;cursor:pointer;
+  background:rgba(255,255,255,.22);color:inherit;font-family:var(--font)}
+.tw-retry[hidden]{display:none}
+.tw-retry:active{opacity:.8}
+
+/* هياكل التحميل — بدل الفراغ المفاجئ */
+@keyframes skShine{0%{background-position:200% 0}100%{background-position:-200% 0}}
+.sk{background:linear-gradient(90deg,var(--art) 25%,var(--line) 37%,var(--art) 63%);
+  background-size:400% 100%;animation:skShine 1.4s ease-in-out infinite;border-radius:8px}
+@media (prefers-reduced-motion:reduce){.sk{animation:none}}
+.sk-conv{display:flex;gap:12px;align-items:center;padding:13px 12px}
+.sk-av{width:52px;height:52px;border-radius:50%;flex:none}
+.sk-lines{flex:1;min-width:0;display:flex;flex-direction:column;gap:7px}
+.sk-l1{height:13px;width:42%}
+.sk-l2{height:11px;width:72%}
+.sk-time{width:34px;height:10px;flex:none}
+
+/* حالة الإرسال */
+.chat-bubble.is-pending{opacity:.72}
+.chat-bubble.is-failed{opacity:1}
+.chat-ticks.pending svg{animation:pendSpin 1.6s linear infinite;transform-origin:50% 50%}
+@keyframes pendSpin{to{transform:rotate(360deg)}}
+.chat-ticks.failed{color:#E2685A}
+.msg-retry{display:block;margin-top:7px;width:100%;border:0;border-radius:9px;
+  padding:6px 10px;font-size:12px;font-weight:600;cursor:pointer;
+  background:#E2685A;color:#fff}
+.msg-retry:active{opacity:.85}
+@media (prefers-reduced-motion:reduce){.chat-ticks.pending svg{animation:none}}
 
 /* شريط البحث داخل المحادثة */
 /* لوحة الإحصائيات بلوحة المالك */
@@ -719,7 +761,8 @@ body.dark .chat-bubble.them .file-card{background:rgba(255,255,255,.08)}
 .top-warn.on{transform:none}
 .top-warn .tw-ico{width:26px;height:26px;border-radius:50%;background:rgba(255,255,255,.22);
   display:grid;place-items:center;flex:none;font-size:15px}
-.top-warn .tw-in{flex:1;min-width:0}
+.top-warn .tw-in{flex:1;min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:6px}
+.top-warn .tw-in>.tw-retry{margin-inline-start:0}
 .top-warn b{display:block;font-size:13.5px;margin-bottom:1px}
 .top-warn span{font-size:12px;opacity:.9;line-height:1.5}
 
@@ -1642,15 +1685,15 @@ body.msgview.msgdark .sheet .btn-o{border-color:#3A3A3A;color:#F0F0F0}
     <!-- شاشة المحادثة (تنفتح فوق كل شي) -->
     <div class="chat-screen" id="chat-screen">
       <div class="chat-top">
-        <button class="chat-back" id="chat-back"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button>
+        <button class="chat-back" id="chat-back" aria-label="رجوع"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button>
         <div class="chat-top-click" id="chat-top-click" style="display:flex;align-items:center;gap:10px;flex:1;min-width:0;cursor:pointer">
           <div class="msg-av" id="chat-av"></div>
           <div class="chat-top-info"><b id="chat-name"></b><small id="chat-sub"></small></div>
         </div>
-        <button class="chat-ic" id="chat-video" title="مكالمة فيديو"><svg viewBox="0 0 24 24"><rect x="2.5" y="6" width="13" height="12" rx="2.4"/><path d="M15.5 10.5l6-3.2v9.4l-6-3.2z"/></svg></button>
-        <button class="chat-ic" id="chat-call" title="مكالمة"><svg viewBox="0 0 24 24"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.3-1.2a2 2 0 0 1 2.1-.5c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2z"/></svg></button>
+        <button class="chat-ic" id="chat-video" aria-label="مكالمة فيديو" title="مكالمة فيديو"><svg viewBox="0 0 24 24"><rect x="2.5" y="6" width="13" height="12" rx="2.4"/><path d="M15.5 10.5l6-3.2v9.4l-6-3.2z"/></svg></button>
+        <button class="chat-ic" id="chat-call" aria-label="مكالمة صوتية" title="مكالمة"><svg viewBox="0 0 24 24"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.3-1.2a2 2 0 0 1 2.1-.5c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2z"/></svg></button>
         <button class="chat-follow-btn" id="chat-follow">متابعة</button>
-        <button class="chat-ic" id="chat-menu" title="خيارات"><svg viewBox="0 0 24 24"><circle cx="12" cy="5" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="12" cy="19" r="1.6"/></svg></button>
+        <button class="chat-ic" id="chat-menu" aria-label="خيارات المحادثة" title="خيارات"><svg viewBox="0 0 24 24"><circle cx="12" cy="5" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="12" cy="19" r="1.6"/></svg></button>
       </div>
       <div class="chat-find" id="chat-find">
         <button class="cf-btn" id="cf-close" aria-label="إغلاق البحث">
@@ -1696,10 +1739,10 @@ body.msgview.msgdark .sheet .btn-o{border-color:#3A3A3A;color:#F0F0F0}
         <button class="rec-stop" id="rec-stop"><svg viewBox="0 0 24 24"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4z"/></svg></button>
       </div>
       <div class="chat-input" id="chat-input-bar">
-        <button class="lux-plus" id="lux-plus" aria-label="إرفاق"></button><button class="chat-img-btn" id="chat-img-btn"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5-8 8"/></svg></button>
+        <button class="lux-plus" id="lux-plus" aria-label="إرفاق"></button><button class="chat-img-btn" id="chat-img-btn" aria-label="إرسال صورة"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5-8 8"/></svg></button>
         <textarea id="chat-text" rows="1" placeholder="اكتب رسالة…"></textarea>
-        <button class="chat-mic-btn" id="chat-mic"><svg viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 17v5"/></svg></button>
-        <button class="chat-send-btn" id="chat-send"><svg viewBox="0 0 24 24"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4z"/></svg></button>
+        <button class="chat-mic-btn" id="chat-mic" aria-label="تسجيل صوتي"><svg viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 17v5"/></svg></button>
+        <button class="chat-send-btn" id="chat-send" aria-label="إرسال"><svg viewBox="0 0 24 24"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4z"/></svg></button>
       </div>
       <input type="file" id="chat-file" accept="image/*" style="display:none">
       <input type="file" id="chat-doc" style="display:none">
@@ -1714,9 +1757,9 @@ body.msgview.msgdark .sheet .btn-o{border-color:#3A3A3A;color:#F0F0F0}
         <svg viewBox="0 0 24 24"><path d="M6.2 6.2l11.6 11.6M17.8 6.2L6.2 17.8"/></svg></button></div>
       <div class="iv-stage"><img loading="lazy" decoding="async" id="iv-img" alt="صورة"></div>
       <div class="iv-acts">
-        <button class="iv-act" id="iv-copy"><span class="ic"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="12" height="12" rx="2.4"/><path d="M15.2 5.6A2.6 2.6 0 0 0 12.6 3H5.6A2.6 2.6 0 0 0 3 5.6v7a2.6 2.6 0 0 0 2.6 2.6"/></svg></span>نسخ</button>
-        <button class="iv-act" id="iv-save"><span class="ic"><svg viewBox="0 0 24 24"><path d="M12 3.5v11.4M12 14.9l-4-4M12 14.9l4-4"/><path d="M4.5 20.5h15"/></svg></span>حفظ</button>
-        <button class="iv-act" id="iv-share"><span class="ic"><svg viewBox="0 0 24 24"><circle cx="18" cy="5" r="2.6"/><circle cx="6" cy="12" r="2.6"/><circle cx="18" cy="19" r="2.6"/><path d="M8.3 10.8l7.4-4.3M8.3 13.2l7.4 4.3"/></svg></span>مشاركة</button>
+        <button class="iv-act" id="iv-copy" aria-label="نسخ الصورة"><span class="ic"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="12" height="12" rx="2.4"/><path d="M15.2 5.6A2.6 2.6 0 0 0 12.6 3H5.6A2.6 2.6 0 0 0 3 5.6v7a2.6 2.6 0 0 0 2.6 2.6"/></svg></span>نسخ</button>
+        <button class="iv-act" id="iv-save" aria-label="حفظ الصورة"><span class="ic"><svg viewBox="0 0 24 24"><path d="M12 3.5v11.4M12 14.9l-4-4M12 14.9l4-4"/><path d="M4.5 20.5h15"/></svg></span>حفظ</button>
+        <button class="iv-act" id="iv-share" aria-label="مشاركة الصورة"><span class="ic"><svg viewBox="0 0 24 24"><circle cx="18" cy="5" r="2.6"/><circle cx="6" cy="12" r="2.6"/><circle cx="18" cy="19" r="2.6"/><path d="M8.3 10.8l7.4-4.3M8.3 13.2l7.4 4.3"/></svg></span>مشاركة</button>
       </div>
     </div>
 
@@ -1758,11 +1801,11 @@ body.msgview.msgdark .sheet .btn-o{border-color:#3A3A3A;color:#F0F0F0}
         <div class="call-wave" id="call-wave"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
         <div class="call-timer" id="call-timer" style="display:none">00:00</div>
         <div class="call-actions">
-          <button class="call-act mute" id="call-mute" title="كتم">
+          <button class="call-act mute" id="call-mute" aria-label="كتم" title="كتم">
             <svg viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 17v5"/></svg></button>
-          <button class="call-act end" id="call-end" title="إنهاء">
+          <button class="call-act end" id="call-end" aria-label="إنهاء المكالمة" title="إنهاء">
             <svg viewBox="0 0 24 24"><path d="M4 6c0 8 6 14 14 14l2-3-4-2-2 2c-2-1-5-4-6-6l2-2-2-4z"/></svg></button>
-          <button class="call-act speaker" id="call-speaker" title="مكبر الصوت">
+          <button class="call-act speaker" id="call-speaker" aria-label="مكبر الصوت" title="مكبر الصوت">
             <svg viewBox="0 0 24 24"><path d="M11 5L6 9H2v6h4l5 4zM19 9a5 5 0 0 1 0 6M15.5 7.5a9 9 0 0 1 0 9"/></svg></button>
         </div>
       </div>
@@ -1776,9 +1819,9 @@ body.msgview.msgdark .sheet .btn-o{border-color:#3A3A3A;color:#F0F0F0}
         <div class="call-status ringing" id="inc-type">مكالمة واردة</div>
         <div class="call-wave"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
         <div class="call-actions">
-          <button class="call-act end" id="inc-decline" title="رفض">
+          <button class="call-act end" id="inc-decline" aria-label="رفض المكالمة" title="رفض">
             <svg viewBox="0 0 24 24"><path d="M4 6c0 8 6 14 14 14l2-3-4-2-2 2c-2-1-5-4-6-6l2-2-2-4z"/></svg></button>
-          <button class="call-act accept" id="inc-accept" title="رد">
+          <button class="call-act accept" id="inc-accept" aria-label="رد على المكالمة" title="رد">
             <svg viewBox="0 0 24 24"><path d="M4 6c0 8 6 14 14 14l2-3-4-2-2 2c-2-1-5-4-6-6l2-2-2-4z"/></svg></button>
         </div>
       </div>
@@ -1790,9 +1833,9 @@ body.msgview.msgdark .sheet .btn-o{border-color:#3A3A3A;color:#F0F0F0}
 
         <!-- صورة الغلاف -->
         <div class="up-cover" id="up-cover">
-          <button class="up-nav up-nav-back" id="uprof-back"><svg viewBox="0 0 24 24"><path d="M5 12h14M13 5l7 7-7 7"/></svg></button>
-          <button class="up-nav up-nav-more" id="up-more"><svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg></button>
-          <button class="up-cover-edit" id="up-cover-edit" hidden><svg viewBox="0 0 24 24"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></button>
+          <button class="up-nav up-nav-back" id="uprof-back" aria-label="رجوع"><svg viewBox="0 0 24 24"><path d="M5 12h14M13 5l7 7-7 7"/></svg></button>
+          <button class="up-nav up-nav-more" id="up-more" aria-label="خيارات الحساب"><svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg></button>
+          <button class="up-cover-edit" id="up-cover-edit" aria-label="تغيير الغلاف" hidden><svg viewBox="0 0 24 24"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></button>
         </div>
 
         <!-- الصورة الشخصية + الأزرار -->
@@ -1800,13 +1843,13 @@ body.msgview.msgdark .sheet .btn-o{border-color:#3A3A3A;color:#F0F0F0}
           <div class="up-avwrap">
             <div class="up-av" id="up-av"></div>
             <span class="up-online"></span>
-            <button class="up-av-edit" id="up-av-edit" hidden><svg viewBox="0 0 24 24"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></button>
+            <button class="up-av-edit" id="up-av-edit" aria-label="تغيير الصورة" hidden><svg viewBox="0 0 24 24"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></button>
           </div>
           <div class="up-acts">
-            <button class="up-ibtn" id="up-msg-btn" title="مراسلة"><svg viewBox="0 0 24 24"><rect x="2.5" y="4.5" width="19" height="15" rx="2.5"/><path d="M3 6.5l9 6.5 9-6.5"/></svg></button>
-            <button class="up-ibtn" id="up-bell-btn" title="تنبيهات"><svg viewBox="0 0 24 24"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 8-3 8h18s-3-1-3-8M13.7 21a2 2 0 0 1-3.4 0"/></svg></button>
-            <button class="up-follow" id="up-follow-btn">متابعة</button>
-            <button class="up-follow up-edit-btn" id="up-edit-btn" hidden>تعديل الملف</button>
+            <button class="up-ibtn" id="up-msg-btn" aria-label="مراسلة" title="مراسلة"><svg viewBox="0 0 24 24"><rect x="2.5" y="4.5" width="19" height="15" rx="2.5"/><path d="M3 6.5l9 6.5 9-6.5"/></svg></button>
+            <button class="up-ibtn" id="up-bell-btn" aria-label="إشعارات الحساب" title="تنبيهات"><svg viewBox="0 0 24 24"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 8-3 8h18s-3-1-3-8M13.7 21a2 2 0 0 1-3.4 0"/></svg></button>
+            <button class="up-follow" id="up-follow-btn" aria-label="متابعة">متابعة</button>
+            <button class="up-follow up-edit-btn" id="up-edit-btn" aria-label="تعديل الملف" hidden>تعديل الملف</button>
           </div>
         </div>
 
@@ -5808,7 +5851,7 @@ function lookSet(patch){
 
 function lookSheet(){
   const opts=BUBBLES.map(b=>`<button class="bub-opt${chatLook.bub===b.k?' on':''}" data-bub="${b.k}"
-      title="${b.n}"><span class="bub-sw" style="background:${b.g}"></span>
+      title="${b.n}" aria-label="${b.n}"><span class="bub-sw" style="background:${b.g}"></span>
       <span class="bub-nm">${b.n}</span></button>`).join('');
   openSheet(`
     <h3 style="font-size:17px;margin-bottom:4px">مظهر المحادثة</h3>
@@ -6479,7 +6522,7 @@ async function sbUpload(blob,folder,opts){
           resolve(null);
         }
       };
-      xhr.onerror=()=>{ warnTop("انقطع الاتصال أثناء الرفع"); resolve(null) };
+      xhr.onerror=()=>{ warnTop("انقطع الاتصال أثناء الرفع — تحقّق من الإنترنت"); resolve(null) };
       xhr.ontimeout=()=>{ warnTop("الرفع طوّل — جرّب مرة ثانية"); resolve(null) };
       xhr.timeout=180000;
       xhr.send(blob);
@@ -6545,13 +6588,27 @@ async function msgRenderStories(){
   });
 }
 
+function skeletonConvs(n){
+  return Array.from({length:n||6},()=>
+    `<div class="sk-conv"><div class="sk sk-av"></div>
+      <div class="sk-lines"><div class="sk sk-l1"></div><div class="sk sk-l2"></div></div>
+      <div class="sk sk-time"></div></div>`).join('');
+}
+
+let _convsFirstLoad=true;
 async function msgRenderConvs(){
   if(!isLoggedMsg()){
     document.getElementById('msg-conv-list').innerHTML='';
     document.getElementById('msg-empty-box').hidden=false;
     setTxt('t-msgEmpty',mt().needLogin);setTxt('t-msgEmptyD','');return;
   }
+  const box0=document.getElementById('msg-conv-list');
+  if(_convsFirstLoad&&box0&&!box0.children.length){
+    box0.innerHTML=skeletonConvs(6);
+    document.getElementById('msg-empty-box').hidden=true;
+  }
   let convs=await msgMyConvs();
+  _convsFirstLoad=false;
   const box=document.getElementById('msg-conv-list');
   const empty=document.getElementById('msg-empty-box');
   if(!convs.length){box.innerHTML='';empty.hidden=false;setTxt('t-msgEmpty',mt().emptyT);setTxt('t-msgEmptyD',mt().emptyD);return}
@@ -6707,6 +6764,14 @@ async function msgRefreshChat(){
   msgs=msgs.filter(m=>!isHiddenMsg(m.id));
   chatMsgs=msgs;
   await rxFetch(msgs.map(m=>m.id));
+  pendingPrune(msgs);
+  msgPaintChat();
+}
+
+/* الرسم لحاله — ينندي بلا أي طلب شبكة، فالرسالة تبين فوراً */
+function msgPaintChat(){
+  const box=document.getElementById('chat-msgs'); if(!box) return;
+  const msgs=chatMsgs.concat(pendingFor(chatConvId));
   const me=myPhone();
   let html='', lastDate='';
   msgs.forEach(m=>{
@@ -6727,18 +6792,23 @@ async function msgRefreshChat(){
         <div class="voice-bars">${Array.from({length:22},(_,i)=>`<i style="height:${5+((i*7+11)%17)}px"></i>`).join('')}</div>
         <span class="voice-dur">${msgFmtDur(m.voice_dur||0)}</span>
       </div></div>`;
-    if(m.img) content+=`<div class="chat-img-wrap"><img loading="lazy" decoding="async" class="chat-img" src="${esc(m.img)}" alt="صورة"><button class="chat-img-dl" data-src="${esc(m.img)}" title="حفظ الصورة"><svg viewBox="0 0 24 24"><path d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14"/></svg></button></div>`;
+    if(m.img) content+=`<div class="chat-img-wrap"><img loading="lazy" decoding="async" class="chat-img" src="${esc(m.img)}" alt="صورة"><button class="chat-img-dl" data-src="${esc(m.img)}" title="حفظ الصورة" aria-label="حفظ الصورة"><svg viewBox="0 0 24 24"><path d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14"/></svg></button></div>`;
     if(m.file) content+=fileCardHTML(m.file);
     if(m.body) content+=`<div>${esc(m.body)}</div>`;
-    const ticks=isMe?`<span class="chat-ticks${m.read?' read':''}">${m.read
+    const ticks=isMe?(m._failed
+      ? `<span class="chat-ticks failed" title="ما انرسلت"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5.5M12 16.3h.01"/></svg></span>`
+      : m._pending
+      ? `<span class="chat-ticks pending" title="جاري الإرسال"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 1.8"/></svg></span>`
+      : `<span class="chat-ticks${m.read?' read':''}">${m.read
       ?'<svg viewBox="0 0 24 24"><path d="M1.5 12.5l4 4L14 8"/><path d="M9 16.5l1 1L22.5 5"/></svg>'
-      :'<svg viewBox="0 0 24 24"><path d="M4 12.5l5 5L20 6.5"/></svg>'}</span>`:'';
+      :'<svg viewBox="0 0 24 24"><path d="M4 12.5l5 5L20 6.5"/></svg>'}</span>`):'';
     const editMark = m.edited ? '<span class="edited-mark">معدّلة</span> ' : '';
     content+=`<div class="chat-ts">${editMark}${d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}${ticks}</div>`;
     const pills=rxPillsHTML(m.id);
     /* صورة لحالها بلا نص ولا رد = بلا إطار، الصورة تملأ الفقاعة */
     const bare = m.img && !m.body && !m.voice && !m.file && !m.reply_to;
-    html+=`<div class="chat-bubble ${isMe?'me':'them'}${pills?' has-rx':''}${bare?' img-only':''}" data-id="${esc(m.id)}">${replyQuoteHTML(m)}${content}${pills}</div>`;
+    html+=`<div class="chat-bubble ${isMe?'me':'them'}${pills?' has-rx':''}${bare?' img-only':''}${m._pending?' is-pending':''}${m._failed?' is-failed':''}" data-id="${esc(m.id)}">${replyQuoteHTML(m)}${content}${pills}${
+      m._failed?`<button class="msg-retry" data-retry="${esc(m.id)}">إعادة الإرسال</button>`:''}</div>`;
   });
   /* ما نعيد الرسم إذا ماكو أي تغيير — يمنع القفز والوميض */
   if(html===_lastChatHTML) return;
@@ -6782,6 +6852,8 @@ async function msgRefreshChat(){
           '<b>الصورة ما وصلت</b><span>سيرفر الصور مطفي — شغّله وحدّث الصفحة</span></div>';
       }
     };
+    const markReady=()=>{ const w=im.closest('.chat-img-wrap'); if(w) w.classList.add('img-ready') };
+    if(im.complete && im.naturalWidth>0) markReady(); else im.addEventListener('load',markReady,{once:true});
     if(im.complete && im.naturalWidth===0) markBad();
     im.onerror=markBad;
   });
@@ -6790,6 +6862,9 @@ async function msgRefreshChat(){
     fc.onclick=e=>{ e.stopPropagation(); fileDownload(fc.dataset.file,fc.dataset.fname) };
   });
   /* الضغطة المطوّلة → لوحة الإيموجي، والسحب → الرد */
+  box.querySelectorAll('[data-retry]').forEach(b=>{
+    b.onclick=e=>{ e.stopPropagation(); pendingRetry(b.dataset.retry) };
+  });
   rxBindBubbles();
   replyBindSwipe();
 }
@@ -7262,12 +7337,24 @@ function cleanBad(txt){
 
 /* شريط التنبيه اللي ينزل من فوق */
 let _warnT=null;
-function warnTop(msg){
+function warnTop(msg,onRetry){
   const el=document.getElementById('top-warn'); if(!el) return;
   setTxt('tw-msg',msg);
+  /* زر إعادة المحاولة — يبين بس إذا في شي نعيده فعلاً */
+  let rb=el.querySelector('.tw-retry');
+  if(onRetry){
+    if(!rb){
+      rb=document.createElement('button');
+      rb.className='tw-retry'; rb.type='button';
+      el.querySelector('.tw-in').appendChild(rb);
+    }
+    rb.textContent='إعادة المحاولة';
+    rb.hidden=false;
+    rb.onclick=()=>{ el.classList.remove('on'); try{ onRetry() }catch(e){ nxLog('retry',e) } };
+  }else if(rb){ rb.hidden=true; rb.onclick=null }
   el.classList.add('on');
   clearTimeout(_warnT);
-  _warnT=setTimeout(()=>el.classList.remove('on'),4200);
+  _warnT=setTimeout(()=>el.classList.remove('on'),onRetry?9000:4200);
   if(navigator.vibrate){try{navigator.vibrate([40,60,40])}catch(e){}}
 }
 
@@ -7678,6 +7765,98 @@ async function adStatsLoad(){
 
   if(rf){ rf.disabled=false; rf.textContent="تحديث"; rf.onclick=adStatsLoad }
   _adStatsBusy=false;
+}
+
+
+/* ══════════════════════════════════════════════════════════════
+   الإرسال المتفائل — الرسالة تبين بالشاشة أول ما تضغط إرسال،
+   قبل ما توصل القاعدة. إذا نجحت تنبدّل بالنسخة الحقيقية،
+   وإذا فشلت تبقى بالشاشة بعلامة خطأ وزر «إعادة الإرسال»
+   بدل ما تختفي والمستخدم ما يدري.
+   ══════════════════════════════════════════════════════════════ */
+let _pending=[];
+
+function pendingFor(convId){
+  return _pending.filter(m=>String(m.conv_id)===String(convId));
+}
+
+/* نشيل المعلّقة إذا وصلت نسختها الحقيقية من القاعدة */
+function pendingPrune(serverMsgs){
+  if(!_pending.length) return;
+  _pending=_pending.filter(p=>{
+    if(p._failed) return true;                 /* الفاشلة تبقى لين يعيدها المستخدم */
+    const twin=serverMsgs.some(m=>
+      m.sender===p.sender &&
+      (m.body||"")===(p.body||"") &&
+      Math.abs(new Date(m.created_at)-new Date(p.created_at))<90000);
+    return !twin;
+  });
+}
+
+function pendingAdd(convId,body,img,file,replyToId){
+  const m={
+    id:"tmp-"+Date.now()+"-"+Math.random().toString(36).slice(2,6),
+    conv_id:convId, sender:myPhone(), body:body||null, img:img||null,
+    file:file||null, reply_to:replyToId||null,
+    created_at:new Date().toISOString(), _pending:true
+  };
+  _pending.push(m);
+  _lastChatHTML="";
+  _chatForceBottom=true;
+  msgPaintChat();
+  return m;
+}
+
+function pendingDone(tmpId){
+  _pending=_pending.filter(m=>m.id!==tmpId);
+}
+
+function pendingFail(tmpId){
+  const m=_pending.find(x=>x.id===tmpId);
+  if(m){ m._pending=false; m._failed=true }
+  _lastChatHTML="";
+  msgPaintChat();
+  warnTop("الرسالة ما انرسلت — اضغط «إعادة الإرسال»");
+}
+
+async function pendingRetry(tmpId){
+  const m=_pending.find(x=>x.id===tmpId); if(!m) return;
+  m._failed=false; m._pending=true;
+  _lastChatHTML=""; msgPaintChat();
+  const ok=await msgSend(m.conv_id,m.body,m.img,null,null,m.reply_to,m.file);
+  if(ok){ pendingDone(tmpId); await msgRefreshChat() }
+  else pendingFail(tmpId);
+}
+
+
+/* ══════════════════════════════════════════════════════════════
+   لوحة المفاتيح على الموبايل
+   بعض المتصفحات (خصوصاً كروم أندرويد) ما تقلّص الصفحة لما تطلع
+   لوحة المفاتيح، فحقل الكتابة ينخفي وراها. نستخدم visualViewport
+   حتى نعرف الارتفاع المتبقي الحقيقي ونظبّط شاشة المحادثة عليه.
+   ══════════════════════════════════════════════════════════════ */
+function keyboardBoot(){
+  const vv=window.visualViewport;
+  if(!vv) return;                       /* متصفح قديم — يبقى يشتغل مثل ما كان */
+  const screen=document.getElementById('chat-screen');
+  let raf=null;
+  const apply=()=>{
+    raf=null;
+    if(!screen||!screen.classList.contains('on')) return;
+    const gap=Math.max(0,window.innerHeight-vv.height-vv.offsetTop);
+    screen.style.height=vv.height+"px";
+    if(gap>80){                       /* لوحة المفاتيح طالعة */
+      const box=document.getElementById('chat-msgs');
+      if(box) box.scrollTop=box.scrollHeight;
+    }
+  };
+  const onChange=()=>{ if(!raf) raf=requestAnimationFrame(apply) };
+  vv.addEventListener('resize',onChange);
+  vv.addEventListener('scroll',onChange);
+  /* نرجّع الارتفاع الطبيعي لما تنسكّر المحادثة */
+  document.addEventListener('visibilitychange',()=>{
+    if(screen&&!screen.classList.contains('on')) screen.style.height="";
+  });
 }
 
 /* ══════════ تعديل رسالة ══════════ */
@@ -8132,7 +8311,10 @@ function msgDownloadImg(src){
 }
 
 function msgCloseChat(){
-  document.getElementById('chat-screen').classList.remove('on');
+  const sc=document.getElementById('chat-screen');
+  sc.classList.remove('on');
+  sc.style.height="";              /* نرجّع الارتفاع الطبيعي بعد لوحة المفاتيح */
+  typingClear(); findClose();
   chatWith=null;chatConvId=null;chatMsgs=[];
   clearInterval(msgPollTimer);
   if(msgTab==='chats') msgRenderConvs();
@@ -9073,6 +9255,7 @@ function msgBoot(){
   msgFillUI();
   NXRT.boot();
   findBoot();
+  keyboardBoot();
   document.getElementById('uprof-back').onclick=msgCloseProfile;
   /* أزرار الملف الشخصي */
   document.getElementById('up-av-edit').onclick=()=>upPickImage('avatar');
@@ -9181,8 +9364,11 @@ function msgBoot(){
         if(d) fObj.data=d; else fObj=null;
       }else{ toast('فعّل مخزن الملفات — الملف كبير على القاعدة'); fObj=null }
     }
-    await msgSend(chatConvId,txt,img,null,null,rp,fObj);
-    await msgRefreshChat();
+    /* تبين فوراً — ما ننتظر القاعدة */
+    const tmp=pendingAdd(chatConvId,txt,img,fObj,rp);
+    const ok=await msgSend(chatConvId,txt,img,null,null,rp,fObj);
+    if(ok){ pendingDone(tmp.id); await msgRefreshChat() }
+    else pendingFail(tmp.id);
   };
   document.getElementById('chat-send').onclick=sendMsg;
   document.getElementById('chat-text').addEventListener('keydown',e=>{
