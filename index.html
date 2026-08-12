@@ -538,6 +538,13 @@ body.dark .chat-follow-btn{color:var(--brand-3);border-color:var(--brand-3)}
 .sw-pill #sw-pill-x{flex:none;border:0;background:transparent;color:var(--muted);
   font-size:20px;line-height:1;cursor:pointer;padding:0 4px}
 
+#push-nudge{bottom:calc(env(safe-area-inset-bottom,0px) + 74px)}
+#push-nudge img{object-fit:cover}
+#push-nudge #pn-go{flex:none;border:0;border-radius:99px;padding:6px 15px;cursor:pointer;
+  background:var(--brand);color:#fff;font-size:12.5px;font-weight:700;font-family:var(--font)}
+#push-nudge #pn-x{flex:none;border:0;background:transparent;color:var(--muted);
+  font-size:20px;line-height:1;cursor:pointer;padding:0 4px}
+
 /* الزر أثناء التنفيذ */
 .is-busy{opacity:.6;pointer-events:none;position:relative}
 
@@ -1979,6 +1986,12 @@ body.msgview.msgdark .sheet .btn-o{border-color:#3A3A3A;color:#F0F0F0}
 
 <div class="scrim" id="scrim"></div>
 <div class="sheet" id="sheet" role="dialog" aria-modal="true"><div class="handle"></div><div id="sheet-body"></div></div>
+<div class="sw-pill" id="push-nudge" hidden>
+  <img src="./icon-192.png" alt="" width="34" height="34" style="border-radius:9px;flex:none">
+  <span>فعّل الإشعارات حتى توصلك الرسائل والمكالمات والموقع مسكّر</span>
+  <button id="pn-go" type="button">تفعيل</button>
+  <button id="pn-x" type="button" aria-label="لاحقاً">&times;</button>
+</div>
 <div class="sw-pill" id="sw-pill" hidden>
   <span>صدرت نسخة جديدة من NΞXA</span>
   <button id="sw-pill-go" type="button">تحديث</button>
@@ -8248,6 +8261,34 @@ function reconnectRefresh(){
 }
 addEventListener("online",reconnectRefresh);
 
+/* ══════════════════════════════════════════════════════════════
+   تذكير تفعيل الإشعارات
+   بلا إذن الإشعارات، ما يوصل المستخدم شي والموقع مسكّر — لا رسالة
+   ولا مكالمة. نعرضه مرة وحدة بس، وبعد ما يستخدم التطبيق شوية.
+   ══════════════════════════════════════════════════════════════ */
+const LS_PUSH_ASK="ha_push_ask_v1";
+
+function pushNudge(){
+  try{
+    if(!isLoggedMsg()) return;
+    if(!("Notification" in window)) return;
+    if(Notification.permission!=="default") return;   /* مفعّل أو محظور */
+    if(localStorage.getItem(LS_PUSH_ASK)==="1") return;
+    const el=document.getElementById('push-nudge'); if(!el) return;
+    el.hidden=false;
+    el.querySelector('#pn-go').onclick=async()=>{
+      el.hidden=true;
+      localStorage.setItem(LS_PUSH_ASK,"1");
+      const ok=await pushEnable(false);
+      if(ok) toast("صارت توصلك الإشعارات ✓");
+    };
+    el.querySelector('#pn-x').onclick=()=>{
+      el.hidden=true;
+      localStorage.setItem(LS_PUSH_ASK,"1");
+    };
+  }catch(e){}
+}
+
 /* ══════════ تعديل رسالة ══════════ */
 let _editedCol=true;                 /* يطفي نفسه إذا عمود edited مو موجود بالقاعدة */
 
@@ -10017,7 +10058,18 @@ function msgBoot(){
   findBoot();
   keyboardBoot();
   netWatch();
-  swUpdateWatch();
+  /* نسجّل الـService Worker بأول فتحة — بدونه ما في إشعارات ولا
+     تحديث نسخة ولا عمل بدون إنترنت. كان ينسجّل بس لما يفعّل
+     الإشعارات، يعني أغلب المستخدمين بلا Service Worker أصلاً. */
+  (async()=>{
+    try{
+      if("serviceWorker" in navigator && location.protocol==="https:"){
+        await navigator.serviceWorker.register("./sw.js");
+      }
+    }catch(e){ nxLog("sw-register",e) }
+    swUpdateWatch();
+    setTimeout(pushNudge,4000);
+  })();
   document.getElementById('uprof-back').onclick=msgCloseProfile;
   /* أزرار الملف الشخصي */
   document.getElementById('up-av-edit').onclick=()=>upPickImage('avatar');
