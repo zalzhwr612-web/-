@@ -13569,7 +13569,60 @@ function pcmToWavBlob(base64, rate){
   return new Blob([buf],{type:"audio/wav"});
 }
 
-let _ttsAudio=null, _ttsBusy=false;
+/* ══════════════════════════════════════════════════════════════
+   تشغيل الصوت على أندرويد
+
+   كروم يمنع تشغيل أي صوت ما ينبع مباشرة من لمسة المستخدم. ورد
+   البوت يوصل بعد ثواني من الضغطة، فالمتصفح يرفض يشغّله — بصمت،
+   بلا أي خطأ. هذا سبب «ما أسمع صوت».
+
+   الحل المعتمد: عنصر <audio> واحد ثابت نفتحه بأول لمسة يسويها
+   المستخدم بالتطبيق (بمقطع صامت). العنصر يبقى «مفتوح» بعدها،
+   فأي صوت نحطه بيه يشتغل حتى لو ما في لمسة بتلك اللحظة.
+   ══════════════════════════════════════════════════════════════ */
+let _ttsEl=null, _ttsElOk=false, _ttsBusy=false, _ttsPending=null;
+
+/* مقطع WAV صامت طوله جزء من الثانية — يفتح قفل التشغيل */
+const SILENT_WAV="data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAgD4AAAB9AAACABAAZGF0YQAAAAA=";
+
+function ttsEl(){
+  if(_ttsEl) return _ttsEl;
+  _ttsEl=new Audio();
+  _ttsEl.preload="auto";
+  _ttsEl.setAttribute("playsinline","");
+  _ttsEl.addEventListener("ended",()=>ttsRevoke());
+  return _ttsEl;
+}
+function ttsRevoke(){
+  if(_ttsEl&&_ttsEl._url){ try{ URL.revokeObjectURL(_ttsEl._url) }catch(e){} _ttsEl._url=null }
+}
+
+/* ينندى من أول لمسة — لمسة وحدة تكفي للجلسة كلها */
+function ttsAudioUnlock(){
+  if(_ttsElOk) return;
+  const el=ttsEl();
+  try{
+    el.src=SILENT_WAV;
+    const pr=el.play();
+    if(pr&&pr.then) pr.then(()=>{ _ttsElOk=true; try{ el.pause() }catch(e){} })
+                      .catch(()=>{});
+    else _ttsElOk=true;
+  }catch(e){}
+}
+["pointerdown","touchstart","click","keydown"].forEach(ev=>
+  addEventListener(ev,ttsAudioUnlock,{passive:true}));
+
+/* إذا انحظر التشغيل، نعرض زر يضغطه المستخدم فيسمع */
+function ttsOfferTap(){
+  try{
+    warnTop("الصوت جاهز — المتصفح يطلب ضغطة حتى يشغّله", ()=>{
+      _ttsElOk=true;
+      const el=ttsEl();
+      if(_ttsPending){ el.src=_ttsPending; el._url=_ttsPending; }
+      el.play().catch(e=>nxLog("tts-tap",e));
+    });
+  }catch(e){}
+}
 
 async function aiTTSOne(key,text,voice,model){
   const url="https://generativelanguage.googleapis.com/v1beta/models/"+
@@ -13641,11 +13694,11 @@ async function aiTTS(cfg,text,voice){
 }
 
 function aiSpeakStopServer(){
-  if(_ttsAudio){
-    try{ _ttsAudio.pause(); _ttsAudio.src="" }catch(e){}
-    if(_ttsAudio._url) try{ URL.revokeObjectURL(_ttsAudio._url) }catch(e){}
-    _ttsAudio=null;
+  if(_ttsEl){
+    try{ _ttsEl.pause() }catch(e){}
+    ttsRevoke();
   }
+  _ttsPending=null;
   _ttsBusy=false;
 }
 
@@ -13669,14 +13722,21 @@ async function aiSpeak(text,gender,cfg){
       const blob=await aiTTS(conf,t,ttsVoiceName(gender));
       if(blob){
         const url=URL.createObjectURL(blob);
-        const a=new Audio(url);
-        a._url=url;
-        a.onended=()=>aiSpeakStopServer();
-        a.onerror=()=>aiSpeakStopServer();
-        _ttsAudio=a;
-        await a.play();
-        _ttsBusy=false;
-        return true;
+        const el=ttsEl();
+        ttsRevoke();
+        el.src=url; el._url=url;
+        _ttsPending=url;
+        try{
+          await el.play();
+          _ttsBusy=false;
+          return true;                 /* اشتغل — ما نحتاج صوت المتصفح */
+        }catch(e){
+          /* المتصفح حاظر التشغيل التلقائي — نعرض زر بدل الصمت */
+          nxLog("tts-autoplay",e);
+          ttsOfferTap();
+          _ttsBusy=false;
+          return true;
+        }
       }
     }catch(e){ nxLog("tts-play",e) }
     _ttsBusy=false;
@@ -13883,6 +13943,7 @@ async function aiHandleExtra(botPhone, text, convId){
         "النتيجة: "+(blob?"نجح ✓ ("+Math.round(blob.size/1024)+" كيلو)":"فشل ✗")
       ];
       if(!blob&&TTS_LAST_ERR) lines.push("السبب: "+TTS_LAST_ERR);
+      lines.push("قفل التشغيل التلقائي: "+(_ttsElOk?"مفتوح ✓":"مقفل — المس الشاشة مرة"));
       if(!blob) lines.push("\nالصوت راح يشتغل بمحرّك المتصفح بدلاً منه.");
       await botSay(convId,ph,lines.join("\n"));
       if(blob){ try{ await aiSpeak("تجربة ناجحة، الصوت شغّال.","male",cfg) }catch(e){ nxLog("speak",e) } }
