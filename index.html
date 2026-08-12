@@ -8721,6 +8721,10 @@ function msgCloseChat(){
   sc.style.height="";              /* نرجّع الارتفاع الطبيعي بعد لوحة المفاتيح */
   typingClear(); findClose();
   chatWith=null;chatConvId=null;chatMsgs=[];
+  /* تصفير كامل — أي بقايا من المحادثة السابقة تلخبط الفتحة الجاية */
+  _chatSig=""; _lastChatHTML=""; _firstMsgId="";
+  _olderBusy=false; _olderDone=false;
+  _newWhileUp=0; _chatForceBottom=true;
   clearInterval(msgPollTimer);
   if(msgTab==='chats') msgRenderConvs();
 }
@@ -9362,11 +9366,19 @@ function callRealtimeEvent(type,row){
   }
 }
 
+let _callPollTick=0;
 function callWatchIncoming(){
   clearInterval(_ringWatch);
   _ringWatch=setInterval(async()=>{
     if(!isLoggedMsg()||_callId||_incoming) return;
-    if(typeof NXRT!=="undefined"&&NXRT.live()) return;   /* القناة تكفي */
+    /* لا نوقف الفحص أبداً. إذا قناة calls مثبتة نخفّف بس: نفحص كل
+       ثالث دورة. غير هيك نفحص كل دورة مثل ما كان.
+       سبب هذا: لو اعتمدنا على القناة وهي مو مفعّلة لجدول calls،
+       ما يرنّ عندك أي اتصال إطلاقاً. */
+    if(typeof NXRT!=="undefined" && NXRT.liveFor("calls")){
+      _callPollTick=(_callPollTick+1)%3;
+      if(_callPollTick!==0) return;
+    }
     const since=new Date(Date.now()-CALL_RING_MS).toISOString();
     let rows;
     try{ rows=await sbSelect("calls","select=*&callee=eq."+encodeURIComponent(myPhone())
@@ -9374,7 +9386,7 @@ function callWatchIncoming(){
     catch(e){ return }
     const c=(rows||[]).find(r=>!_ignoredCalls[r.id]&&!iBlocked(r.caller));
     if(c) callShowIncoming(c);
-  },8000);
+  },3000);
 }
 
 /* ══════════════════════════════════════════════════════════════
@@ -9864,12 +9876,16 @@ addEventListener("online", ()=>{ toast("رجع الإنترنت ✓"); try{ NXRT
    alter publication supabase_realtime add table public.conversations;
    ══════════════════════════════════════════════════════════════ */
 const NXRT={
-  ws:null, joined:false, proven:false, tries:0, _hb:null, _ref:0,
+  ws:null, joined:false, tries:0, _hb:null, _ref:0,
   _last:{}, _dirty:{}, _t:{},
-  PROVEN_KEY:"ha_rt_proven_v1",
+  /* أي جدول وصلتنا منه إشارة حقيقية. الجدول اللي ما وصلت منه إشارة
+     يبقى يتفحّص بالطريقة القديمة — ما نفترض إنه شغّال. */
+  proven:{},
+  PROVEN_KEY:"ha_rt_proven_v2",
 
   boot(){
-    try{ this.proven = localStorage.getItem(this.PROVEN_KEY)==="1" }catch(e){}
+    try{ this.proven=JSON.parse(localStorage.getItem(this.PROVEN_KEY)||"{}")||{} }catch(e){ this.proven={} }
+    try{ localStorage.removeItem("ha_rt_proven_v1") }catch(e){}
     this.open();
     addEventListener("online",()=>this.open());
     document.addEventListener("visibilitychange",()=>{ if(!document.hidden) this.open() });
@@ -9935,10 +9951,10 @@ const NXRT={
     if(m.event!=="postgres_changes") return;
     const d=m.payload&&m.payload.data; if(!d) return;
 
-    /* أول حدث حقيقي = القناة مثبتة، هسه نكدر نخفّف التصفّح */
-    if(!this.proven){
-      this.proven=true;
-      try{ localStorage.setItem(this.PROVEN_KEY,"1") }catch(_){}
+    /* أول حدث من هذا الجدول بالذات = قناته مثبتة */
+    if(d.table && !this.proven[d.table]){
+      this.proven[d.table]=true;
+      try{ localStorage.setItem(this.PROVEN_KEY,JSON.stringify(this.proven)) }catch(_){}
     }
     const row=d.record||d.old_record||{};
 
@@ -9967,21 +9983,29 @@ const NXRT={
     },ms||200);
   },
 
-  live(){ return this.proven && this.ws && this.ws.readyState===1 && this.joined },
+  /* القناة نفسها متصلة — يستعملها البث (يكتب الآن) اللي ما يحتاج publication */
+  connected(){ return !!(this.ws && this.ws.readyState===1 && this.joined) },
+
+  /* قناة هذا الجدول مثبتة فعلاً — الشرط الوحيد لتخفيف الفحص عليه */
+  liveFor(table){ return this.connected() && !!this.proven[table] },
+
+  live(){ return this.connected() },
 
   /* البث ما يحتاج جدول ولا صلاحيات — يوصل مباشرة لبقية المتصلين */
   broadcast(event,payload){
-    if(!this.ws||this.ws.readyState!==1||!this.joined) return false;
+    if(!this.connected()) return false;
     this.push("realtime:nxa","broadcast",{type:"broadcast",event,payload});
     return true;
   },
 
   /* المؤقّت القديم ينادي هذي: يرجّع true يعني «ما تحتاج تسأل القاعدة» */
   skip(kind){
-    if(!this.live()) return false;            /* القناة مو شغّالة → التصفّح مثل ما كان */
-    if(this._dirty[kind]) return true;        /* في تحديث راكض هسه */
+    /* كل نوع فحص يعتمد على جدوله هو — مو على «القناة شغّالة» عموماً */
+    const table={chat:"messages",convs:"messages",notif:"messages"}[kind];
+    if(!table||!this.liveFor(table)) return false;   /* مو مثبت → افحص مثل ما كان */
+    if(this._dirty[kind]) return true;
     const last=this._last[kind]||0;
-    if(Date.now()-last < 45000) return true;  /* فحص أمان كل ٤٥ ثانية بس */
+    if(Date.now()-last < 15000) return true;         /* شبكة أمان كل ١٥ ثانية */
     this._last[kind]=Date.now();
     return false;
   }
