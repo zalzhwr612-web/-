@@ -6407,16 +6407,32 @@ async function msgIsFollowing(phone){
     return r&&r.length>0}catch(e){return false}
 }
 /* عدد المتابعين والمتابَعين لأي شخص (مو بس أنا) */
-async function msgCountFollowers(phone){
+/* ══════════════════════════════════════════════════════════════
+   عدّادات المتابعة
+
+   كانت تنزّل كل الصفوف وتعدّها بالجهاز — يعني حساب عنده ٥٠٠٠
+   متابع ينزّل ٥٠٠٠ صف عشان يعرض رقم. وأخطر: عند أي خطأ ترجّع
+   صفر، فالمستخدم يشوف «٠» ويظن ما عنده متابعين والحقيقة إن
+   الاستعلام فشل.
+
+   هسه: count=exact يرجّع العدد بالترويسة بلا ما ينزّل أي صف،
+   وعند الفشل نرجّع null فتظهر «—» مو «٠» — نفرّق بين
+   «ماكو متابعين» و«ما گدرت أعرف».
+   ══════════════════════════════════════════════════════════════ */
+async function followCount(col,phone){
   phone=msgNormPhone(phone);
-  try{const r=await sbSelect("follows","select=follower&following=eq."+encodeURIComponent(phone));return (r||[]).length}
-  catch(e){return 0}
+  if(!phone) return null;
+  try{
+    const r=await fetch(sbBase()+"/rest/v1/follows?select=id&"+col+"=eq."+encodeURIComponent(phone)+"&limit=1",
+      {headers:sbHead({Prefer:"count=exact",Range:"0-0"})});
+    if(!r.ok) throw new Error("HTTP "+r.status);
+    const n=parseInt(((r.headers.get("content-range")||"").split("/")[1]||"").trim(),10);
+    return isNaN(n)?null:n;
+  }catch(e){ nxLog("followCount:"+col,e); return null }
 }
-async function msgCountFollowing(phone){
-  phone=msgNormPhone(phone);
-  try{const r=await sbSelect("follows","select=following&follower=eq."+encodeURIComponent(phone));return (r||[]).length}
-  catch(e){return 0}
-}
+
+const msgCountFollowers=phone=>followCount("following",phone);
+const msgCountFollowing=phone=>followCount("follower",phone);
 /* جلب ملف مستخدم واحد */
 /* ذاكرة مؤقتة للملفات — تمنع تكرار نفس الطلب عشر مرات بالدقيقة */
 const _profCache=new Map();
@@ -8102,14 +8118,38 @@ function netHide(){
   el.hidden=true; _netState="";
 }
 
+/* ══════════════════════════════════════════════════════════════
+   مؤشّر الاتصال
+
+   قاعدة مهمة: القناة اللحظية ترف، مو ضرورة. إذا سقطت، التطبيق
+   يبقى شغّال كامل بالفحص الدوري — الرسائل والمكالمات توصل، بس
+   بتأخير ثواني. فمو صحيح نخوّف المستخدم بشريط «جاري الاتصال»
+   دائم على شي أصلاً ما يعطّله.
+
+   فنبيّنه بحالتين بس:
+   - ماكو إنترنت فعلاً (هذا يعطّل كل شي)
+   - القناة سقطت وإحنا نحاول — ولمدة ٢٠ ثانية بالكثير
+   ══════════════════════════════════════════════════════════════ */
+let _dcSince=0;
+
 function netWatch(){
   const tick=()=>{
-    if(!navigator.onLine){ netShow('bad','ماكو إنترنت'); return }
+    if(!navigator.onLine){ _dcSince=0; netShow('bad','ماكو إنترنت'); return }
     if(typeof NXRT==="undefined"){ netHide(); return }
-    /* القناة اللحظية سقطت وهو يحاول يرجعها */
-    if(NXRT.tries>0 && !NXRT.joined){ netShow('wait','جاري الاتصال…'); return }
-    if(_netState==='bad'||_netState==='wait'){ netShow('ok','رجع الاتصال ✓',1600); return }
-    netHide();
+
+    if(NXRT.connected()){
+      _dcSince=0;
+      if(_netState==='bad'||_netState==='wait') netShow('ok','رجع الاتصال ✓',1600);
+      else if(_netState!=='ok') netHide();
+      return;
+    }
+
+    /* استسلمنا بالمحاولة — الفحص الدوري يغطّي، فما نعرض شي */
+    if(NXRT.gaveUp){ _dcSince=0; netHide(); return }
+
+    if(!_dcSince) _dcSince=Date.now();
+    if(Date.now()-_dcSince < 20000) netShow('wait','جاري الاتصال…');
+    else netHide();
   };
   setInterval(tick,2500);
   addEventListener('online',tick);
@@ -8793,8 +8833,9 @@ async function msgOpenProfile(phone){
   upPaint(p,isMe);
 
   const [flrs,fing]=await Promise.all([msgCountFollowers(phone),msgCountFollowing(phone)]);
-  document.getElementById('up-followers-n').textContent=upFmtNum(flrs);
-  document.getElementById('up-following-n').textContent=upFmtNum(fing);
+  /* null = فشل الجلب → نعرض «—» حتى ما يظن إن العدد صفر فعلاً */
+  document.getElementById('up-followers-n').textContent=(flrs===null)?'—':upFmtNum(flrs);
+  document.getElementById('up-following-n').textContent=(fing===null)?'—':upFmtNum(fing);
 
   /* أزرار الملك مقابل الزائر — الظهور/الإخفاء تضبطه upPaint، هنا نربط السلوك فقط */
   const fb=document.getElementById('up-follow-btn'), msgB=document.getElementById('up-msg-btn'),
@@ -8808,7 +8849,8 @@ async function msgOpenProfile(phone){
       if(now){await msgUnfollow(phone)}else{await msgFollow(phone)}
       fb.textContent=now?mt().follow:mt().unfollow;
       fb.classList.toggle('following',!now);
-      document.getElementById('up-followers-n').textContent=upFmtNum(await msgCountFollowers(phone));
+      const nf=await msgCountFollowers(phone);
+      document.getElementById('up-followers-n').textContent=(nf===null)?'—':upFmtNum(nf);
     };
     msgB.onclick=()=>{ msgCloseProfile(); msgOpenChat(phone,p.name,p.avatar); };
     upPaintBell(bell,phone);
@@ -9917,7 +9959,7 @@ addEventListener("online", ()=>{ toast("رجع الإنترنت ✓"); try{ NXRT
    alter publication supabase_realtime add table public.conversations;
    ══════════════════════════════════════════════════════════════ */
 const NXRT={
-  ws:null, joined:false, tries:0, _hb:null, _ref:0,
+  ws:null, joined:false, tries:0, gaveUp:false, _hb:null, _ref:0,
   _last:{}, _dirty:{}, _t:{},
   /* أي جدول وصلتنا منه إشارة حقيقية. الجدول اللي ما وصلت منه إشارة
      يبقى يتفحّص بالطريقة القديمة — ما نفترض إنه شغّال. */
@@ -9928,8 +9970,8 @@ const NXRT={
     try{ this.proven=JSON.parse(localStorage.getItem(this.PROVEN_KEY)||"{}")||{} }catch(e){ this.proven={} }
     try{ localStorage.removeItem("ha_rt_proven_v1") }catch(e){}
     this.open();
-    addEventListener("online",()=>this.open());
-    document.addEventListener("visibilitychange",()=>{ if(!document.hidden) this.open() });
+    addEventListener("online",()=>this.reopen());
+    document.addEventListener("visibilitychange",()=>{ if(!document.hidden) this.reopen() });
   },
 
   open(){
@@ -9943,7 +9985,7 @@ const NXRT={
     try{ ws=new WebSocket(url) }catch(e){ return this.retry() }
     this.ws=ws;
     ws.onopen=()=>{
-      this.tries=0; this.joined=false;
+      this.tries=0; this.gaveUp=false; this.joined=false;
       this.push("realtime:nxa","phx_join",{config:{
         broadcast:{self:false}, presence:{key:""},
         postgres_changes:[
@@ -9964,9 +10006,21 @@ const NXRT={
 
   retry(){
     this.tries++;
-    if(this.tries>8) return;                 /* نوقف المحاولة ونكتفي بالتصفّح */
+    if(this.tries>8){
+      /* استسلمنا. التطبيق يبقى شغّال بالفحص الدوري — فما نزعج
+         المستخدم بشريط «جاري الاتصال» للأبد. */
+      this.gaveUp=true;
+      return;
+    }
     const wait=Math.min(30000, 1200*Math.pow(2,this.tries-1));
     setTimeout(()=>this.open(), wait);
+  },
+
+  /* محاولة نظيفة من الصفر — تنندى عند رجوع الإنترنت أو رجوع المستخدم للتطبيق */
+  reopen(){
+    if(this.connected()) return;
+    this.tries=0; this.gaveUp=false;
+    this.open();
   },
 
   push(topic,event,payload){
