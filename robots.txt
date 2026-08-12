@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /*#chat=
+Disallow: /*#u=
+
+Sitemap: https://12-web.github.io/sitemap.xml
