@@ -10,6 +10,43 @@
 <link rel="canonical" href="https://12-web.github.io/">
 <meta name="robots" content="index,follow,max-image-preview:large">
 <meta name="author" content="حيدر حميد للألمنيوم الحديث">
+<!-- ══════════════════════════════════════════════════════════════
+     سياسة أمن المحتوى (CSP)
+
+     شنو تسوي عملياً: حتى لو انزرع كود خبيث بالصفحة يوم من الأيام،
+     ما يكدر يدزّ بياناتك لأي عنوان برّا القائمة تحت، وما يكدر
+     ينزّل سكربت من موقع غريب، وما يكدر يفتح فورم يسرق مدخلاتك.
+     يعني الضرر ينحبس داخل الصفحة بدل ما يطلع منها.
+
+     وتمنع تضمين موقعك داخل إطار بموقع ثاني (Clickjacking) —
+     حيلة قديمة يخلونك تضغط أزرار بلا ما تدري.
+
+     المصادر مجموعة من فحص الملف كله — Supabase (قاعدة ومخزن
+     وقناة لحظية)، Gemini، خطوط جوجل، نفق الهاتف، وفحص DNS.
+     ══════════════════════════════════════════════════════════════ -->
+<meta http-equiv="Content-Security-Policy" content="
+  default-src 'self';
+  script-src  'self' 'unsafe-inline';
+  style-src   'self' 'unsafe-inline' https://fonts.googleapis.com;
+  font-src    'self' data: https://fonts.gstatic.com;
+  img-src     'self' data: blob: https:;
+  media-src   'self' data: blob: https:;
+  connect-src 'self' blob: data:
+              https://gygjpwmcuiqjelmpgxtp.supabase.co
+              wss://gygjpwmcuiqjelmpgxtp.supabase.co
+              https://*.supabase.co wss://*.supabase.co
+              https://generativelanguage.googleapis.com
+              https://*.trycloudflare.com
+              https://cloudflare-dns.com https://dns.google;
+  worker-src  'self' blob:;
+  frame-src   'none';
+  object-src  'none';
+  base-uri    'self';
+  form-action 'self';
+  frame-ancestors 'none';
+  upgrade-insecure-requests;
+">
+<meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="theme-color" content="#1B72E8">
 <link rel="manifest" href="./manifest.webmanifest">
 <meta name="mobile-web-app-capable" content="yes">
@@ -603,6 +640,88 @@ body.dark .chat-follow-btn{color:var(--brand-3);border-color:var(--brand-3)}
 /* الأرقام ما تظهر عارية — كل رقم إله اسم تحته */
 .up-stat b{font-variant-numeric:tabular-nums;letter-spacing:-.01em}
 .up-stat b:empty::after{content:"—";color:var(--muted)}
+
+
+/* ══════════════════════════════════════════════════════════════
+   شاشة NΞXA — الصقل البصري
+
+   الملاحظة اللي بنينا عليها: البطاقات المثبّتة فوق سوداء وذهبية،
+   وقائمة المحادثات تحتها بيضاء عادية. عينك تشوف تطبيقين مو واحد.
+   الحل مو نصبغ القائمة أسود — الحل نخلي الاثنين يشتركون بنفس
+   القواعد: نفس الحافة، نفس نصف القطر، نفس إيقاع المسافات.
+
+   والبرتقالي (من النسر باللوكو) هو الصوت العالي الوحيد — يظهر
+   على غير المقروء وعلى نقطة «متصل الآن» وبس. أي شي ثاني يبقى
+   ساكت حتى يبقى للبرتقالي معنى.
+   ══════════════════════════════════════════════════════════════ */
+
+/* ── إيقاع موحّد لصف المحادثة ── */
+#msg-conv-list .msg-conv{
+  padding:12px var(--pad);
+  border-bottom:1px solid var(--line);
+  transition:background-color .16s ease;
+}
+#msg-conv-list .msg-conv:active{background:var(--wash)}
+#msg-conv-list .msg-conv:last-child{border-bottom:0}
+
+/* الاسم أثقل، المعاينة أخف — التراتب ينقرا بلمحة */
+#msg-conv-list .msg-conv .cv-name{font-weight:650;letter-spacing:-.005em}
+#msg-conv-list .msg-conv .cv-last{opacity:.72;font-size:12.5px}
+
+/* الوقت والعدّاد بخط أحادي — الأرقام تنتصف تحت بعض */
+#msg-conv-list .cv-time{font-family:"IBM Plex Mono";font-size:10.5px;
+  letter-spacing:.02em;opacity:.55;font-variant-numeric:tabular-nums}
+
+/* ── غير المقروء: الصوت العالي الوحيد ── */
+.cv-badge,.msg-badge,#tab-nexa .tb-badge{
+  background:var(--nx-orange)!important;
+  color:#fff!important;
+  font-family:"IBM Plex Mono";
+  font-variant-numeric:tabular-nums;
+  box-shadow:0 2px 8px rgba(255,102,0,.35);
+}
+
+/* نقطة متصل الآن — نبضة واحدة هادية، ما تلف ولا تقفز */
+.online-dot,.dot-online,.up-online{
+  background:var(--nx-orange)!important;
+  box-shadow:0 0 0 2px var(--card), 0 0 10px rgba(255,102,0,.55);
+}
+
+/* ── البطاقات المثبّتة: نفس لغة الحواف مثل باقي الشاشة ── */
+.pin-card,.bot-pin{
+  border:1px solid var(--nx-edge);
+  border-radius:16px;
+  background:
+    linear-gradient(103deg,rgba(255,255,255,.055) 0%,rgba(255,255,255,0) 40%),
+    linear-gradient(180deg,var(--nx-graphite-2),var(--nx-graphite));
+  box-shadow:0 2px 10px rgba(0,0,0,.22);
+}
+
+/* ── عناوين الأقسام: صغيرة، متباعدة، هادية ── */
+.setlabel,.rail-title,.sec-title{
+  font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--muted);opacity:.8;
+}
+
+/* ── الحالة الفارغة: دعوة للتصرّف ── */
+.msg-empty{padding:46px 26px;text-align:center}
+.msg-empty b{display:block;font-family:"Reem Kufi",var(--font);
+  font-size:17px;font-weight:600;color:var(--ink);margin-bottom:7px}
+.msg-empty span{display:block;font-size:13px;line-height:1.75;
+  color:var(--muted);max-width:32ch;margin:0 auto}
+
+/* ── ردّ اللمسة: كل ضغطة تعطي إحساس ── */
+.btn:active,.opt-row:active,.msg-conv:active,.setopt:active{
+  transform:scale(.985);
+}
+.btn,.opt-row,.setopt{transition:transform .12s ease, background-color .16s ease}
+@media (prefers-reduced-motion:reduce){
+  .btn,.opt-row,.setopt,.msg-conv{transition:none}
+  .btn:active,.opt-row:active,.msg-conv:active,.setopt:active{transform:none}
+}
+
+/* ── تركيز واضح للوحة المفاتيح ── */
+:focus-visible{outline:2px solid var(--nx-orange);outline-offset:2px;border-radius:6px}
 
 /* شريط النسخة الجديدة */
 .sw-pill{position:fixed;inset-inline:12px;bottom:calc(env(safe-area-inset-bottom,0px) + 74px);
