@@ -15169,6 +15169,2403 @@ addEventListener('popstate',function(){
 /* نحفّز تحميل الأصوات */
 try{ speechSynthesis.getVoices(); speechSynthesis.addEventListener('voiceschanged',()=>{}) }catch(e){}
 
+
+/* ══════════════════════════════════════════════════════════════
+   NΞXA+ — الحزمة الإضافية
+   كل شي بيها يشتغل من نفس الجداول الموجودة — ماكو SQL جديد
+   ولا جدول جديد ولا خدمة خارجية جديدة (فما تحتاج تعديل CSP).
+
+   شنو بيها:
+     ١) مركز إشعارات داخل التطبيق (متابعون، إعجابات، تعليقات)
+     ٢) تثبيت المحادثة + أرشفة + كتم + علامة «غير مقروء»
+     ٣) الرسائل المحفوظة
+     ٤) مسوّدة لكل محادثة
+     ٥) مشغّل صوتي: سرعة + تقديم + تشغيل تلقائي للي بعده
+     ٦) لوحة إيموجي بشريط الكتابة
+     ٧) تحديد متعدد للرسائل (نسخ/توجيه/حذف)
+     ٨) بحث شامل بكل الرسائل
+     ٩) منشن @ بالمجموعات
+    ١٠) لوحة «NΞXA+» بقائمة الملف الشخصي
+
+   ملاحظة معمارية: ما انحذفت ولا ميزة، وما انكتب فوق أي دالة —
+   كل شي يلتف حول الدوال الأصلية (wrap) وينده الأصلية أول.
+   ══════════════════════════════════════════════════════════════ */
+(function(){
+"use strict";
+
+/* ── مفاتيح التخزين المحلي ── */
+const NPK={
+  pin  :"nxp_pin_convs_v1",
+  arch :"nxp_arch_convs_v1",
+  mute :"nxp_mute_convs_v1",
+  unrd :"nxp_manual_unread_v1",
+  draft:"nxp_drafts_v1",
+  saved:"nxp_saved_msgs_v1",
+  nseen:"nxp_notif_seen_v1",
+  vspd :"nxp_voice_speed_v1",
+  emoji:"nxp_emoji_recent_v1",
+  auton:"nxp_voice_autonext_v1"
+};
+const npGet=(k,d)=>{ const v=lsGet(k); return v==null?d:v };
+const npSet=(k,v)=>lsSet(k,v);
+const npArr=k=>{ const v=lsGet(k); return Array.isArray(v)?v:[] };
+const npHas=(k,id)=>npArr(k).indexOf(String(id))>-1;
+const npToggle=(k,id)=>{ const s=String(id); let l=npArr(k);
+  if(l.indexOf(s)>-1) l=l.filter(z=>z!==s); else l.push(s);
+  npSet(k,l); return l.indexOf(s)>-1 };
+const npDrop=(k,id)=>{ const s=String(id); npSet(k,npArr(k).filter(z=>z!==s)) };
+const npObj=k=>{ const v=lsGet(k); return (v&&typeof v==="object"&&!Array.isArray(v))?v:{} };
+
+/* ── أيقونات صغيرة خاصة بالحزمة ── */
+const NPI={
+  pin :'<path d="M14.5 3.5l6 6-3 1-3.6 3.6-.6 4.4-4.8-4.8-4.7 4.7 4.7-4.7-4.8-4.8 4.4-.6L11.5 4.5z"/>',
+  arch:'<rect x="3" y="4" width="18" height="4.5" rx="1.4"/><path d="M5 8.5V19a1.5 1.5 0 0 0 1.5 1.5h11A1.5 1.5 0 0 0 19 19V8.5M9.5 12.5h5"/>',
+  dot :'<circle cx="12" cy="12" r="6"/>',
+  star:'<path d="M12 3.6l2.6 5.3 5.8.85-4.2 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8-4.2-4.1 5.8-.85z"/>',
+  srch:'<circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/>',
+  smile:'<circle cx="12" cy="12" r="9"/><path d="M8.5 14.5c1 1.3 2.2 2 3.5 2s2.5-.7 3.5-2"/><path d="M9 9.5h.01M15 9.5h.01"/>',
+  speed:'<path d="M12 20a8 8 0 1 1 8-8"/><path d="M12 12l4.5-3.5"/>',
+  gear:'<circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-2.7 1.1v.3a2 2 0 1 1-4 0v-.2a1.6 1.6 0 0 0-2.8-1.1l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1A1.6 1.6 0 0 0 3.5 15H3a2 2 0 1 1 0-4h.2a1.6 1.6 0 0 0 1.1-2.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1A1.6 1.6 0 0 0 9 4.5V4a2 2 0 1 1 4 0v.2a1.6 1.6 0 0 0 2.8 1.1l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0 1.1 2.8h.3a2 2 0 1 1 0 4h-.2z"/>'
+};
+const npIc=(n,cls)=>`<svg class="${cls||'ui-ic'}" viewBox="0 0 24 24" aria-hidden="true">${NPI[n]||''}</svg>`;
+
+/* ══════════════════ الأنماط ══════════════════ */
+const NP_CSS=`
+.np-row-tags{display:flex;align-items:center;gap:4px}
+.np-row-tags svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2;
+  stroke-linecap:round;stroke-linejoin:round;opacity:.6}
+.np-row-tags .np-t-pin svg{fill:currentColor;stroke:none;opacity:.75}
+.msg-conv.np-pinned{background:color-mix(in srgb,var(--brand) 5%,transparent)}
+.np-draft{color:#E5484D;font-weight:600}
+.np-at{display:inline-grid;place-items:center;min-width:18px;height:18px;border-radius:9px;
+  background:#E5484D;color:#fff;font-size:11px;font-weight:800;padding:0 4px}
+.np-udot{display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--brand)}
+
+.np-bell{position:relative;width:38px;height:38px;border:0;background:transparent;
+  display:grid;place-items:center;border-radius:50%;color:inherit;cursor:pointer}
+.np-bell svg{width:21px;height:21px;stroke:currentColor;fill:none;stroke-width:1.8;
+  stroke-linecap:round;stroke-linejoin:round}
+.np-bell:active{transform:scale(.9)}
+.np-bell b{position:absolute;top:2px;inset-inline-end:2px;min-width:16px;height:16px;
+  border-radius:8px;background:#E5484D;color:#fff;font-size:10px;font-weight:800;
+  display:none;place-items:center;padding:0 3px}
+.np-bell.has b{display:grid}
+
+.np-list{max-height:62vh;overflow:auto;-webkit-overflow-scrolling:touch}
+.np-item{display:flex;gap:10px;align-items:center;width:100%;text-align:start;
+  padding:10px 4px;border:0;background:transparent;border-bottom:1px solid var(--line,#e6e6e6);
+  color:inherit;font:inherit;cursor:pointer}
+.np-item:last-child{border-bottom:0}
+.np-item.fresh{background:color-mix(in srgb,var(--brand) 7%,transparent);border-radius:10px}
+.np-av{width:40px;height:40px;border-radius:50%;overflow:hidden;flex:0 0 auto;
+  display:grid;place-items:center;background:var(--mSurf,#eee);font-weight:700}
+.np-av img{width:100%;height:100%;object-fit:cover}
+.np-it-in{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.np-it-in b{font-size:13.5px;font-weight:700}
+.np-it-in span{font-size:12px;color:var(--muted,#888);overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap}
+.np-it-t{font-size:11px;color:var(--muted,#888);flex:0 0 auto}
+.np-empty{padding:26px 8px;text-align:center;color:var(--muted,#888);font-size:13px}
+
+.np-emoji{position:absolute;inset-inline:8px;bottom:calc(100% + 6px);z-index:40;
+  background:var(--mSurf,#fff);border:1px solid var(--mLine,#ddd);border-radius:16px;
+  box-shadow:0 12px 34px rgba(0,0,0,.22);padding:8px;display:none}
+.np-emoji.on{display:block}
+.np-emoji-tabs{display:flex;gap:4px;overflow-x:auto;padding-bottom:6px;scrollbar-width:none}
+.np-emoji-tabs::-webkit-scrollbar{display:none}
+.np-emoji-tabs button{flex:0 0 auto;border:0;background:transparent;font-size:17px;
+  width:32px;height:30px;border-radius:9px;cursor:pointer;opacity:.55}
+.np-emoji-tabs button.on{background:color-mix(in srgb,var(--brand) 16%,transparent);opacity:1}
+.np-emoji-grid{display:grid;grid-template-columns:repeat(8,1fr);gap:2px;
+  max-height:184px;overflow:auto;-webkit-overflow-scrolling:touch}
+.np-emoji-grid button{border:0;background:transparent;font-size:22px;line-height:1;
+  height:36px;border-radius:9px;cursor:pointer}
+.np-emoji-grid button:active{background:color-mix(in srgb,var(--brand) 18%,transparent)}
+.chat-input{position:relative}
+.np-em-btn{width:34px;height:34px;border:0;background:transparent;border-radius:50%;
+  display:grid;place-items:center;color:var(--mMuted,#888);flex:0 0 auto;cursor:pointer}
+.np-em-btn svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.7;
+  stroke-linecap:round;stroke-linejoin:round}
+.np-em-btn.on{color:var(--brand)}
+
+.np-selbar{position:absolute;inset-inline:0;top:0;z-index:36;display:none;
+  align-items:center;gap:6px;background:var(--mBg,#fff);
+  padding:calc(env(safe-area-inset-top,0px) + 10px) 10px 10px;
+  border-bottom:1px solid var(--mLine,#ddd)}
+.np-selbar.on{display:flex}
+.np-selbar b{font-size:13.5px;flex:1;min-width:0}
+.np-selbar button{border:0;background:transparent;color:inherit;padding:7px;
+  border-radius:9px;display:grid;place-items:center;cursor:pointer}
+.np-selbar button svg{width:19px;height:19px;stroke:currentColor;fill:none;stroke-width:1.8;
+  stroke-linecap:round;stroke-linejoin:round}
+.np-selbar button.danger{color:#E5484D}
+.chat-msgs.np-selecting .chat-bubble{cursor:pointer}
+.chat-bubble.np-picked{outline:2px solid var(--brand);outline-offset:2px}
+
+.np-vspeed{border:0;background:color-mix(in srgb,currentColor 12%,transparent);
+  color:inherit;font-size:10.5px;font-weight:800;border-radius:8px;padding:2px 5px;
+  margin-inline-start:6px;cursor:pointer;min-width:28px}
+.voice-bars{cursor:pointer}
+
+.np-mention{color:var(--brand);font-weight:700}
+.np-mention.me{background:color-mix(in srgb,var(--brand) 20%,transparent);
+  border-radius:5px;padding:0 3px}
+.np-mpop{position:absolute;inset-inline:10px;bottom:calc(100% + 6px);z-index:41;
+  background:var(--mSurf,#fff);border:1px solid var(--mLine,#ddd);border-radius:14px;
+  box-shadow:0 10px 28px rgba(0,0,0,.2);max-height:190px;overflow:auto;display:none}
+.np-mpop.on{display:block}
+.np-mpop button{display:flex;align-items:center;gap:9px;width:100%;border:0;
+  background:transparent;padding:8px 10px;text-align:start;color:inherit;font:inherit;cursor:pointer}
+.np-mpop button:active{background:color-mix(in srgb,var(--brand) 12%,transparent)}
+.np-mpop .np-av{width:30px;height:30px;font-size:12px}
+.np-mpop i{font-style:normal;color:var(--muted,#888);font-size:11.5px}
+
+.np-srch{padding:0 var(--pad,16px)}
+.np-srch h4{font-size:12.5px;color:var(--muted,#888);margin:10px 0 4px;font-weight:700}
+.np-srch mark{background:color-mix(in srgb,var(--brand) 30%,transparent);color:inherit;
+  border-radius:3px;padding:0 2px}
+`;
+
+function npInjectCSS(){
+  if(document.getElementById('nxp-css')) return;
+  const s=document.createElement('style');
+  s.id='nxp-css'; s.textContent=NP_CSS;
+  document.head.appendChild(s);
+}
+
+/* ══════════════════ أدوات مشتركة ══════════════════ */
+
+/* ضغطة مطوّلة تشتغل باللمس والماوس وما تنقطع بالتمرير الخفيف */
+function npLongPress(el,fn){
+  if(!el||el._npLp) return; el._npLp=1;
+  let t=null,x0=0,y0=0,moved=false;
+  const start=e=>{
+    const p=e.touches?e.touches[0]:e;
+    x0=p.clientX; y0=p.clientY; moved=false;
+    clearTimeout(t);
+    t=setTimeout(()=>{ if(!moved){ if(navigator.vibrate){try{navigator.vibrate(14)}catch(_){}} fn(e) } },480);
+  };
+  const move=e=>{
+    const p=e.touches?e.touches[0]:e;
+    if(Math.abs(p.clientX-x0)>11||Math.abs(p.clientY-y0)>11){ moved=true; clearTimeout(t) }
+  };
+  const end=()=>clearTimeout(t);
+  el.addEventListener('touchstart',start,{passive:true});
+  el.addEventListener('touchmove',move,{passive:true});
+  el.addEventListener('touchend',end);
+  el.addEventListener('touchcancel',end);
+  el.addEventListener('mousedown',start);
+  el.addEventListener('mousemove',move);
+  el.addEventListener('mouseup',end);
+  el.addEventListener('mouseleave',end);
+  el.addEventListener('contextmenu',e=>e.preventDefault());
+}
+
+const npMe=()=>{ try{ return myPhone() }catch(e){ return "" } };
+const npMyUser=()=>{ try{ return (profile&&profile.username||"").replace(/^@/,"").toLowerCase() }catch(e){ return "" } };
+
+/* يفتح محادثة ويقفز لرسالة معيّنة */
+async function npJump(convId,msgId,phone,name,avatar){
+  try{
+    if(String(chatConvId)===String(convId)){ replyJump(msgId); return }
+    await msgOpenChat(phone,name,avatar,convId);
+    let n=0;
+    const tick=setInterval(()=>{
+      n++;
+      const el=document.querySelector('.chat-bubble[data-id="'+CSS.escape(String(msgId))+'"]');
+      if(el){ clearInterval(tick); replyJump(msgId) }
+      else if(n>14){ clearInterval(tick); toast("الرسالة قديمة — اسحب لفوق حتى تنزل") }
+    },400);
+  }catch(e){ toast("ما گدرت أفتح المحادثة") }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   ١) تثبيت / أرشفة / كتم / علامة غير مقروء / مسوّدة
+   كلها محلية بالجهاز — ما تحتاج أي عمود بالقاعدة
+   ═══════════════════════════════════════════════════════════ */
+
+function npAddArchChip(){
+  const box=document.getElementById('lux-chips');
+  if(!box||document.getElementById('np-chip-arch')) return;
+  const b=document.createElement('button');
+  b.className='lux-chip'; b.id='np-chip-arch'; b.dataset.filter='arch';
+  b.textContent='الأرشيف';
+  box.appendChild(b);
+  b.onclick=()=>{
+    luxFilter='arch';
+    document.querySelectorAll('.lux-chip').forEach(z=>z.classList.toggle('on',z===b));
+    msgRenderConvs();
+  };
+}
+
+/* يزيّن صفوف قائمة المحادثات بعد ما ترسمها الدالة الأصلية */
+function npDecorateConvs(){
+  const box=document.getElementById('msg-conv-list'); if(!box) return;
+  const rows=[...box.querySelectorAll('.msg-conv')];
+  if(!rows.length) return;
+  const drafts=npObj(NPK.draft), me=npMyUser();
+  const arch=npArr(NPK.arch), pins=npArr(NPK.pin);
+  const inArch = (typeof luxFilter!=="undefined" && luxFilter==='arch');
+  const pinned=[];
+
+  rows.forEach(el=>{
+    let d={}; try{ d=JSON.parse(el.dataset.conv) }catch(e){}
+    const id=String(d.id||"");
+    const isArch=arch.indexOf(id)>-1;
+
+    /* الأرشيف: يختفي من الكل ويبين بشريحته وحده */
+    if(inArch ? !isArch : isArch){ el.remove(); return }
+
+    /* وسوم الصف (تثبيت / كتم) */
+    const right=el.querySelector('.msg-right');
+    if(right && !right.querySelector('.np-row-tags')){
+      const tags=document.createElement('span');
+      tags.className='np-row-tags';
+      right.insertBefore(tags,right.firstChild);
+    }
+    const tags=right?right.querySelector('.np-row-tags'):null;
+    if(tags){
+      let h='';
+      if(pins.indexOf(id)>-1) h+=`<span class="np-t-pin">${npIc('pin','')}</span>`;
+      if(npHas(NPK.mute,id))  h+=`<span>${ic('bellOff','')}</span>`;
+      tags.innerHTML=h;
+    }
+
+    /* مسوّدة ما انبعثت */
+    const pv=el.querySelector('.msg-preview');
+    const dr=drafts[id];
+    if(pv && dr && dr.trim()){
+      pv.innerHTML='<span class="np-draft">مسودة:</span> '+esc(dr.slice(0,60));
+    }
+
+    /* منشن باسمي داخل آخر رسالة */
+    if(pv && me && /@/.test(pv.textContent||"") &&
+       (pv.textContent||"").toLowerCase().indexOf('@'+me)>-1 && right &&
+       !right.querySelector('.np-at')){
+      const a=document.createElement('span'); a.className='np-at'; a.textContent='@';
+      right.insertBefore(a,right.firstChild);
+    }
+
+    /* علامة «غير مقروء» اليدوية */
+    if(npHas(NPK.unrd,id) && right && !right.querySelector('.np-udot') &&
+       !right.querySelector('.msg-unread')){
+      const u=document.createElement('span'); u.className='np-udot';
+      right.insertBefore(u,right.firstChild);
+    }
+
+    if(pins.indexOf(id)>-1){ el.classList.add('np-pinned'); pinned.push([pins.indexOf(id),el]) }
+    else el.classList.remove('np-pinned');
+
+    npLongPress(el,()=>npConvMenu(d));
+  });
+
+  /* المثبّتة تطلع فوق بترتيب تثبيتها */
+  pinned.sort((a,b)=>a[0]-b[0]).reverse().forEach(([,el])=>box.insertBefore(el,box.firstChild));
+
+  /* صار فاضي بعد الفلترة؟ نبيّن رسالة بدل بياض */
+  const empty=document.getElementById('msg-empty-box');
+  if(empty && inArch && !box.querySelector('.msg-conv')){
+    box.innerHTML=''; empty.hidden=false;
+    setTxt('t-msgEmpty','الأرشيف فارغ');
+    setTxt('t-msgEmptyD','اضغط ضغطة مطوّلة على أي محادثة حتى تأرشفها');
+  }
+}
+
+function npConvMenu(d){
+  const id=String(d.id||""); if(!id) return;
+  const isPin=npHas(NPK.pin,id), isArc=npHas(NPK.arch,id),
+        isMut=npHas(NPK.mute,id), isUnr=npHas(NPK.unrd,id);
+  const drafts=npObj(NPK.draft), hasDraft=!!(drafts[id]&&drafts[id].trim());
+  openSheet(`
+    <h3 style="font-size:17px;margin-bottom:4px">${esc(d.name||d.phone||"محادثة")}</h3>
+    <p class="sub" style="font-size:12.5px;margin-bottom:12px">خيارات المحادثة</p>
+    <div class="opt-list">
+      <button class="opt-row" id="np-c-pin">${npIc('pin')}<span>${isPin?'إزالة التثبيت':'تثبيت بالأعلى'}</span></button>
+      <button class="opt-row" id="np-c-arc">${npIc('arch')}<span>${isArc?'إخراج من الأرشيف':'أرشفة المحادثة'}</span></button>
+      <button class="opt-row" id="np-c-mut">${ic(isMut?'bell':'bellOff')}<span>${isMut?'إلغاء الكتم':'كتم الإشعارات'}</span></button>
+      <button class="opt-row" id="np-c-unr">${npIc('dot')}<span>${isUnr?'وضع علامة مقروء':'وضع علامة غير مقروء'}</span></button>
+      ${hasDraft?`<button class="opt-row" id="np-c-drf">${ic('trash')}<span>مسح المسودة</span></button>`:''}
+      <button class="opt-row" id="np-c-prf">${ic('dots')}<span>فتح الملف الشخصي</span></button>
+    </div>`);
+  const on=(i,f)=>{ const e=document.getElementById(i); if(e) e.onclick=f };
+  const after=()=>{ closeSheet(); msgRenderConvs() };
+  on('np-c-pin',()=>{ npToggle(NPK.pin,id); after() });
+  on('np-c-arc',()=>{ npToggle(NPK.arch,id); after() });
+  on('np-c-mut',()=>{ npToggle(NPK.mute,id); after() });
+  on('np-c-unr',()=>{ npToggle(NPK.unrd,id); after() });
+  on('np-c-drf',()=>{ const o=npObj(NPK.draft); delete o[id]; npSet(NPK.draft,o); after() });
+  on('np-c-prf',()=>{ closeSheet(); if(d.phone) msgOpenProfile(d.phone) });
+}
+
+/* ── المسوّدات ── */
+let _npDraftT=null;
+function npDraftSave(){
+  try{
+    if(!chatConvId) return;
+    const ta=document.getElementById('chat-text'); if(!ta) return;
+    const o=npObj(NPK.draft), v=(ta.value||"").trim();
+    if(v) o[String(chatConvId)]=ta.value; else delete o[String(chatConvId)];
+    npSet(NPK.draft,o);
+  }catch(e){}
+}
+function npDraftRestore(){
+  try{
+    const ta=document.getElementById('chat-text'); if(!ta||!chatConvId) return;
+    const o=npObj(NPK.draft), v=o[String(chatConvId)];
+    if(v && !ta.value){ ta.value=v; ta.dispatchEvent(new Event('input',{bubbles:true})) }
+  }catch(e){}
+}
+
+/* ═══════════════════════════════════════════════════════════
+   ٢) مركز الإشعارات
+   يتجمّع من نفس الجداول: follows و reel_likes و reel_comments
+   ═══════════════════════════════════════════════════════════ */
+
+let _npNotif=[], _npNotifBusy=false;
+
+function npBell(){
+  const acts=document.querySelector('#v-messages .msg-head-acts');
+  if(!acts||document.getElementById('np-bell')) return;
+  const b=document.createElement('button');
+  b.className='np-bell'; b.id='np-bell'; b.type='button';
+  b.setAttribute('aria-label','الإشعارات');
+  b.innerHTML=`<svg viewBox="0 0 24 24"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 8-3 8h18s-3-1-3-8M13.7 21a2 2 0 0 1-3.4 0"/></svg><b>0</b>`;
+  acts.insertBefore(b,acts.firstChild);
+  b.onclick=()=>npNotifSheet();
+}
+
+async function npNotifLoad(){
+  const me=npMe(); if(!me) return [];
+  if(_npNotifBusy) return _npNotif;
+  _npNotifBusy=true;
+  const out=[];
+  /* متابعون جدد */
+  try{
+    const rows=await sbSelect("follows",
+      "select=follower,created_at&following=eq."+encodeURIComponent(me)+
+      "&order=created_at.desc&limit=25");
+    (rows||[]).forEach(r=>out.push({k:"follow",ph:r.follower,at:r.created_at}));
+  }catch(e){
+    try{
+      const rows=await sbSelect("follows","select=follower&following=eq."+encodeURIComponent(me)+"&limit=25");
+      (rows||[]).forEach(r=>out.push({k:"follow",ph:r.follower,at:null}));
+    }catch(_){}
+  }
+  /* إعجابات وتعليقات على ريلزي */
+  try{
+    const mine=await sbSelect(SUPABASE.T.reels,
+      "select=id&author_phone=eq."+encodeURIComponent(me)+"&limit=60");
+    const ids=(mine||[]).map(r=>r.id).filter(Boolean);
+    if(ids.length){
+      const inq="("+ids.map(x=>'"'+String(x).replace(/"/g,'')+'"').join(",")+")";
+      try{
+        const lk=await sbSelect("reel_likes",
+          "select=reel_id,phone,created_at&reel_id=in."+encodeURIComponent(inq)+
+          "&order=created_at.desc&limit=30");
+        (lk||[]).filter(r=>r.phone!==me).forEach(r=>out.push({k:"like",ph:r.phone,at:r.created_at,rid:r.reel_id}));
+      }catch(_){}
+      try{
+        const cm=await sbSelect("reel_comments",
+          "select=reel_id,phone,body,created_at&reel_id=in."+encodeURIComponent(inq)+
+          "&order=created_at.desc&limit=30");
+        (cm||[]).filter(r=>r.phone!==me).forEach(r=>out.push({k:"comment",ph:r.phone,at:r.created_at,rid:r.reel_id,txt:r.body}));
+      }catch(_){}
+    }
+  }catch(e){}
+  out.sort((a,b)=>new Date(b.at||0)-new Date(a.at||0));
+  _npNotif=out.slice(0,60);
+  _npNotifBusy=false;
+  return _npNotif;
+}
+
+function npNotifFresh(list){
+  const seen=npGet(NPK.nseen,0);
+  return (list||[]).filter(n=>n.at && new Date(n.at).getTime()>seen).length;
+}
+
+async function npNotifBadge(){
+  try{
+    const b=document.getElementById('np-bell'); if(!b) return;
+    const list=await npNotifLoad();
+    const n=npNotifFresh(list);
+    b.classList.toggle('has',n>0);
+    const e=b.querySelector('b'); if(e) e.textContent=n>99?'99+':n;
+  }catch(e){}
+}
+
+const NP_TXT={follow:"بدأ يتابعك",like:"أعجب بالريل مالتك",comment:"علّق على الريل مالتك"};
+
+async function npNotifSheet(){
+  openSheet(`<h3 style="font-size:17px;margin-bottom:4px">الإشعارات</h3>
+    <p class="sub" style="font-size:12.5px;margin-bottom:10px">المتابعون والتفاعل على الريلز</p>
+    <div class="np-list" id="np-nlist"><div class="np-empty">…</div></div>`);
+  const list=await npNotifLoad();
+  const box=document.getElementById('np-nlist'); if(!box) return;
+  if(!list.length){ box.innerHTML='<div class="np-empty">ماكو إشعارات لهسه</div>';
+    npSet(NPK.nseen,Date.now()); npNotifBadge(); return }
+  const seen=npGet(NPK.nseen,0);
+  const profs={};
+  await Promise.all([...new Set(list.map(n=>n.ph))].map(async ph=>{
+    try{ profs[ph]=await msgGetProfile(ph) }catch(e){ profs[ph]={} }
+  }));
+  box.innerHTML=list.map(n=>{
+    const p=profs[n.ph]||{}, nm=msgDisplayName(p)||n.ph;
+    const av=p.avatar?`<img loading="lazy" decoding="async" src="${esc(p.avatar)}" alt="">`
+      :`<span>${esc((nm||"?").charAt(0).toUpperCase())}</span>`;
+    const fresh=n.at&&new Date(n.at).getTime()>seen;
+    const sub=n.k==="comment"&&n.txt?esc(String(n.txt).slice(0,50)):NP_TXT[n.k];
+    return `<button class="np-item${fresh?' fresh':''}" data-ph="${esc(n.ph)}">
+      <span class="np-av">${av}</span>
+      <span class="np-it-in"><b>${nameHTML(p)||esc(nm)}</b><span>${sub}</span></span>
+      <span class="np-it-t">${n.at?timeAgo(n.at):''}</span></button>`;
+  }).join('');
+  box.querySelectorAll('[data-ph]').forEach(b=>{
+    b.onclick=()=>{ closeSheet(); msgOpenProfile(b.dataset.ph) };
+  });
+  npSet(NPK.nseen,Date.now());
+  npNotifBadge();
+}
+
+/* ═══════════════════════════════════════════════════════════
+   ٣) الرسائل المحفوظة  +  ٤) تحديد متعدد
+   ═══════════════════════════════════════════════════════════ */
+
+function npSavedAll(){ const v=lsGet(NPK.saved); return Array.isArray(v)?v:[] }
+function npSavedHas(id){ return npSavedAll().some(x=>String(x.id)===String(id)) }
+function npSavedToggle(msgId){
+  const m=(chatMsgs||[]).find(x=>String(x.id)===String(msgId));
+  let l=npSavedAll();
+  if(npSavedHas(msgId)){ l=l.filter(x=>String(x.id)!==String(msgId)); npSet(NPK.saved,l); toast("انشالت من المحفوظة"); return }
+  if(!m){ toast("الرسالة مو موجودة"); return }
+  l.unshift({
+    id:m.id, conv:chatConvId, sender:m.sender,
+    who:(document.getElementById('chat-name')||{}).textContent||"",
+    phone:chatWith||"", txt:msgSnippet(m), at:m.created_at, saved:Date.now()
+  });
+  npSet(NPK.saved,l.slice(0,300));
+  toast("انحفظت ✓");
+}
+
+function npSavedSheet(){
+  const l=npSavedAll();
+  openSheet(`<h3 style="font-size:17px;margin-bottom:4px">الرسائل المحفوظة</h3>
+    <p class="sub" style="font-size:12.5px;margin-bottom:10px">${l.length} رسالة</p>
+    <div class="np-list" id="np-slist">${
+      l.length?l.map(x=>`<button class="np-item" data-sv="${esc(x.id)}">
+        <span class="np-av">${npIc('star','')}</span>
+        <span class="np-it-in"><b>${esc(x.who||x.phone||"")}</b><span>${esc(x.txt||"")}</span></span>
+        <span class="np-it-t">${x.at?timeAgo(x.at):''}</span></button>`).join('')
+      :'<div class="np-empty">ماكو رسائل محفوظة — افتح خيارات أي رسالة واختر «حفظ»</div>'}
+    </div>
+    ${l.length?'<div class="acts" style="margin-top:12px"><button class="btn btn-o" id="np-sclr">مسح الكل</button></div>':''}`);
+  document.querySelectorAll('[data-sv]').forEach(b=>{
+    b.onclick=()=>{
+      const x=npSavedAll().find(z=>String(z.id)===b.dataset.sv); if(!x) return;
+      closeSheet(); npJump(x.conv,x.id,x.phone,x.who,null);
+    };
+  });
+  const c=document.getElementById('np-sclr');
+  if(c) c.onclick=()=>confirmAsk("تنمسح كل الرسائل المحفوظة. أكيد؟",()=>{
+    npSet(NPK.saved,[]); closeSheet(); toast("انمسحت") });
+}
+
+/* ── التحديد المتعدد ── */
+let npSelOn=false, npSel=[];
+
+function npSelBar(){
+  let b=document.getElementById('np-selbar');
+  if(!b){
+    const sc=document.getElementById('chat-screen'); if(!sc) return null;
+    b=document.createElement('div'); b.className='np-selbar'; b.id='np-selbar';
+    b.innerHTML=`
+      <button id="np-sel-x" aria-label="إلغاء"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+      <b id="np-sel-n">0</b>
+      <button id="np-sel-copy" aria-label="نسخ">${ic('copy','')}</button>
+      <button id="np-sel-save" aria-label="حفظ">${npIc('star','')}</button>
+      <button id="np-sel-fwd" aria-label="إعادة توجيه">${ic('forward','')}</button>
+      <button id="np-sel-del" class="danger" aria-label="حذف">${ic('trash','')}</button>`;
+    sc.appendChild(b);
+    b.querySelector('#np-sel-x').onclick=()=>npSelEnd();
+    b.querySelector('#np-sel-copy').onclick=()=>npSelCopy();
+    b.querySelector('#np-sel-save').onclick=()=>npSelSave();
+    b.querySelector('#np-sel-fwd').onclick=()=>npSelForward();
+    b.querySelector('#np-sel-del').onclick=()=>npSelDelete();
+  }
+  return b;
+}
+function npSelStart(firstId){
+  npSelOn=true; npSel=firstId?[String(firstId)]:[];
+  const box=document.getElementById('chat-msgs'); if(box) box.classList.add('np-selecting');
+  const b=npSelBar(); if(b) b.classList.add('on');
+  npSelPaint();
+}
+function npSelEnd(){
+  npSelOn=false; npSel=[];
+  const box=document.getElementById('chat-msgs');
+  if(box){ box.classList.remove('np-selecting');
+    box.querySelectorAll('.np-picked').forEach(e=>e.classList.remove('np-picked')) }
+  const b=document.getElementById('np-selbar'); if(b) b.classList.remove('on');
+}
+function npSelPaint(){
+  const box=document.getElementById('chat-msgs'); if(!box) return;
+  box.querySelectorAll('.chat-bubble').forEach(el=>{
+    el.classList.toggle('np-picked',npSel.indexOf(String(el.dataset.id))>-1);
+  });
+  const n=document.getElementById('np-sel-n');
+  if(n) n.textContent=npSel.length+" محدّدة";
+  if(npSelOn&&!npSel.length) npSelEnd();
+}
+const npSelMsgs=()=>npSel.map(id=>(chatMsgs||[]).find(m=>String(m.id)===id)).filter(Boolean);
+function npSelCopy(){
+  const txt=npSelMsgs().map(m=>msgSnippet(m)).join("\n");
+  shareCopy(txt,"انتسخت ✓"); npSelEnd();
+}
+function npSelSave(){
+  const ids=npSel.slice();
+  ids.forEach(id=>{ if(!npSavedHas(id)) npSavedToggle(id) });
+  toast(ids.length+" انحفظت ✓"); npSelEnd();
+}
+async function npSelForward(){
+  const list=npSelMsgs(); if(!list.length) return;
+  openSheet(`<h3 style="font-size:17px;margin-bottom:4px">إعادة توجيه ${list.length} رسالة</h3>
+    <p class="sub" style="font-size:12.5px;margin-bottom:12px">اختر المحادثة</p>
+    <div class="fw-list" id="np-fw"><div class="rc-load">…</div></div>`);
+  let convs=[]; try{ convs=await msgMyConvs() }catch(e){}
+  const me=npMe();
+  convs=convs.filter(c=>{
+    const o=c.user1===me?c.user2:c.user1;
+    return !isHiddenConv(c.id)&&!iBlocked(o)&&!blockedMe(o);
+  });
+  const box=document.getElementById('np-fw'); if(!box) return;
+  if(!convs.length){ box.innerHTML='<div class="rc-load">ماكو محادثات</div>'; return }
+  const profs={};
+  await Promise.all(convs.map(async c=>{
+    const o=c.user1===me?c.user2:c.user1;
+    try{ profs[o]=await msgGetProfile(o) }catch(e){ profs[o]={} }
+  }));
+  box.innerHTML=convs.map(c=>{
+    const o=c.user1===me?c.user2:c.user1, p=profs[o]||{}, nm=msgDisplayName(p)||o;
+    const av=p.avatar?`<img loading="lazy" decoding="async" src="${esc(p.avatar)}" alt="">`
+      :`<span>${esc((nm||"?").charAt(0).toUpperCase())}</span>`;
+    return `<button class="fw-row" data-fw="${esc(c.id)}">
+      <span class="fw-av">${av}</span><span class="fw-nm">${nameHTML(p)||esc(nm)}</span>
+      <span class="fw-go">${ic('forward','ui-ic')}</span></button>`;
+  }).join('');
+  box.querySelectorAll('[data-fw]').forEach(b=>{
+    b.onclick=async()=>{
+      b.disabled=true; b.style.opacity=.5;
+      let ok=0;
+      for(const m of list){
+        try{ await msgSend(b.dataset.fw,m.body||null,m.img||null,m.voice||null,
+              m.voice_dur||null,null,m.file||null); ok++ }catch(e){}
+      }
+      toast(ok+" انتوجّهت ✓"); closeSheet(); npSelEnd();
+    };
+  });
+}
+function npSelDelete(){
+  const list=npSelMsgs(); if(!list.length) return;
+  const allMine=list.every(m=>m.sender===npMe());
+  openSheet(`<h3 style="font-size:17px;margin-bottom:12px">حذف ${list.length} رسالة</h3>
+    <div class="opt-list">
+      <button class="opt-row danger" id="np-d-me">${ic('trash')}<span>حذف عندي</span></button>
+      ${allMine?`<button class="opt-row danger" id="np-d-all">${ic('trashAll')}<span>حذف عند الطرفين</span></button>`:''}
+    </div>`);
+  const run=async forAll=>{
+    closeSheet();
+    for(const m of list){ try{ await msgDelete(m.id,forAll) }catch(e){} }
+    npSelEnd(); toast("انحذفت");
+  };
+  const a=document.getElementById('np-d-me'); if(a) a.onclick=()=>run(false);
+  const b=document.getElementById('np-d-all');
+  if(b) b.onclick=()=>confirmAsk("تنحذف عند الطرفين ونهائياً. أكيد؟",()=>run(true));
+}
+
+/* اعتراض الضغط داخل المحادثة وقت التحديد */
+function npBindSelectTap(){
+  const box=document.getElementById('chat-msgs');
+  if(!box||box._npSel) return; box._npSel=1;
+  box.addEventListener('click',e=>{
+    if(!npSelOn) return;
+    const b=e.target.closest('.chat-bubble'); if(!b) return;
+    e.stopPropagation(); e.preventDefault();
+    const id=String(b.dataset.id||"");
+    if(!id) return;
+    const i=npSel.indexOf(id);
+    if(i>-1) npSel.splice(i,1); else npSel.push(id);
+    npSelPaint();
+  },true);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   ٥) مشغّل الصوت: سرعة + تقديم + تشغيل تلقائي للي بعده
+   ═══════════════════════════════════════════════════════════ */
+
+const NP_SPEEDS=[1,1.5,2];
+const npSpeed=()=>{ const v=+npGet(NPK.vspd,1); return NP_SPEEDS.indexOf(v)>-1?v:1 };
+
+function npVoiceUpgrade(){
+  const box=document.getElementById('chat-msgs'); if(!box) return;
+  box.querySelectorAll('.voice-msg').forEach(vm=>{
+    if(vm._npUp) return; vm._npUp=1;
+    /* زر السرعة */
+    const body=vm.querySelector('.voice-body');
+    if(body && !vm.querySelector('.np-vspeed')){
+      const b=document.createElement('button');
+      b.className='np-vspeed'; b.type='button';
+      b.textContent=npSpeed()+'×';
+      b.onclick=e=>{
+        e.stopPropagation();
+        const i=NP_SPEEDS.indexOf(npSpeed());
+        const nx=NP_SPEEDS[(i+1)%NP_SPEEDS.length];
+        npSet(NPK.vspd,nx);
+        document.querySelectorAll('.np-vspeed').forEach(z=>z.textContent=nx+'×');
+        try{ if(_vAudio) _vAudio.playbackRate=nx }catch(_){}
+      };
+      body.appendChild(b);
+    }
+    /* الضغط على الموجة = تقديم */
+    const bars=vm.querySelector('.voice-bars');
+    if(bars) bars.addEventListener('click',e=>{
+      e.stopPropagation();
+      if(_vCur!==vm||!_vAudio||!isFinite(_vAudio.duration)) return;
+      const r=bars.getBoundingClientRect();
+      let p=(e.clientX-r.left)/r.width;
+      if(getComputedStyle(bars).direction==='rtl'||document.dir==='rtl') p=1-p;
+      _vAudio.currentTime=Math.max(0,Math.min(1,p))*_vAudio.duration;
+    });
+  });
+}
+
+function npVoiceNext(vm){
+  try{
+    if(!npGet(NPK.auton,true)) return;
+    const all=[...document.querySelectorAll('#chat-msgs .voice-msg')];
+    const i=all.indexOf(vm);
+    if(i>-1&&all[i+1]) setTimeout(()=>{ try{ msgPlayVoice(all[i+1]) }catch(e){} },260);
+  }catch(e){}
+}
+
+/* ═══════════════════════════════════════════════════════════
+   ٦) لوحة الإيموجي بشريط الكتابة
+   ═══════════════════════════════════════════════════════════ */
+
+const NP_EMO=[
+  ["😀","😀😃😄😁😆😅😂🤣😊😇🙂🙃😉😌😍🥰😘😗😙😚😋😛😜🤪😝🤗🤭🤔🤨😐😑😶😏😒🙄😬😌😔😪😴😷🤒🤕🥴😵🤯🤠🥳😎🤓🧐😕😟🙁😮😯😲😳🥺😦😧😨😰😥😢😭😱😖😣😞😓😩😫🥱😤😡😠🤬😈💀☠️"],
+  ["👍","👍👎👌✌️🤞🤟🤘🤙👈👉👆👇☝️✋🤚🖐️🖖👋🤝🙏💪🦵🦶👂👃👀🧠🫀💅🤳💃🕺👶👦👧👨👩🧑👴👵🙋🙆🙅💁🙇🤦🤷"],
+  ["❤️","❤️🧡💛💚💙💜🖤🤍🤎💔❣️💕💞💓💗💖💘💝💟☮️✝️☪️🕉️☸️✡️🔯🕎☯️☦️🛐⛎♈♉♊♋♌♍♎♏♐♑♒♓🆔⚛️"],
+  ["🔥","🔥✨⭐🌟💫⚡☄️💥🌈☀️🌤️⛅🌥️☁️🌦️🌧️⛈️🌩️🌨️❄️☃️⛄🌬️💨🌪️🌫️🌊💧💦☔⚓🎉🎊🎈🎁🏆🥇🥈🥉🎯🎪"],
+  ["🍔","🍏🍎🍐🍊🍋🍌🍉🍇🍓🫐🍈🍒🍑🥭🍍🥥🥝🍅🍆🥑🥦🥬🥒🌶️🌽🥕🧄🧅🥔🍠🥐🥯🍞🥖🧀🥚🍳🥞🧇🥓🍔🍟🍕🌭🥪🌮🌯🥙🍜🍲🍛🍣🍱🍤🍙🍚🍘🍥🥠🍨🍦🍰🎂🍮🍭🍬🍫🍿☕🍵🧃🥤🧋"],
+  ["🚗","🚗🚕🚙🚌🚎🏎️🚓🚑🚒🚐🛻🚚🚛🚜🛵🏍️🛺🚲🛴✈️🛫🛬🚀🛸🚁⛵🚤🛳️⛴️🚢🏠🏡🏢🏣🏥🏦🏨🏪🕌⛪🕋🗼🗽⛲🏖️🏝️🏔️⛰️🌋"],
+  ["⚽","⚽🏀🏈⚾🥎🎾🏐🏉🥏🎱🪀🏓🏸🏒🏑🥍🏏🪃🥅⛳🪁🏹🎣🤿🥊🥋🎽🛹🛼🛷⛸️🥌🎿⛷️🏂🏋️🤼🤸⛹️🤺🤾🏌️🏇🧘🏄🏊🤽🚣🧗🚴"],
+  ["🕐","🕐🕑🕒🕓🕔🕕🕖🕗🕘🕙🕚🕛⌚⏰⏱️⏲️🕰️⌛⏳📱💻⌨️🖥️🖨️🖱️💽💾💿📀🎥📷📸📹📼🔍🔎💡🔦🏮📔📕📖📗📘📙📚📓📒📃📜📄📰📑🔖🏷️💰💳✉️📩📤📥📦📫🔒🔓🔑🗝️🔨⛏️🔧🔩⚙️"]
+];
+
+function npEmojiPanel(){
+  let p=document.getElementById('np-emoji');
+  if(p) return p;
+  const bar=document.getElementById('chat-input-bar'); if(!bar) return null;
+  p=document.createElement('div'); p.className='np-emoji'; p.id='np-emoji';
+  p.innerHTML=`<div class="np-emoji-tabs" id="np-em-tabs">
+      <button data-t="-1" class="on">🕘</button>
+      ${NP_EMO.map((g,i)=>`<button data-t="${i}">${g[0]}</button>`).join('')}
+    </div><div class="np-emoji-grid" id="np-em-grid"></div>`;
+  bar.appendChild(p);
+  p.querySelectorAll('#np-em-tabs button').forEach(b=>{
+    b.onclick=()=>{
+      p.querySelectorAll('#np-em-tabs button').forEach(z=>z.classList.toggle('on',z===b));
+      npEmojiFill(+b.dataset.t);
+    };
+  });
+  npEmojiFill(-1);
+  return p;
+}
+function npEmojiFill(tab){
+  const g=document.getElementById('np-em-grid'); if(!g) return;
+  let chars;
+  if(tab<0){
+    chars=npArr(NPK.emoji);
+    if(!chars.length) chars=[...NP_EMO[0][1]].slice(0,24);
+  }else chars=[...NP_EMO[tab][1]];
+  g.innerHTML=chars.map(c=>`<button type="button">${c}</button>`).join('');
+  g.querySelectorAll('button').forEach(b=>{ b.onclick=()=>npEmojiPut(b.textContent) });
+}
+function npEmojiPut(ch){
+  const ta=document.getElementById('chat-text'); if(!ta) return;
+  const s=ta.selectionStart||ta.value.length, e=ta.selectionEnd||s;
+  ta.value=ta.value.slice(0,s)+ch+ta.value.slice(e);
+  ta.selectionStart=ta.selectionEnd=s+ch.length;
+  ta.dispatchEvent(new Event('input',{bubbles:true}));
+  ta.focus();
+  let r=npArr(NPK.emoji).filter(z=>z!==ch);
+  r.unshift(ch); npSet(NPK.emoji,r.slice(0,32));
+}
+function npEmojiBtn(){
+  const bar=document.getElementById('chat-input-bar');
+  if(!bar||document.getElementById('np-em-btn')) return;
+  const mic=document.getElementById('chat-mic');
+  const b=document.createElement('button');
+  b.className='np-em-btn'; b.id='np-em-btn'; b.type='button';
+  b.setAttribute('aria-label','إيموجي');
+  b.innerHTML=npIc('smile','');
+  if(mic) bar.insertBefore(b,mic); else bar.appendChild(b);
+  b.onclick=()=>{
+    const p=npEmojiPanel(); if(!p) return;
+    const on=p.classList.toggle('on');
+    b.classList.toggle('on',on);
+    if(on) npMpopClose();
+  };
+  document.addEventListener('click',e=>{
+    const p=document.getElementById('np-emoji');
+    if(!p||!p.classList.contains('on')) return;
+    if(p.contains(e.target)||e.target.closest('#np-em-btn')) return;
+    p.classList.remove('on'); b.classList.remove('on');
+  },true);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   ٧) البحث الشامل بكل الرسائل
+   ═══════════════════════════════════════════════════════════ */
+
+let _npSrchT=null, _npSrchSeq=0;
+
+function npSrchBox(){
+  let b=document.getElementById('np-srch');
+  if(b) return b;
+  const anchor=document.getElementById('msg-search-results');
+  if(!anchor||!anchor.parentNode) return null;
+  b=document.createElement('div'); b.className='np-srch'; b.id='np-srch'; b.hidden=true;
+  anchor.parentNode.insertBefore(b,anchor.nextSibling);
+  return b;
+}
+
+async function npSrchRun(q){
+  const box=npSrchBox(); if(!box) return;
+  const me=npMe();
+  if(!q||q.trim().length<2||!me){ box.hidden=true; box.innerHTML=''; return }
+  const seq=++_npSrchSeq;
+  box.hidden=false;
+  box.innerHTML='<h4>بالرسائل</h4><div class="np-empty">…</div>';
+  let convs=[]; try{ convs=await msgMyConvs() }catch(e){}
+  convs=convs.filter(c=>!isHiddenConv(c.id));
+  if(!convs.length){ if(seq===_npSrchSeq) box.hidden=true; return }
+  const ids="("+convs.map(c=>'"'+String(c.id).replace(/"/g,'')+'"').join(",")+")";
+  let rows=[];
+  try{
+    rows=await sbSelect("messages",
+      "select=id,conv_id,sender,body,created_at&conv_id=in."+encodeURIComponent(ids)+
+      "&body=ilike."+encodeURIComponent("*"+q.trim()+"*")+
+      "&order=created_at.desc&limit=40")||[];
+  }catch(e){ rows=[] }
+  if(seq!==_npSrchSeq) return;
+  if(!rows.length){
+    box.innerHTML='<h4>بالرسائل</h4><div class="np-empty">ماكو نتائج</div>';
+    return;
+  }
+  const cmap={}; convs.forEach(c=>cmap[c.id]=c);
+  const profs={};
+  await Promise.all([...new Set(rows.map(r=>{
+    const c=cmap[r.conv_id]; if(!c) return null;
+    return c.user1===me?c.user2:c.user1;
+  }).filter(Boolean))].map(async ph=>{
+    try{ profs[ph]=await msgGetProfile(ph) }catch(e){ profs[ph]={} }
+  }));
+  if(seq!==_npSrchSeq) return;
+  const mark=s=>{
+    const t=esc(String(s||"").slice(0,90));
+    try{
+      const rx=new RegExp("("+q.trim().replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+")","ig");
+      return t.replace(rx,"<mark>$1</mark>");
+    }catch(e){ return t }
+  };
+  box.innerHTML='<h4>بالرسائل ('+rows.length+')</h4><div class="np-list">'+rows.map(r=>{
+    const c=cmap[r.conv_id]; if(!c) return '';
+    const other=c.user1===me?c.user2:c.user1;
+    const p=profs[other]||{}, nm=msgDisplayName(p)||other;
+    const av=p.avatar?`<img loading="lazy" decoding="async" src="${esc(p.avatar)}" alt="">`
+      :`<span>${esc((nm||"?").charAt(0).toUpperCase())}</span>`;
+    return `<button class="np-item" data-mid="${esc(r.id)}" data-cid="${esc(r.conv_id)}"
+        data-ph="${esc(other)}" data-nm="${esc(nm)}">
+      <span class="np-av">${av}</span>
+      <span class="np-it-in"><b>${esc(nm)}</b><span>${mark(r.body)}</span></span>
+      <span class="np-it-t">${timeAgo(r.created_at)}</span></button>`;
+  }).join('')+'</div>';
+  box.querySelectorAll('[data-mid]').forEach(b=>{
+    b.onclick=()=>{
+      const i=document.getElementById('msg-q'); if(i) i.value='';
+      box.hidden=true; box.innerHTML='';
+      npJump(b.dataset.cid,b.dataset.mid,b.dataset.ph,b.dataset.nm,null);
+    };
+  });
+}
+
+function npBindSearch(){
+  const i=document.getElementById('msg-q');
+  if(!i||i._npS) return; i._npS=1;
+  i.addEventListener('input',()=>{
+    clearTimeout(_npSrchT);
+    const v=i.value;
+    _npSrchT=setTimeout(()=>npSrchRun(v),340);
+  });
+}
+
+/* ═══════════════════════════════════════════════════════════
+   ٨) منشن @ بالمجموعات
+   ═══════════════════════════════════════════════════════════ */
+
+let _npMem=[], _npMemFor="";
+
+function npMpop(){
+  let p=document.getElementById('np-mpop');
+  if(p) return p;
+  const bar=document.getElementById('chat-input-bar'); if(!bar) return null;
+  p=document.createElement('div'); p.className='np-mpop'; p.id='np-mpop';
+  bar.appendChild(p);
+  return p;
+}
+function npMpopClose(){ const p=document.getElementById('np-mpop'); if(p) p.classList.remove('on') }
+
+async function npMemLoad(){
+  try{
+    if(typeof roomCur==="undefined"||!roomCur) return [];
+    if(_npMemFor===roomCur.id&&_npMem.length) return _npMem;
+    const mem=await roomMembers(roomCur.id);
+    const phones=(mem||[]).map(m=>m.phone).filter(p=>p&&p!==npMe());
+    const profs=await msgGetProfiles(phones);
+    _npMem=phones.map(ph=>{
+      const p=profs[ph]||{};
+      return {ph,nm:msgDisplayName(p)||ph,us:(p.username||"").replace(/^@/,""),av:p.avatar||null};
+    }).filter(x=>x.us||x.nm);
+    _npMemFor=roomCur.id;
+    return _npMem;
+  }catch(e){ return [] }
+}
+
+async function npMentionCheck(){
+  try{
+    const ta=document.getElementById('chat-text'); if(!ta) return npMpopClose();
+    if(typeof roomCur==="undefined"||!roomCur) return npMpopClose();
+    const pos=ta.selectionStart||0;
+    const before=ta.value.slice(0,pos);
+    const m=before.match(/(^|\s)@([A-Za-z0-9_.\u0600-\u06FF]*)$/);
+    if(!m) return npMpopClose();
+    const q=(m[2]||"").toLowerCase();
+    const list=(await npMemLoad()).filter(x=>
+      !q||x.us.toLowerCase().indexOf(q)===0||x.nm.toLowerCase().indexOf(q)>-1).slice(0,8);
+    const p=npMpop(); if(!p) return;
+    if(!list.length) return npMpopClose();
+    p.innerHTML=list.map(x=>{
+      const av=x.av?`<img loading="lazy" decoding="async" src="${esc(x.av)}" alt="">`
+        :`<span>${esc((x.nm||"?").charAt(0).toUpperCase())}</span>`;
+      return `<button type="button" data-us="${esc(x.us||x.nm)}">
+        <span class="np-av">${av}</span><span>${esc(x.nm)}</span>
+        ${x.us?`<i>@${esc(x.us)}</i>`:''}</button>`;
+    }).join('');
+    p.querySelectorAll('[data-us]').forEach(b=>{
+      b.onclick=()=>{
+        const cur=ta.selectionStart||0;
+        const bf=ta.value.slice(0,cur).replace(/@([A-Za-z0-9_.\u0600-\u06FF]*)$/,'@'+b.dataset.us+' ');
+        ta.value=bf+ta.value.slice(cur);
+        ta.selectionStart=ta.selectionEnd=bf.length;
+        npMpopClose(); ta.focus();
+        ta.dispatchEvent(new Event('input',{bubbles:true}));
+      };
+    });
+    p.classList.add('on');
+  }catch(e){ npMpopClose() }
+}
+
+/* تلوين المنشن داخل الفقاعات */
+function npMentionPaint(){
+  try{
+    const me=npMyUser();
+    document.querySelectorAll('#chat-msgs .chat-bubble > div:not([class])').forEach(d=>{
+      if(d._npM) return;
+      if((d.textContent||"").indexOf('@')<0){ d._npM=1; return }
+      d._npM=1;
+      d.innerHTML=d.innerHTML.replace(/@([A-Za-z0-9_.\u0600-\u06FF]{2,32})/g,(all,u)=>
+        `<span class="np-mention${me&&u.toLowerCase()===me?' me':''}">@${u}</span>`);
+    });
+  }catch(e){}
+}
+
+/* ═══════════════════════════════════════════════════════════
+   ٩) لوحة NΞXA+ داخل قائمة الملف الشخصي
+   ═══════════════════════════════════════════════════════════ */
+
+function npPanelRow(){
+  const body=document.getElementById('pm-body');
+  if(!body||document.getElementById('np-pm-row')) return;
+  const b=document.createElement('button');
+  b.className='pm-row'; b.id='np-pm-row';
+  const sv=npSavedAll().length;
+  b.innerHTML=`<span class="pm-ic"><svg viewBox="0 0 24 24">${NPI.gear}</svg></span>
+    <span class="pm-label">NΞXA+</span>${sv?`<span class="pm-right">${sv}</span>`:''}${pmChev}`;
+  body.appendChild(b);
+  b.onclick=()=>npPanel();
+}
+
+function npPanel(){
+  const pins=npArr(NPK.pin).length, arch=npArr(NPK.arch).length,
+        mut=npArr(NPK.mute).length, sv=npSavedAll().length,
+        dr=Object.keys(npObj(NPK.draft)).length;
+  const auto=npGet(NPK.auton,true);
+  openSheet(`
+    <h3 style="font-size:19px;margin-bottom:2px">NΞXA+</h3>
+    <p class="sub" style="font-size:12.5px;margin-bottom:14px">الميزات الإضافية — كلها محفوظة بجهازك</p>
+    <div class="opt-list">
+      <button class="opt-row" id="np-p-saved">${npIc('star')}<span>الرسائل المحفوظة (${sv})</span></button>
+      <button class="opt-row" id="np-p-arch">${npIc('arch')}<span>الأرشيف (${arch})</span></button>
+      <button class="opt-row" id="np-p-notif">${ic('bell')}<span>الإشعارات</span></button>
+      <button class="opt-row" id="np-p-auto">${npIc('speed')}<span>تشغيل الصوتيات ورا بعض: ${auto?'مفعّل':'مطفي'}</span></button>
+      <button class="opt-row danger" id="np-p-reset">${ic('trash')}<span>تصفير إعدادات NΞXA+</span></button>
+    </div>
+    <p class="foot" style="padding-top:14px;text-align:start">
+      مثبّتة ${pins} · مكتومة ${mut} · مسوّدات ${dr}<br>
+      اضغط ضغطة مطوّلة على أي محادثة للتثبيت والأرشفة والكتم،
+      وعلى أي رسالة للحفظ والتحديد المتعدد.</p>`);
+  const on=(i,f)=>{ const e=document.getElementById(i); if(e) e.onclick=f };
+  on('np-p-saved',()=>npSavedSheet());
+  on('np-p-arch',()=>{
+    closeSheet(); pmClose();
+    luxFilter='arch';
+    document.querySelectorAll('.lux-chip').forEach(z=>z.classList.toggle('on',z.id==='np-chip-arch'));
+    go('messages'); msgRenderConvs();
+  });
+  on('np-p-notif',()=>npNotifSheet());
+  on('np-p-auto',()=>{ npSet(NPK.auton,!auto); npPanel() });
+  on('np-p-reset',()=>confirmAsk("تنمسح كل إعدادات NΞXA+ (التثبيت والأرشفة والمحفوظة والمسودات). أكيد؟",()=>{
+    Object.values(NPK).forEach(k=>lsDel(k));
+    closeSheet(); toast("انصفّرت"); msgRenderConvs();
+  }));
+}
+
+/* ═══════════════════════════════════════════════════════════
+   الالتفاف حول الدوال الأصلية
+   ═══════════════════════════════════════════════════════════ */
+
+function npWrap(){
+  /* قائمة المحادثات */
+  if(typeof msgRenderConvs==="function"&&!msgRenderConvs._np){
+    const o=msgRenderConvs;
+    msgRenderConvs=async function(){
+      const r=await o.apply(this,arguments);
+      try{ npDecorateConvs() }catch(e){}
+      return r;
+    };
+    msgRenderConvs._np=1;
+  }
+
+  /* رسم المحادثة */
+  if(typeof msgPaintChat==="function"&&!msgPaintChat._np){
+    const o=msgPaintChat;
+    msgPaintChat=function(){
+      const r=o.apply(this,arguments);
+      try{ npVoiceUpgrade(); npMentionPaint(); if(npSelOn) npSelPaint() }catch(e){}
+      return r;
+    };
+    msgPaintChat._np=1;
+  }
+
+  /* خيارات الرسالة: نضيف «حفظ» و«تحديد» */
+  if(typeof msgOptions==="function"&&!msgOptions._np){
+    const o=msgOptions;
+    msgOptions=function(msgId){
+      o.apply(this,arguments);
+      try{
+        const list=document.querySelector('#sheet-body .opt-list'); if(!list) return;
+        const saved=npSavedHas(msgId);
+        const b1=document.createElement('button');
+        b1.className='opt-row';
+        b1.innerHTML=`${npIc('star')}<span>${saved?'شيل من المحفوظة':'حفظ الرسالة'}</span>`;
+        b1.onclick=()=>{ closeSheet(); npSavedToggle(msgId) };
+        const b2=document.createElement('button');
+        b2.className='opt-row';
+        b2.innerHTML=`${ic('check')}<span>تحديد رسائل</span>`;
+        b2.onclick=()=>{ closeSheet(); npSelStart(msgId) };
+        list.insertBefore(b1,list.firstChild);
+        list.insertBefore(b2,b1.nextSibling);
+      }catch(e){}
+    };
+    msgOptions._np=1;
+  }
+
+  /* الصوت: سرعة + تشغيل تلقائي للي بعده */
+  if(typeof msgPlayVoice==="function"&&!msgPlayVoice._np){
+    const o=msgPlayVoice;
+    msgPlayVoice=function(vm){
+      o.apply(this,arguments);
+      try{
+        if(_vAudio&&_vCur===vm){
+          _vAudio.playbackRate=npSpeed();
+          _vAudio.addEventListener('ended',()=>npVoiceNext(vm),{once:true});
+        }
+      }catch(e){}
+    };
+    msgPlayVoice._np=1;
+  }
+
+  /* فتح المحادثة: نرجّع المسوّدة ونشيل علامة «غير مقروء» */
+  if(typeof msgOpenChat==="function"&&!msgOpenChat._np){
+    const o=msgOpenChat;
+    msgOpenChat=async function(){
+      npSelEnd(); npMpopClose();
+      const r=await o.apply(this,arguments);
+      try{
+        npDraftRestore();
+        if(chatConvId) npDrop(NPK.unrd,chatConvId);
+        _npMem=[]; _npMemFor="";
+        npEmojiBtn(); npBindSelectTap();
+      }catch(e){}
+      return r;
+    };
+    msgOpenChat._np=1;
+  }
+
+  /* سكّر المحادثة: نحفظ المسوّدة */
+  if(typeof msgCloseChat==="function"&&!msgCloseChat._np){
+    const o=msgCloseChat;
+    msgCloseChat=function(){
+      try{ npDraftSave(); npSelEnd(); npMpopClose();
+        const p=document.getElementById('np-emoji'); if(p) p.classList.remove('on');
+      }catch(e){}
+      return o.apply(this,arguments);
+    };
+    msgCloseChat._np=1;
+  }
+
+  /* قائمة الملف الشخصي: صف NΞXA+ */
+  if(typeof renderAcct==="function"&&!renderAcct._np){
+    const o=renderAcct;
+    renderAcct=function(){
+      const r=o.apply(this,arguments);
+      try{ npPanelRow() }catch(e){}
+      return r;
+    };
+    renderAcct._np=1;
+  }
+
+  /* الإشعارات المكتومة ما تطلع تنبيه داخل الموقع */
+  if(typeof notifLocal==="function"&&!notifLocal._np){
+    const o=notifLocal;
+    notifLocal=async function(title,body,data){
+      try{
+        const cid=data&&(data.conv||data.conv_id);
+        if(cid&&npHas(NPK.mute,cid)) return;
+      }catch(e){}
+      return o.apply(this,arguments);
+    };
+    notifLocal._np=1;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   الإقلاع
+   ═══════════════════════════════════════════════════════════ */
+
+function npBoot(){
+  try{ npInjectCSS() }catch(e){}
+  try{ npWrap() }catch(e){}
+  try{ npAddArchChip() }catch(e){}
+  try{ npBell() }catch(e){}
+  try{ npEmojiBtn() }catch(e){}
+  try{ npBindSelectTap() }catch(e){}
+  try{ npBindSearch() }catch(e){}
+
+  /* حفظ المسوّدة أثناء الكتابة + فحص المنشن */
+  const ta=document.getElementById('chat-text');
+  if(ta&&!ta._np){
+    ta._np=1;
+    ta.addEventListener('input',()=>{
+      clearTimeout(_npDraftT);
+      _npDraftT=setTimeout(npDraftSave,420);
+      npMentionCheck();
+    });
+    ta.addEventListener('blur',()=>setTimeout(npMpopClose,180));
+  }
+  const send=document.getElementById('chat-send');
+  if(send&&!send._np){
+    send._np=1;
+    send.addEventListener('click',()=>setTimeout(()=>{
+      try{ const o=npObj(NPK.draft); delete o[String(chatConvId)]; npSet(NPK.draft,o) }catch(e){}
+      npMpopClose();
+      const p=document.getElementById('np-emoji');
+      if(p){ p.classList.remove('on');
+        const b=document.getElementById('np-em-btn'); if(b) b.classList.remove('on') }
+    },260));
+  }
+
+  /* زر الرجوع يلغي التحديد أول شي */
+  addEventListener('popstate',()=>{ if(npSelOn) npSelEnd() },true);
+
+  /* الإشعارات: أول مرة وبعدها كل دقيقتين */
+  setTimeout(npNotifBadge,2600);
+  setInterval(()=>{ try{ if(!document.hidden) npNotifBadge() }catch(e){} },120000);
+
+  /* نحفظ المسوّدة إذا طلع من الموقع فجأة */
+  addEventListener('pagehide',npDraftSave);
+  document.addEventListener('visibilitychange',()=>{ if(document.hidden) npDraftSave() });
+}
+
+if(document.readyState==="loading") document.addEventListener('DOMContentLoaded',()=>setTimeout(npBoot,60));
+else setTimeout(npBoot,60);
+
+/* نعيد الالتفاف بعد إقلاع المراسلات — بعض الدوال تنبني متأخرة */
+setTimeout(()=>{ try{ npWrap(); npBell(); npAddArchChip(); npBindSearch() }catch(e){} },1800);
+
+/* نخلي بعض الدوال متاحة للتشخيص من الكونسول */
+try{
+  window.NXP={panel:npPanel,saved:npSavedSheet,notif:npNotifSheet,
+    keys:NPK,reload:npBoot};
+}catch(e){}
+
+})();
+
+
+/* ══════════════════════════════════════════════════════════════
+   NΞXA PRO — نظام الاشتراك المدفوع
+   ٥٬٠٠٠ دينار شهرياً · ٥٢٬٠٠٠ دينار سنوياً
+
+   كيف يشتغل الدفع بالعراق: ماكو بوابة دفع بالمتصفح، فالنظام
+   مبني على «رموز تفعيل» — المالك يولّد الرموز من لوحته، يبيعها
+   (واتساب / زين كاش / آسيا حوالة / نقد)، والزبون يدخّل الرمز
+   بالتطبيق فينفتح الاشتراك. وبيها كمان منح مباشر باليوزر.
+
+   مكان الحفظ:
+     · محلياً بالجهاز دائماً (يشتغل بلا أي SQL)
+     · وعلى user_profiles إذا عمودَي pro_until و pro_plan موجودين
+       — عندها الشارة تبين لكل المستخدمين والاشتراك يتنقّل بين
+       الأجهزة. الأمر موجود بلوحة المالك بزر نسخ.
+
+   ماكو خدمة خارجية جديدة، فالـCSP ما تحتاج تعديل.
+   ══════════════════════════════════════════════════════════════ */
+(function(){
+"use strict";
+
+const PRICE={m:5000,y:52000};
+
+/* ── أرقام استلام الرصيد ──────────────────────────────────────
+   الدفع يصير تحويل رصيد على الرقم الأساسي. إذا وقف أو انقطع،
+   بدّل ACTIVE إلى "backup" — أو غيّرها من لوحة المالك مباشرة.
+   لتغيير رقم دائم: عدّل السطرين تحت وارفع الملف من جديد.
+   ────────────────────────────────────────────────────────── */
+const PAY={
+  primary:{num:"07865536522", who:"الرقم الأساسي"},
+  backup :{num:"07904694393", who:"الرقم الاحتياطي"}
+};
+const PAY_LS="nxpro_pay_active_v1";
+const payActive=()=>{ const v=lsGet(PAY_LS); return v==="backup"?"backup":"primary" };
+const payNum=()=>PAY[payActive()].num;
+const payOther=()=>PAY[payActive()==="primary"?"backup":"primary"].num;
+const payPretty=n=>String(n).replace(/(\d{4})(\d{3})(\d{4})/,"$1 $2 $3");
+const payWA=(num,text)=>{
+  const n="964"+String(num).replace(/^0/,"");
+  const u="https://wa.me/"+n+"?text="+encodeURIComponent(text);
+  try{ window.open(u,"_blank","noopener") }catch(e){ location.href=u }
+};
+const PK={
+  sub  :"nxpro_sub_v1",       /* اشتراكي */
+  used :"nxpro_used_codes_v1",/* رموز انستهلكت بهذا الجهاز */
+  gen  :"nxpro_gen_v1",       /* الرموز اللي ولّدها المالك */
+  fld  :"nxpro_folders_v1",   /* مجلدات المحادثات */
+  ttl  :"nxpro_ttl_v1",       /* الرسائل المؤقتة لكل محادثة */
+  sched:"nxpro_sched_v1",     /* الرسائل المجدولة */
+  ghost:"nxpro_ghost_v1",     /* وضع التخفي */
+  nork :"nxpro_noread_v1",    /* قراءة بلا علامة */
+  theme:"nxpro_theme_v1",     /* ثيم الفقاعات */
+  qr   :"nxpro_quick_v1",     /* الردود السريعة */
+  away :"nxpro_away_v1",      /* الرد التلقائي */
+  awayL:"nxpro_away_log_v1"
+};
+const pg=(k,d)=>{ const v=lsGet(k); return v==null?d:v };
+const ps=(k,v)=>lsSet(k,v);
+const pArr=k=>{ const v=lsGet(k); return Array.isArray(v)?v:[] };
+const pObj=k=>{ const v=lsGet(k); return (v&&typeof v==="object"&&!Array.isArray(v))?v:{} };
+const nfIQ=n=>(+n||0).toLocaleString('en-US');
+
+/* حدود الحساب المجاني — بعدها يطلب الترقية */
+const FREE={pins:3,saved:20,folders:0,quick:0,upMB:100};
+
+/* ── أيقونات ── */
+const PI={
+  crown:'<path d="M3 8l4.5 3.5L12 5l4.5 6.5L21 8l-1.8 10.5H4.8z"/>',
+  bolt :'<path d="M13 2L4.5 13.5H11l-1 8.5 8.5-11.5H12z"/>',
+  key  :'<circle cx="8" cy="15" r="4.2"/><path d="M11 12l9-9M17.5 5.5l2 2M15 8l2 2"/>',
+  clock:'<circle cx="12" cy="12" r="9"/><path d="M12 6.5V12l4 2.4"/>',
+  ghost:'<path d="M4 20V10a8 8 0 1 1 16 0v10l-2.7-2-2.6 2-2.7-2-2.6 2z"/><path d="M9 10h.01M15 10h.01"/>',
+  fold :'<path d="M3 7.5A2 2 0 0 1 5 5.5h4l2 2.4h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>',
+  lang :'<circle cx="12" cy="12" r="9"/><path d="M3.5 9.5h17M3.5 14.5h17"/><path d="M12 3a15 15 0 0 1 0 18a15 15 0 0 1 0-18"/>',
+  wand :'<path d="M4 20L16 8"/><path d="M14.5 3.5l1 2.5 2.5 1-2.5 1-1 2.5-1-2.5-2.5-1 2.5-1z"/><path d="M19 14l.7 1.8 1.8.7-1.8.7L19 19l-.7-1.8-1.8-.7 1.8-.7z"/>',
+  down :'<path d="M12 3.5v12M12 15.5l-4.5-4.5M12 15.5l4.5-4.5"/><path d="M4 20.5h16"/>',
+  chart:'<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',
+  reply:'<path d="M9 14L4 9l5-5"/><path d="M4 9h9a7 7 0 0 1 7 7v4"/>'
+};
+const pic=(n,c)=>`<svg class="${c||'ui-ic'}" viewBox="0 0 24 24" aria-hidden="true">${PI[n]||''}</svg>`;
+
+/* ══════════════════ الأنماط ══════════════════ */
+const PRO_CSS=`
+:root{--pro1:#D6B36A;--pro2:#F0D99A;--pro3:#A97F2E}
+.pro-badge{display:inline-flex;align-items:center;gap:2px;vertical-align:middle;
+  margin-inline-start:5px;padding:1px 6px;border-radius:7px;font-size:9.5px;font-weight:900;
+  letter-spacing:.6px;color:#3A2B06;background:linear-gradient(135deg,var(--pro2),var(--pro1));
+  box-shadow:0 1px 3px rgba(169,127,46,.45)}
+.pro-name{background:linear-gradient(100deg,var(--pro3),var(--pro1),var(--pro2),var(--pro1));
+  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+body.is-pro .up-av,body.is-pro .hb-av{box-shadow:0 0 0 2.5px var(--pro1),0 0 14px rgba(214,179,106,.5)}
+
+.pro-card{border-radius:20px;padding:18px;color:#F6ECD6;
+  background:radial-gradient(120% 140% at 15% 0%,#231C0C 0%,#12100A 55%,#0A0A0A 100%);
+  border:1px solid rgba(214,179,106,.4);position:relative;overflow:hidden}
+.pro-card::after{content:"";position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(105deg,transparent 35%,rgba(240,217,154,.13) 50%,transparent 65%)}
+.pro-card h3{font-size:22px;margin:0 0 4px;letter-spacing:.5px}
+.pro-card h3 i{font-style:normal;color:var(--pro1)}
+.pro-card p{font-size:12.5px;opacity:.78;margin:0 0 14px;line-height:1.7}
+.pro-plans{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:14px}
+.pro-plan{border:1.5px solid rgba(214,179,106,.35);border-radius:15px;padding:12px 10px;
+  background:rgba(255,255,255,.03);text-align:center;cursor:pointer;position:relative}
+.pro-plan.on{border-color:var(--pro1);background:rgba(214,179,106,.13)}
+.pro-plan b{display:block;font-size:12.5px;opacity:.85;margin-bottom:4px}
+.pro-plan u{display:block;text-decoration:none;font-size:20px;font-weight:900;color:var(--pro2)}
+.pro-plan s{display:block;text-decoration:none;font-size:10.5px;opacity:.6;margin-top:3px}
+.pro-plan em{position:absolute;top:-9px;inset-inline-end:8px;font-style:normal;font-size:9.5px;
+  font-weight:800;background:linear-gradient(135deg,var(--pro2),var(--pro1));color:#3A2B06;
+  padding:2px 7px;border-radius:7px}
+.pro-feats{display:grid;gap:7px;margin:4px 0 14px;max-height:none}
+.pro-feat{display:flex;gap:9px;align-items:flex-start;font-size:12.5px;line-height:1.55}
+.pro-feat svg{width:16px;height:16px;flex:0 0 auto;margin-top:2px;stroke:var(--pro1);
+  fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.pro-feat b{font-weight:700}
+.pro-feat span{opacity:.72;display:block;font-size:11.5px}
+.pro-btn{width:100%;border:0;border-radius:14px;padding:14px;font-size:15px;font-weight:800;
+  cursor:pointer;background:linear-gradient(135deg,var(--pro2),var(--pro1));color:#2B2008}
+.pro-btn:active{transform:scale(.985)}
+.pro-btn.ghost{background:transparent;border:1.5px solid rgba(214,179,106,.45);color:var(--pro2);
+  margin-top:8px;font-size:13.5px;padding:11px}
+.pro-live{display:flex;align-items:center;gap:8px;background:rgba(214,179,106,.12);
+  border:1px solid rgba(214,179,106,.35);border-radius:13px;padding:11px 12px;margin-bottom:12px}
+.pro-live svg{width:20px;height:20px;stroke:var(--pro1);fill:none;stroke-width:2}
+.pro-live b{font-size:13px;color:var(--pro2)}
+.pro-live span{font-size:11.5px;opacity:.75;display:block}
+.pro-code{display:flex;gap:7px;margin-top:10px}
+.pro-code input{flex:1;min-width:0;border-radius:12px;border:1px solid rgba(214,179,106,.35);
+  background:rgba(255,255,255,.05);color:#F6ECD6;padding:12px;font-size:15px;
+  font-weight:800;letter-spacing:2px;text-align:center;text-transform:uppercase}
+.pro-code button{border:0;border-radius:12px;padding:0 16px;font-weight:800;cursor:pointer;
+  background:linear-gradient(135deg,var(--pro2),var(--pro1));color:#2B2008}
+.pro-pay{font-size:11.5px;opacity:.72;line-height:1.8;margin-top:12px}
+.pay-num{border:1.5px dashed rgba(214,179,106,.55);border-radius:15px;padding:14px;
+  text-align:center;margin-bottom:14px;cursor:pointer;background:rgba(214,179,106,.08)}
+.pay-num span{display:block;font-size:11.5px;opacity:.7;margin-bottom:5px}
+.pay-num b{display:block;font-size:25px;font-weight:900;letter-spacing:2px;color:var(--pro2);
+  font-family:ui-monospace,monospace}
+.pay-num i{display:block;font-style:normal;font-size:10.5px;opacity:.55;margin-top:5px}
+.pay-num:active{transform:scale(.99)}
+.pay-steps{display:grid;gap:10px;margin-bottom:14px}
+.pay-step{display:flex;gap:10px;align-items:flex-start}
+.pay-step u{flex:0 0 auto;width:24px;height:24px;border-radius:50%;text-decoration:none;
+  display:grid;place-items:center;font-size:12px;font-weight:900;color:#2B2008;
+  background:linear-gradient(135deg,var(--pro2),var(--pro1))}
+.pay-step b{font-size:13px;font-weight:700}
+.pay-step span{display:block;font-size:11.5px;opacity:.7;line-height:1.6}
+.pro-pay b{color:var(--pro2);opacity:1}
+
+.pro-lock{display:flex;align-items:center;gap:8px;background:rgba(214,179,106,.1);
+  border:1px dashed rgba(214,179,106,.5);border-radius:12px;padding:10px;font-size:12px;
+  margin:10px 0;color:inherit}
+.pro-lock svg{width:17px;height:17px;stroke:var(--pro1);fill:none;stroke-width:2;flex:0 0 auto}
+.pro-tag{font-size:9px;font-weight:900;background:linear-gradient(135deg,var(--pro2),var(--pro1));
+  color:#3A2B06;border-radius:6px;padding:1px 5px;margin-inline-start:6px}
+
+.pro-codes{max-height:230px;overflow:auto;display:grid;gap:6px;margin-top:10px}
+.pro-codes div{display:flex;align-items:center;gap:8px;font-family:ui-monospace,monospace;
+  font-size:13px;font-weight:700;background:var(--mSurf,#f4f4f4);border-radius:10px;padding:9px 11px}
+.pro-codes div span{flex:1;letter-spacing:1.5px}
+.pro-codes div i{font-style:normal;font-size:10px;opacity:.6;font-family:inherit}
+.pro-codes div.used{opacity:.45;text-decoration:line-through}
+
+/* ثيمات الفقاعات الحصرية */
+body.pth-gold   .chat-bubble.me{background:linear-gradient(135deg,#F0D99A,#D6B36A)!important;color:#2B2008!important}
+body.pth-neon   .chat-bubble.me{background:linear-gradient(135deg,#7C4DFF,#00E5FF)!important;color:#fff!important}
+body.pth-aurora .chat-bubble.me{background:linear-gradient(135deg,#FF6EC4,#7873F5,#4ADEDE)!important;color:#fff!important}
+body.pth-ocean  .chat-bubble.me{background:linear-gradient(135deg,#0F2027,#2C5364)!important;color:#EAF6FF!important}
+body.pth-sunset .chat-bubble.me{background:linear-gradient(135deg,#FF512F,#F09819)!important;color:#fff!important}
+body.pth-forest .chat-bubble.me{background:linear-gradient(135deg,#134E5E,#71B280)!important;color:#fff!important}
+body.pth-gold .chat-bubble.me .chat-ts,body.pth-neon .chat-bubble.me .chat-ts,
+body.pth-aurora .chat-bubble.me .chat-ts,body.pth-ocean .chat-bubble.me .chat-ts,
+body.pth-sunset .chat-bubble.me .chat-ts,body.pth-forest .chat-bubble.me .chat-ts{opacity:.75}
+
+.pro-ttl-pill{display:none;align-items:center;justify-content:center;gap:6px;font-size:11.5px;
+  padding:5px;background:rgba(214,179,106,.14);color:var(--pro3);font-weight:700}
+.pro-ttl-pill.on{display:flex}
+.pro-sched-pill{display:flex;align-items:center;gap:7px;font-size:12px;padding:9px 11px;
+  border-radius:11px;background:var(--mSurf,#f2f2f2);margin-bottom:6px}
+.pro-sched-pill b{flex:1;min-width:0;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pro-sched-pill button{border:0;background:transparent;color:#E5484D;cursor:pointer;font-weight:700}
+
+.pro-grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+.pro-th{border:1.5px solid var(--mLine,#ddd);border-radius:12px;padding:9px;cursor:pointer;
+  font-size:12px;font-weight:700;text-align:center;color:#fff}
+.pro-th.on{outline:2.5px solid var(--pro1);outline-offset:1px}
+.pro-stat{display:flex;justify-content:space-between;padding:9px 2px;font-size:13px;
+  border-bottom:1px solid var(--line,#eee)}
+.pro-stat b{font-weight:800}
+`;
+
+/* ══════════════════ حالة الاشتراك ══════════════════ */
+
+let PRO_SERVER=null;   /* هل أعمدة القاعدة موجودة؟ null=ما جرّبنا */
+
+const proLocal=()=>pObj(PK.sub);
+function proActiveOn(o){
+  if(!o||!o.until) return false;
+  const d=new Date(o.until); return !isNaN(d)&&d.getTime()>Date.now();
+}
+const isPro=()=>proActiveOn(proLocal());
+const proDaysLeft=()=>{
+  const o=proLocal(); if(!proActiveOn(o)) return 0;
+  return Math.max(0,Math.ceil((new Date(o.until).getTime()-Date.now())/864e5));
+};
+/* هل حساب ثاني مشترك؟ (يقراها من صف الملف الشخصي) */
+const rowIsPro=p=>{
+  if(!p) return false;
+  const u=p.pro_until||p.proUntil; if(!u) return false;
+  const d=new Date(u); return !isNaN(d)&&d.getTime()>Date.now();
+};
+
+function proApplyBody(){
+  try{
+    document.body.classList.toggle('is-pro',isPro());
+    ["gold","neon","aurora","ocean","sunset","forest"].forEach(t=>
+      document.body.classList.remove('pth-'+t));
+    const th=pg(PK.theme,"");
+    if(isPro()&&th) document.body.classList.add('pth-'+th);
+    /* حدود الرفع ترتفع للمشترك */
+    if(typeof UP_LIMITS!=="undefined"){
+      const big=isPro();
+      UP_LIMITS.file.max = (big?500:100)*1048576;
+      UP_LIMITS.img.max  = (big?150:60)*1048576;
+      UP_LIMITS.video.max= (big?400:100)*1048576;
+      UP_LIMITS.voice.max= (big?100:25)*1048576;
+    }
+  }catch(e){}
+}
+
+async function proSetLocal(plan,untilISO,code){
+  ps(PK.sub,{plan,until:untilISO,code:code||"",at:Date.now()});
+  proApplyBody();
+  try{
+    const ok=await upSavePatch({pro_until:untilISO,pro_plan:plan});
+    PRO_SERVER=!!ok;
+  }catch(e){ PRO_SERVER=false }
+}
+
+/* يجيب حالة الاشتراك من القاعدة (حتى ينتقل بين الأجهزة) */
+async function proSync(){
+  try{
+    if(!isLoggedMsg()) return;
+    const p=await msgGetProfile(myPhone(),true);
+    if(!p) return;
+    if(p.pro_until===undefined){ PRO_SERVER=false; return }
+    PRO_SERVER=true;
+    const srv=new Date(p.pro_until||0).getTime()||0;
+    const loc=new Date((proLocal().until)||0).getTime()||0;
+    if(srv>loc){ ps(PK.sub,{plan:p.pro_plan||"m",until:p.pro_until,at:Date.now()}); }
+    else if(loc>srv&&loc>Date.now()){ try{ await upSavePatch({
+        pro_until:proLocal().until,pro_plan:proLocal().plan||"m"}) }catch(e){} }
+    proApplyBody();
+  }catch(e){}
+}
+
+/* ══════════════════ رموز التفعيل ══════════════════ */
+
+const PRO_SALT="NXA-PRO-2026-\u0645\u0639\u0631\u0636";
+function pHash(s){
+  let h=0x811c9dc5;
+  for(let i=0;i<s.length;i++){ h^=s.charCodeAt(i); h=(h*0x01000193)>>>0 }
+  return h.toString(36).toUpperCase().padStart(7,"0");
+}
+const B36="0123456789ABCDEFGHJKLMNPQRSTUVWXYZ";  /* بلا I و O حتى ما تنلخبط */
+function rndSerial(n){
+  let s=""; const a=new Uint8Array(n);
+  (crypto&&crypto.getRandomValues)?crypto.getRandomValues(a):a.forEach((_,i)=>a[i]=Math.random()*255);
+  for(let i=0;i<n;i++) s+=B36[a[i]%B36.length];
+  return s;
+}
+function proMakeCode(plan){
+  const p=plan==="y"?"Y":"M", sr=rndSerial(6);
+  const ck=pHash(p+sr+PRO_SALT).slice(0,4);
+  return "NX"+p+"-"+sr+"-"+ck;
+}
+function proReadCode(raw){
+  const c=String(raw||"").toUpperCase().replace(/\s/g,"");
+  const m=/^NX([MY])-([0-9A-Z]{6})-([0-9A-Z]{4})$/.exec(c);
+  if(!m) return null;
+  if(pHash(m[1]+m[2]+PRO_SALT).slice(0,4)!==m[3]) return null;
+  return {code:c,plan:m[1]==="Y"?"y":"m"};
+}
+
+/* استهلاك رمز: محلياً دائماً، وبجدول pro_codes إذا موجود */
+async function proRedeem(raw){
+  const r=proReadCode(raw);
+  if(!r) return {ok:false,why:"الرمز مو صحيح — تأكد من الحروف والشرطات"};
+  const used=pArr(PK.used);
+  if(used.indexOf(r.code)>-1) return {ok:false,why:"هذا الرمز مستعمل من قبل"};
+  /* إذا الجدول موجود نتأكد منه — وإذا مو موجود نكمّل محلياً */
+  try{
+    const rows=await sbSelect("pro_codes","select=code,used_by&code=eq."+encodeURIComponent(r.code)+"&limit=1");
+    if(rows&&rows.length){
+      if(rows[0].used_by) return {ok:false,why:"هذا الرمز مستعمل من حساب ثاني"};
+      await sbReq("pro_codes?code=eq."+encodeURIComponent(r.code),{method:"PATCH",
+        headers:{Prefer:"return=minimal"},
+        body:JSON.stringify({used_by:myPhone(),used_at:new Date().toISOString()})});
+    }
+  }catch(e){}
+  const days=r.plan==="y"?365:30;
+  const base=Math.max(Date.now(),new Date(proLocal().until||0).getTime()||0);
+  const until=new Date(base+days*864e5).toISOString();
+  used.push(r.code); ps(PK.used,used);
+  await proSetLocal(r.plan,until,r.code);
+  return {ok:true,plan:r.plan,until};
+}
+
+/* ══════════════════ شاشة الاشتراك ══════════════════ */
+
+const FEATS=[
+  ["crown","شارة PRO ذهبية","اسمك يطلع بتدرّج ذهبي وشارة تبين بكل مكان — بالمحادثات والريلز والقصص"],
+  ["fold","مجلدات محادثات","رتّب محادثاتك بمجلدات (شغل، عائلة، زبائن) مثل تليجرام"],
+  ["clock","رسائل تختفي وحدها","حدّد وقت لكل محادثة — الرسائل تنمسح تلقائياً عند الطرفين"],
+  ["bolt","جدولة الرسائل","اكتب هسه وخلي الرسالة تنبعث بالوقت اللي تحدده"],
+  ["ghost","وضع التخفي","تتصفّح بلا ما يبين آخر ظهورك، وتقرا بلا ما تنعلّم الرسالة مقروءة"],
+  ["wand","٦ ثيمات فقاعات حصرية","ذهبي، نيون، شفق، محيط، غروب، غابة"],
+  ["lang","ترجمة فورية","ترجم أي رسالة بضغطة — عربي/إنكليزي/كردي/تركي وغيرها"],
+  ["chart","تلخيص المحادثة","الذكاء يلخصلك محادثة طويلة بأربع أسطر"],
+  ["reply","ردود سريعة","احفظ قوالب جاهزة وارسلها بضغطة بدل ما تعيد كتابتها"],
+  ["clock","رد تلقائي وقت الغياب","الناس توصلها ردة تلقائية وأنت مشغول"],
+  ["down","تصدير المحادثة","نزّل المحادثة كاملة كملف نصي بجهازك"],
+  ["bolt","رفع أكبر بخمس مرات","ملفات لحد ٥٠٠ ميجا، فيديو ٤٠٠، صور ١٥٠ بدل ١٠٠"],
+  ["crown","تثبيت ومحفوظات بلا حد","بالحساب المجاني ٣ مثبّتة و٢٠ محفوظة بس"],
+  ["chart","إحصائيات حسابك","متابعين، رسائل، إعجابات ريلزك — بلوحة وحدة"],
+  ["key","إطار ذهبي لصورتك","صورتك الشخصية تنميّز بإطار ولمعة ذهبية"],
+  ["bolt","أولوية بالدعم","استفساراتك تجي بالأول عند فريق المعرض"]
+];
+
+let _planPick="y";
+
+function proScreen(){
+  const live=isPro(), o=proLocal();
+  openSheet(`
+    <div class="pro-card">
+      <h3>N<i>Ξ</i>XA <b style="color:var(--pro1)">PRO</b></h3>
+      <p>اشتراك واحد يفتحلك ١٦ ميزة داخل NΞXA — بلا إعلانات وبلا حدود.</p>
+      ${live?`<div class="pro-live">${pic('crown','')}
+        <div><b>اشتراكك شغّال</b><span>${o.plan==="y"?"سنوي":"شهري"} · باقي ${proDaysLeft()} يوم
+        · ينتهي ${new Date(o.until).toLocaleDateString('en-GB')}</span></div></div>`:''}
+      <div class="pro-plans">
+        <div class="pro-plan${_planPick==="m"?' on':''}" data-plan="m">
+          <b>شهري</b><u>${nfIQ(PRICE.m)}</u><s>دينار / شهر</s></div>
+        <div class="pro-plan${_planPick==="y"?' on':''}" data-plan="y">
+          <em>وفّر ${nfIQ(PRICE.m*12-PRICE.y)}</em>
+          <b>سنوي</b><u>${nfIQ(PRICE.y)}</u><s>دينار / سنة · ${nfIQ(Math.round(PRICE.y/12))} بالشهر</s></div>
+      </div>
+      <div class="pro-feats">
+        ${FEATS.map(f=>`<div class="pro-feat">${pic(f[0],'')}
+          <div><b>${esc(f[1])}</b><span>${esc(f[2])}</span></div></div>`).join('')}
+      </div>
+      <button class="pro-btn" id="pro-buy">${live?'جدّد الاشتراك':'اشترك هسه'} · ${nfIQ(_planPick==="y"?PRICE.y:PRICE.m)} دينار</button>
+      <div class="pro-code">
+        <input id="pro-cin" placeholder="NXY-XXXXXX-XXXX" maxlength="18" autocomplete="off">
+        <button id="pro-cgo">فعّل</button>
+      </div>
+      <div class="pro-pay">
+        <b>طريقة الدفع:</b> تحويل رصيد على الرقم
+        <b style="letter-spacing:1px">${payPretty(payNum())}</b><br>
+        اضغط «اشترك هسه» وتطلعلك الخطوات كاملة. عندك رمز تفعيل؟ دخّله فوق.
+      </div>
+    </div>`);
+  document.querySelectorAll('.pro-plan').forEach(p=>{
+    p.onclick=()=>{ _planPick=p.dataset.plan; proScreen() };
+  });
+  const buy=document.getElementById('pro-buy');
+  if(buy) buy.onclick=()=>proPay(_planPick);
+  const go=document.getElementById('pro-cgo');
+  if(go) go.onclick=async()=>{
+    const i=document.getElementById('pro-cin'); if(!i) return;
+    go.disabled=true; go.textContent="…";
+    const r=await proRedeem(i.value);
+    go.disabled=false; go.textContent="فعّل";
+    if(!r.ok){ toast(r.why); return }
+    closeSheet();
+    proWelcome(r.plan,r.until);
+  };
+}
+
+/* ── شاشة الدفع: تحويل رصيد ── */
+function proPay(plan){
+  const price=nfIQ(plan==="y"?PRICE.y:PRICE.m);
+  const pl=plan==="y"?"السنوي":"الشهري";
+  openSheet(`
+    <div class="pro-card">
+      <h3>الدفع بـ<i> رصيد</i></h3>
+      <p>الاشتراك ${pl} — <b style="color:var(--pro2)">${price} دينار</b></p>
+
+      <div class="pay-num" id="pay-num">
+        <span>حوّل الرصيد على هذا الرقم</span>
+        <b>${payPretty(payNum())}</b>
+        <i>اضغط للنسخ</i>
+      </div>
+
+      <div class="pay-steps">
+        <div class="pay-step"><u>١</u><div><b>حوّل ${price} دينار رصيد</b>
+          <span>من تطبيق شركتك (آسياسيل / زين / كورك) أو من أي محل شحن رصيد</span></div></div>
+        <div class="pay-step"><u>٢</u><div><b>دز صورة وصل التحويل</b>
+          <span>رسالة التأكيد اللي توصلك من الشركة — بالواتساب على نفس الرقم</span></div></div>
+        <div class="pay-step"><u>٣</u><div><b>يوصلك رمز التفعيل</b>
+          <span>تدخّله بخانة الرمز وينفتح اشتراكك فوراً</span></div></div>
+      </div>
+
+      <button class="pro-btn" id="pay-wa">دزيت الرصيد — افتح الواتساب</button>
+      <button class="pro-btn ghost" id="pay-back">رجوع</button>
+
+      <div class="pro-pay">
+        <b>الرقم ما يستلم؟</b> جرّب الاحتياطي
+        <b style="letter-spacing:1px">${payPretty(payOther())}</b>
+        وخبّرنا بالواتساب.<br>
+        نفس مبلغ الاشتراك بالضبط، ولا ترسل من رصيد هدية لأنه ما ينتحوّل.
+      </div>
+    </div>`);
+  const num=document.getElementById('pay-num');
+  if(num) num.onclick=()=>shareCopy(payNum(),"انتسخ الرقم ✓");
+  const wa=document.getElementById('pay-wa');
+  if(wa) wa.onclick=()=>{
+    const me=(typeof profName==="function"?profName():"")||"";
+    const us=(profile&&profile.username)?" (@"+profile.username+")":"";
+    payWA(payNum(),
+      "السلام عليكم\n"+
+      "دزّيت رصيد "+price+" دينار للاشتراك "+pl+" بـ NΞXA PRO.\n"+
+      "اسمي: "+me+us+"\n"+
+      "رقمي بالتطبيق: "+(myPhone()||"—")+"\n"+
+      "(مرفق وصل التحويل)");
+  };
+  const bk=document.getElementById('pay-back');
+  if(bk) bk.onclick=()=>proScreen();
+}
+
+function proWelcome(plan,until){
+  openSheet(`<div class="pro-card" style="text-align:center">
+    <div style="font-size:44px;line-height:1;margin-bottom:8px">👑</div>
+    <h3>أهلاً بيك بـ <i>PRO</i></h3>
+    <p>اشتراكك ${plan==="y"?"السنوي":"الشهري"} انفعّل — ينتهي
+      ${new Date(until).toLocaleDateString('en-GB')}.<br>كل الميزات مفتوحة هسه.</p>
+    <button class="pro-btn" id="pro-w-ok">يلا نبدي</button></div>`);
+  const b=document.getElementById('pro-w-ok');
+  if(b) b.onclick=()=>{ closeSheet(); proPanel() };
+  try{ if(navigator.vibrate) navigator.vibrate([25,60,25]) }catch(e){}
+}
+
+/* حاجز: يرجّع true إذا مسموح، ويعرض شاشة الترقية إذا لأ */
+function proGate(what){
+  if(isPro()) return true;
+  toast((what||"هذه الميزة")+" تحتاج اشتراك PRO");
+  setTimeout(proScreen,420);
+  return false;
+}
+
+/* ══════════════════ لوحة PRO للمشترك ══════════════════ */
+
+function proPanel(){
+  const live=isPro();
+  const th=pg(PK.theme,""), gh=pg(PK.ghost,false), nk=pg(PK.nork,false),
+        aw=pObj(PK.away), fl=pObj(PK.fld), sc=pArr(PK.sched);
+  openSheet(`
+    <h3 style="font-size:19px;margin-bottom:2px">NΞXA PRO</h3>
+    <p class="sub" style="font-size:12.5px;margin-bottom:12px">${
+      live?`اشتراكك شغّال · باقي ${proDaysLeft()} يوم`:"ماكو اشتراك شغّال"}</p>
+    ${live?'':`<button class="pro-btn" id="pp-up" style="margin-bottom:12px">ترقية إلى PRO · ${nfIQ(PRICE.y)} دينار سنوياً</button>`}
+    <div class="opt-list">
+      <button class="opt-row" id="pp-fold">${pic('fold')}<span>مجلدات المحادثات (${Object.keys(fl).length})</span></button>
+      <button class="opt-row" id="pp-theme">${pic('wand')}<span>ثيم الفقاعات: ${th?esc(th):'الافتراضي'}</span></button>
+      <button class="opt-row" id="pp-ghost">${pic('ghost')}<span>وضع التخفي: ${gh?'شغّال':'مطفي'}</span></button>
+      <button class="opt-row" id="pp-nork">${pic('ghost')}<span>قراءة بلا علامة: ${nk?'شغّال':'مطفي'}</span></button>
+      <button class="opt-row" id="pp-sched">${pic('bolt')}<span>الرسائل المجدولة (${sc.length})</span></button>
+      <button class="opt-row" id="pp-quick">${pic('reply')}<span>الردود السريعة (${pArr(PK.qr).length})</span></button>
+      <button class="opt-row" id="pp-away">${pic('clock')}<span>الرد التلقائي: ${aw.on?'شغّال':'مطفي'}</span></button>
+      <button class="opt-row" id="pp-stats">${pic('chart')}<span>إحصائيات حسابي</span></button>
+      <button class="opt-row" id="pp-manage">${pic('key')}<span>${live?'تفاصيل الاشتراك':'عندي رمز تفعيل'}</span></button>
+    </div>`);
+  const on=(i,f)=>{ const e=document.getElementById(i); if(e) e.onclick=f };
+  on('pp-up',()=>proScreen());
+  on('pp-fold',()=>{ if(proGate("مجلدات المحادثات")) proFolders() });
+  on('pp-theme',()=>{ if(proGate("الثيمات الحصرية")) proThemes() });
+  on('pp-ghost',()=>{ if(!proGate("وضع التخفي")) return; proGhost(!gh); proPanel() });
+  on('pp-nork',()=>{ if(!proGate("القراءة بلا علامة")) return; ps(PK.nork,!nk); proPanel() });
+  on('pp-sched',()=>{ if(proGate("جدولة الرسائل")) proSchedList() });
+  on('pp-quick',()=>{ if(proGate("الردود السريعة")) proQuickManage() });
+  on('pp-away',()=>{ if(proGate("الرد التلقائي")) proAwaySheet() });
+  on('pp-stats',()=>{ if(proGate("الإحصائيات")) proStats() });
+  on('pp-manage',()=>proScreen());
+}
+
+/* ── المجلدات ── */
+function proFolders(){
+  const f=pObj(PK.fld);
+  openSheet(`<h3 style="font-size:18px;margin-bottom:4px">مجلدات المحادثات</h3>
+    <p class="sub" style="font-size:12.5px;margin-bottom:12px">تطلع كشرائح فوق قائمة المحادثات</p>
+    <div class="opt-list">${Object.keys(f).map(n=>
+      `<button class="opt-row" data-fdel="${esc(n)}">${pic('fold')}
+        <span>${esc(n)} · ${(f[n]||[]).length} محادثة</span></button>`).join('')||
+      '<p class="foot" style="padding:0 0 10px">ماكو مجلدات بعد</p>'}</div>
+    <div class="opt" style="margin-top:12px"><label for="pf-new">مجلد جديد</label>
+      <input class="ctrl" id="pf-new" maxlength="18" placeholder="شغل، عائلة، زبائن…"></div>
+    <div class="acts"><button class="btn btn-p" id="pf-add">إضافة</button></div>
+    <p class="foot" style="text-align:start;padding-top:12px">
+      حتى تضيف محادثة لمجلد: ضغطة مطوّلة على المحادثة ← «نقل لمجلد».</p>`);
+  const a=document.getElementById('pf-add');
+  if(a) a.onclick=()=>{
+    const v=(document.getElementById('pf-new').value||"").trim();
+    if(!v) return;
+    const o=pObj(PK.fld); if(o[v]){ toast("موجود"); return }
+    o[v]=[]; ps(PK.fld,o); proChips(); proFolders();
+  };
+  document.querySelectorAll('[data-fdel]').forEach(b=>{
+    b.onclick=()=>confirmAsk("ينحذف مجلد «"+b.dataset.fdel+"»؟ المحادثات ما تنحذف.",()=>{
+      const o=pObj(PK.fld); delete o[b.dataset.fdel]; ps(PK.fld,o);
+      if(typeof luxFilter!=="undefined"&&luxFilter==="fld:"+b.dataset.fdel) luxFilter="all";
+      proChips(); proFolders(); msgRenderConvs();
+    });
+  });
+}
+function proFolderPick(convId){
+  const f=pObj(PK.fld), keys=Object.keys(f);
+  if(!keys.length){ toast("سوّي مجلد أول"); proFolders(); return }
+  openSheet(`<h3 style="font-size:17px;margin-bottom:12px">نقل لمجلد</h3>
+    <div class="opt-list">${keys.map(n=>{
+      const inn=(f[n]||[]).indexOf(String(convId))>-1;
+      return `<button class="opt-row" data-fp="${esc(n)}">${pic('fold')}
+        <span>${esc(n)}${inn?' ✓':''}</span></button>`}).join('')}</div>`);
+  document.querySelectorAll('[data-fp]').forEach(b=>{
+    b.onclick=()=>{
+      const o=pObj(PK.fld), n=b.dataset.fp, id=String(convId);
+      o[n]=o[n]||[];
+      const i=o[n].indexOf(id);
+      if(i>-1) o[n].splice(i,1); else o[n].push(id);
+      ps(PK.fld,o); closeSheet(); proChips(); msgRenderConvs();
+      toast(i>-1?"انشالت من المجلد":"انضافت للمجلد");
+    };
+  });
+}
+/* شرائح المجلدات فوق قائمة المحادثات */
+function proChips(){
+  const box=document.getElementById('lux-chips'); if(!box) return;
+  box.querySelectorAll('[data-pfld]').forEach(e=>e.remove());
+  if(!isPro()) return;
+  const f=pObj(PK.fld);
+  Object.keys(f).forEach(n=>{
+    const b=document.createElement('button');
+    b.className='lux-chip'; b.dataset.pfld=n; b.dataset.filter='fld:'+n;
+    b.textContent=n;
+    box.appendChild(b);
+    b.onclick=()=>{
+      luxFilter='fld:'+n;
+      document.querySelectorAll('.lux-chip').forEach(z=>z.classList.toggle('on',z===b));
+      msgRenderConvs();
+    };
+  });
+}
+
+/* ── الثيمات ── */
+const THEMES=[["gold","ذهبي","linear-gradient(135deg,#F0D99A,#D6B36A)"],
+  ["neon","نيون","linear-gradient(135deg,#7C4DFF,#00E5FF)"],
+  ["aurora","شفق","linear-gradient(135deg,#FF6EC4,#7873F5,#4ADEDE)"],
+  ["ocean","محيط","linear-gradient(135deg,#0F2027,#2C5364)"],
+  ["sunset","غروب","linear-gradient(135deg,#FF512F,#F09819)"],
+  ["forest","غابة","linear-gradient(135deg,#134E5E,#71B280)"]];
+function proThemes(){
+  const cur=pg(PK.theme,"");
+  openSheet(`<h3 style="font-size:18px;margin-bottom:4px">ثيم الفقاعات</h3>
+    <p class="sub" style="font-size:12.5px;margin-bottom:10px">يطبّق على رسائلك أنت</p>
+    <div class="pro-grid2">${THEMES.map(t=>
+      `<div class="pro-th${cur===t[0]?' on':''}" data-th="${t[0]}"
+        style="background:${t[2]}">${t[1]}</div>`).join('')}</div>
+    <div class="acts" style="margin-top:12px"><button class="btn btn-o" id="pth-off">الافتراضي</button></div>`);
+  document.querySelectorAll('[data-th]').forEach(d=>{
+    d.onclick=()=>{ ps(PK.theme,d.dataset.th); proApplyBody(); proThemes(); toast("انطبّق ✓") };
+  });
+  const o=document.getElementById('pth-off');
+  if(o) o.onclick=()=>{ ps(PK.theme,""); proApplyBody(); closeSheet() };
+}
+
+/* ── التخفي ── */
+function proGhost(on){
+  ps(PK.ghost,!!on);
+  try{
+    if(on){ if(typeof _presenceTimer!=="undefined"&&_presenceTimer){
+        clearInterval(_presenceTimer); _presenceTimer=null } }
+    else if(typeof msgStartPresence==="function") msgStartPresence();
+  }catch(e){}
+  toast(on?"وضع التخفي شغّال":"رجعت تبين متصل");
+}
+
+/* ── الرسائل المجدولة ── */
+function proSchedNew(){
+  if(!proGate("جدولة الرسائل")) return;
+  if(!chatConvId){ toast("افتح محادثة أول"); return }
+  const now=new Date(Date.now()+10*60000);
+  const pad=n=>String(n).padStart(2,"0");
+  openSheet(`<h3 style="font-size:18px;margin-bottom:10px">جدولة رسالة</h3>
+    <div class="opt" style="margin-top:0"><label for="psc-t">النص</label>
+      <textarea class="ctrl" id="psc-t" rows="3"></textarea></div>
+    <div class="opt"><label>الوقت</label><div class="row">
+      <input class="ctrl mono" id="psc-d" type="date" value="${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}">
+      <input class="ctrl mono" id="psc-h" type="time" value="${pad(now.getHours())}:${pad(now.getMinutes())}">
+    </div></div>
+    <div class="acts"><button class="btn btn-p" id="psc-go">جدولة</button></div>
+    <p class="foot" style="text-align:start;padding-top:10px">
+      لازم التطبيق يكون مفتوح بوقت الإرسال (ولو بالخلفية) — ما نكدر ندز من سيرفر بلا خدمة مدفوعة.</p>`);
+  const g=document.getElementById('psc-go');
+  if(g) g.onclick=()=>{
+    const t=(document.getElementById('psc-t').value||"").trim();
+    const d=document.getElementById('psc-d').value, h=document.getElementById('psc-h').value;
+    if(!t||!d||!h){ toast("كمّل الحقول"); return }
+    const at=new Date(d+"T"+h).getTime();
+    if(!at||at<Date.now()){ toast("الوقت لازم يكون بالمستقبل"); return }
+    const l=pArr(PK.sched);
+    l.push({id:"s"+Date.now().toString(36),conv:chatConvId,
+      who:(document.getElementById('chat-name')||{}).textContent||"",txt:t,at});
+    ps(PK.sched,l); closeSheet(); toast("انجدولت ✓");
+  };
+}
+function proSchedList(){
+  const l=pArr(PK.sched).sort((a,b)=>a.at-b.at);
+  openSheet(`<h3 style="font-size:18px;margin-bottom:10px">الرسائل المجدولة</h3>
+    ${l.length?l.map(s=>`<div class="pro-sched-pill">
+      <b>${esc(s.who||"")} — ${esc(s.txt.slice(0,34))}</b>
+      <i style="font-style:normal;font-size:11px;opacity:.65">${new Date(s.at).toLocaleString('en-GB',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}</i>
+      <button data-sdel="${esc(s.id)}">حذف</button></div>`).join('')
+      :'<p class="foot" style="padding:0">ماكو رسائل مجدولة</p>'}
+    <p class="foot" style="text-align:start;padding-top:10px">افتح أي محادثة ← قائمة ⋮ ← «جدولة رسالة».</p>`);
+  document.querySelectorAll('[data-sdel]').forEach(b=>{
+    b.onclick=()=>{ ps(PK.sched,pArr(PK.sched).filter(z=>z.id!==b.dataset.sdel));
+      proSchedList() };
+  });
+}
+async function proSchedTick(){
+  try{
+    if(!isPro()||!isLoggedMsg()) return;
+    const l=pArr(PK.sched); if(!l.length) return;
+    const due=l.filter(s=>s.at<=Date.now());
+    if(!due.length) return;
+    const rest=l.filter(s=>s.at>Date.now());
+    ps(PK.sched,rest);
+    for(const s of due){
+      try{ await msgSend(s.conv,s.txt); }catch(e){}
+    }
+    toast(due.length+" رسالة مجدولة انبعثت");
+    if(typeof msgRenderConvs==="function") msgRenderConvs();
+  }catch(e){}
+}
+
+/* ── الرسائل المؤقتة ── */
+const TTL_OPTS=[[0,"مطفي"],[300,"٥ دقائق"],[3600,"ساعة"],[86400,"يوم"],[604800,"أسبوع"]];
+function proTTLSheet(){
+  if(!proGate("الرسائل المؤقتة")) return;
+  const o=pObj(PK.ttl), cur=+(o[String(chatConvId)]||0);
+  openSheet(`<h3 style="font-size:18px;margin-bottom:4px">رسائل تختفي وحدها</h3>
+    <p class="sub" style="font-size:12.5px;margin-bottom:12px">رسائلك بهذه المحادثة تنحذف عند الطرفين بعد الوقت المحدد</p>
+    <div class="opt-list">${TTL_OPTS.map(t=>
+      `<button class="opt-row" data-ttl="${t[0]}">${pic('clock')}
+        <span>${t[1]}${cur===t[0]?' ✓':''}</span></button>`).join('')}</div>
+    <p class="foot" style="text-align:start;padding-top:10px">
+      الحذف يصير وأنت فاتح التطبيق — نفس أسلوب تليجرام بالحذف من الجهاز.</p>`);
+  document.querySelectorAll('[data-ttl]').forEach(b=>{
+    b.onclick=()=>{
+      const o2=pObj(PK.ttl), v=+b.dataset.ttl;
+      if(v) o2[String(chatConvId)]=v; else delete o2[String(chatConvId)];
+      ps(PK.ttl,o2); closeSheet(); proTTLPill(); toast(v?"انفعّلت ✓":"انطفت");
+    };
+  });
+}
+function proTTLPill(){
+  let p=document.getElementById('pro-ttl-pill');
+  if(!p){
+    const bar=document.getElementById('chat-input-bar'); if(!bar||!bar.parentNode) return;
+    p=document.createElement('div'); p.className='pro-ttl-pill'; p.id='pro-ttl-pill';
+    bar.parentNode.insertBefore(p,bar);
+  }
+  const v=+(pObj(PK.ttl)[String(chatConvId)]||0);
+  p.classList.toggle('on',!!v&&isPro());
+  if(v){ const t=(TTL_OPTS.find(x=>x[0]===v)||[0,""])[1];
+    p.innerHTML=`⏳ الرسائل تختفي بعد ${t}` }
+}
+async function proTTLSweep(){
+  try{
+    if(!isPro()||!chatConvId) return;
+    const v=+(pObj(PK.ttl)[String(chatConvId)]||0); if(!v) return;
+    const me=myPhone(), cut=Date.now()-v*1000;
+    const old=(chatMsgs||[]).filter(m=>m.sender===me&&new Date(m.created_at).getTime()<cut);
+    for(const m of old.slice(0,6)){ try{ await msgDelete(m.id,true) }catch(e){} }
+  }catch(e){}
+}
+
+/* ── الردود السريعة ── */
+function proQuickManage(){
+  const l=pArr(PK.qr);
+  openSheet(`<h3 style="font-size:18px;margin-bottom:10px">الردود السريعة</h3>
+    <div class="opt-list">${l.map((t,i)=>
+      `<button class="opt-row" data-qdel="${i}">${pic('reply')}
+        <span>${esc(t.slice(0,44))}</span></button>`).join('')||
+      '<p class="foot" style="padding:0 0 8px">ماكو ردود بعد</p>'}</div>
+    <div class="opt" style="margin-top:12px"><label for="pq-new">رد جديد</label>
+      <textarea class="ctrl" id="pq-new" rows="2" placeholder="هلا بيك، شنو تحتاج؟"></textarea></div>
+    <div class="acts"><button class="btn btn-p" id="pq-add">إضافة</button></div>`);
+  const a=document.getElementById('pq-add');
+  if(a) a.onclick=()=>{
+    const v=(document.getElementById('pq-new').value||"").trim(); if(!v) return;
+    const o=pArr(PK.qr); o.push(v); ps(PK.qr,o); proQuickManage();
+  };
+  document.querySelectorAll('[data-qdel]').forEach(b=>{
+    b.onclick=()=>{ const o=pArr(PK.qr); o.splice(+b.dataset.qdel,1); ps(PK.qr,o); proQuickManage() };
+  });
+}
+function proQuickUse(){
+  if(!proGate("الردود السريعة")) return;
+  const l=pArr(PK.qr);
+  if(!l.length){ proQuickManage(); return }
+  openSheet(`<h3 style="font-size:18px;margin-bottom:10px">رد سريع</h3>
+    <div class="opt-list">${l.map((t,i)=>
+      `<button class="opt-row" data-quse="${i}">${pic('reply')}
+        <span>${esc(t.slice(0,50))}</span></button>`).join('')}</div>`);
+  document.querySelectorAll('[data-quse]').forEach(b=>{
+    b.onclick=()=>{
+      const ta=document.getElementById('chat-text'); if(!ta) return;
+      ta.value=(ta.value?ta.value+" ":"")+l[+b.dataset.quse];
+      ta.dispatchEvent(new Event('input',{bubbles:true}));
+      closeSheet(); ta.focus();
+    };
+  });
+}
+
+/* ── الرد التلقائي ── */
+function proAwaySheet(){
+  const a=pObj(PK.away);
+  openSheet(`<h3 style="font-size:18px;margin-bottom:4px">الرد التلقائي</h3>
+    <p class="sub" style="font-size:12.5px;margin-bottom:12px">يرد مرة وحدة باليوم على كل شخص يراسلك</p>
+    <div class="opt" style="margin-top:0"><label for="pa-t">نص الرد</label>
+      <textarea class="ctrl" id="pa-t" rows="3">${esc(a.txt||"هلا بيك 👋 آني مشغول هسه وأرد عليك بأقرب وقت.")}</textarea></div>
+    <div class="acts">
+      <button class="btn btn-p" id="pa-on">${a.on?'إطفاء':'تفعيل'}</button>
+      <button class="btn btn-o" id="pa-save">حفظ النص</button></div>`);
+  const g=()=>(document.getElementById('pa-t').value||"").trim();
+  const on=document.getElementById('pa-on');
+  if(on) on.onclick=()=>{ ps(PK.away,{on:!a.on,txt:g()}); closeSheet();
+    toast(!a.on?"الرد التلقائي شغّال":"انطفى") };
+  const sv=document.getElementById('pa-save');
+  if(sv) sv.onclick=()=>{ ps(PK.away,{on:!!a.on,txt:g()}); toast("انحفظ ✓") };
+}
+async function proAwayTick(convs,unread){
+  try{
+    const a=pObj(PK.away);
+    if(!isPro()||!a.on||!a.txt) return;
+    const log=pObj(PK.awayL), day=new Date().toDateString();
+    for(const c of (convs||[])){
+      if(!(unread&&unread[c.id]>0)) continue;
+      const other=c.user1===myPhone()?c.user2:c.user1;
+      if(!other||/^08/.test(other)) continue;          /* مو للبوتات والمجموعات */
+      if(log[c.id]===day) continue;
+      log[c.id]=day; ps(PK.awayL,log);
+      try{ await msgSend(c.id,a.txt) }catch(e){}
+    }
+  }catch(e){}
+}
+
+/* ── الترجمة والتلخيص ── */
+const LANGS=[["العربية","Arabic"],["الإنكليزية","English"],["الكردية","Kurdish (Sorani)"],
+  ["التركية","Turkish"],["الفارسية","Persian"],["الفرنسية","French"]];
+async function proAI(prompt){
+  try{
+    const cfg=await nexCfg();
+    if(!cfg||!aiKeyList(cfg).length) return null;
+    return await aiAsk(cfg,[],prompt);
+  }catch(e){ return null }
+}
+function proTranslate(msgId){
+  if(!proGate("الترجمة الفورية")) return;
+  const m=(chatMsgs||[]).find(x=>String(x.id)===String(msgId));
+  if(!m||!m.body){ toast("ماكو نص للترجمة"); return }
+  openSheet(`<h3 style="font-size:18px;margin-bottom:10px">ترجمة إلى</h3>
+    <div class="opt-list">${LANGS.map(l=>
+      `<button class="opt-row" data-lg="${esc(l[1])}">${pic('lang')}<span>${l[0]}</span></button>`).join('')}</div>`);
+  document.querySelectorAll('[data-lg]').forEach(b=>{
+    b.onclick=async()=>{
+      openSheet('<h3 style="font-size:18px">جاري الترجمة…</h3><p class="sub">ثانية وحدة</p>');
+      const out=await proAI("ترجم النص التالي إلى "+b.dataset.lg+
+        " بلا أي شرح ولا مقدمة، رجّع الترجمة بس:\n\n"+m.body);
+      openSheet(`<h3 style="font-size:18px;margin-bottom:8px">الترجمة</h3>
+        <p class="sub" style="font-size:12px;margin-bottom:8px">${esc(m.body.slice(0,120))}</p>
+        <div style="font-size:15px;line-height:1.9;padding:12px;border-radius:12px;
+          background:var(--mSurf,#f3f3f3)">${esc(out||"ما گدرت أترجم — تأكد من مفاتيح الذكاء ببوت NΞX")}</div>
+        <div class="acts" style="margin-top:12px">
+          <button class="btn btn-o" id="ptr-cp">نسخ</button></div>`);
+      const c=document.getElementById('ptr-cp');
+      if(c) c.onclick=()=>shareCopy(out||"","انتسخت ✓");
+    };
+  });
+}
+async function proSummarize(){
+  if(!proGate("تلخيص المحادثة")) return;
+  const list=(chatMsgs||[]).slice(-70).filter(m=>m.body);
+  if(list.length<4){ toast("المحادثة قصيرة"); return }
+  openSheet('<h3 style="font-size:18px">جاري التلخيص…</h3><p class="sub">الذكاء يقرا المحادثة</p>');
+  const me=myPhone();
+  const txt=list.map(m=>(m.sender===me?"أنا: ":"هو: ")+String(m.body).slice(0,220)).join("\n");
+  const out=await proAI("لخّص هذه المحادثة بالعربي بأربع نقاط قصيرة، وبالآخر سطر واحد اسمه «المطلوب مني» "+
+    "يكتب شنو لازم أسوي إذا في شي مطلوب:\n\n"+txt);
+  openSheet(`<h3 style="font-size:18px;margin-bottom:10px">خلاصة المحادثة</h3>
+    <div style="font-size:14px;line-height:1.95;white-space:pre-wrap;padding:12px;
+      border-radius:12px;background:var(--mSurf,#f3f3f3)">${esc(out||"ما گدرت ألخّص — تأكد من مفاتيح الذكاء ببوت NΞX")}</div>`);
+}
+
+/* ── تصدير المحادثة ── */
+function proExport(){
+  if(!proGate("تصدير المحادثة")) return;
+  try{
+    const me=myPhone(), who=(document.getElementById('chat-name')||{}).textContent||"محادثة";
+    const lines=(chatMsgs||[]).map(m=>{
+      const t=new Date(m.created_at).toLocaleString('en-GB');
+      const w=m.sender===me?"أنا":who;
+      let b=m.body||""; if(m.img)b+=" [صورة]"; if(m.voice)b+=" [تسجيل صوتي]";
+      if(m.file)b+=" [ملف]";
+      return `[${t}] ${w}: ${b}`;
+    });
+    const blob=new Blob(["محادثة "+who+" — NΞXA\n"+"=".repeat(40)+"\n\n"+lines.join("\n")],
+      {type:"text/plain;charset=utf-8"});
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);
+    a.download="nexa-"+who.replace(/[^\w\u0600-\u06FF]+/g,"_")+".txt";
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(a.href),4000);
+    toast("انصدّرت ✓");
+  }catch(e){ toast("ما گدرت أصدّر") }
+}
+
+/* ── الإحصائيات ── */
+async function proStats(){
+  openSheet('<h3 style="font-size:18px">جاري الحساب…</h3>');
+  const me=myPhone(); const R={};
+  const cnt=async(t,f)=>{ try{
+    const r=await fetch(sbBase()+"/rest/v1/"+t+"?select=*&"+f+"&limit=1",
+      {headers:sbHead({Prefer:"count=exact",Range:"0-0"})});
+    const cr=r.headers.get('content-range')||"";
+    return +(cr.split('/')[1])||0;
+  }catch(e){ return 0 } };
+  R.followers=await cnt("follows","following=eq."+encodeURIComponent(me));
+  R.following=await cnt("follows","follower=eq."+encodeURIComponent(me));
+  R.sent     =await cnt("messages","sender=eq."+encodeURIComponent(me));
+  R.reels    =await cnt(SUPABASE.T.reels,"author_phone=eq."+encodeURIComponent(me));
+  openSheet(`<h3 style="font-size:18px;margin-bottom:10px">إحصائيات حسابي</h3>
+    <div class="pro-stat"><span>المتابعون</span><b>${nfIQ(R.followers)}</b></div>
+    <div class="pro-stat"><span>أتابعهم</span><b>${nfIQ(R.following)}</b></div>
+    <div class="pro-stat"><span>الرسائل المرسلة</span><b>${nfIQ(R.sent)}</b></div>
+    <div class="pro-stat"><span>الريلز المنشورة</span><b>${nfIQ(R.reels)}</b></div>
+    <div class="pro-stat"><span>عمر الاشتراك</span><b>${proDaysLeft()} يوم باقي</b></div>`);
+}
+
+/* ══════════════════ لوحة المالك ══════════════════ */
+
+const PRO_SQL=
+"alter table public.user_profiles add column if not exists pro_until timestamptz;\n"+
+"alter table public.user_profiles add column if not exists pro_plan text;\n"+
+"\n"+
+"create table if not exists public.pro_codes (\n"+
+"  code text primary key,\n"+
+"  plan text not null,\n"+
+"  used_by text,\n"+
+"  used_at timestamptz,\n"+
+"  created_at timestamptz default now() );\n"+
+"alter table public.pro_codes enable row level security;\n"+
+"create policy \"pub pro_codes\" on public.pro_codes for all to anon,authenticated using(true) with check(true);";
+
+function proAdminSection(){
+  const box=document.getElementById('ad-body');
+  if(!box||document.getElementById('pro-admin')) return;
+  const gen=pArr(PK.gen);
+  const free=gen.filter(g=>!g.used).length;
+  const d=document.createElement('div');
+  d.className='ad-check'; d.id='pro-admin';
+  d.innerHTML=`
+    <div class="ad-stats-head"><b>اشتراك PRO</b>
+      <button class="ad-stats-rf" id="pa-sql" type="button">انسخ SQL</button></div>
+    <div class="ad-check-sum">الرموز المولّدة: ${gen.length} · المتاحة: ${free}
+      · السعر: ${nfIQ(PRICE.m)} شهري / ${nfIQ(PRICE.y)} سنوي<br>
+      رقم استلام الرصيد: <b>${payPretty(payNum())}</b> (${PAY[payActive()].who})</div>
+    <div class="acts" style="margin-top:10px;display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <button class="btn btn-p" id="pa-gm">ولّد رموز شهرية</button>
+      <button class="btn btn-p" id="pa-gy">ولّد رموز سنوية</button>
+    </div>
+    <div class="acts" style="margin-top:8px;display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <button class="btn btn-o" id="pa-list">كل الرموز</button>
+      <button class="btn btn-o" id="pa-grant">منح PRO ليوزر</button>
+    </div>
+    <div class="acts" style="margin-top:8px">
+      <button class="btn btn-o" id="pa-pay">بدّل رقم الاستلام</button>
+    </div>`;
+  box.appendChild(d);
+  const on=(i,f)=>{ const e=document.getElementById(i); if(e) e.onclick=f };
+  on('pa-sql',()=>shareCopy(PRO_SQL,"انتسخ SQL — شغّله بلوحة Supabase على أجزاء"));
+  on('pa-gm',()=>proGenSheet("m"));
+  on('pa-gy',()=>proGenSheet("y"));
+  on('pa-list',()=>proCodesSheet());
+  on('pa-grant',()=>proGrantSheet());
+  on('pa-pay',()=>proPaySheet());
+}
+
+function proPaySheet(){
+  const a=payActive();
+  openSheet(`<h3 style="font-size:18px;margin-bottom:4px">رقم استلام الرصيد</h3>
+    <p class="sub" style="font-size:12.5px;margin-bottom:12px">
+      هذا الرقم اللي يشوفه الزبائن بشاشة الدفع</p>
+    <div class="opt-list">
+      <button class="opt-row" data-pay="primary">${pic('key')}
+        <span>${payPretty(PAY.primary.num)} — أساسي${a==="primary"?" ✓":""}</span></button>
+      <button class="opt-row" data-pay="backup">${pic('key')}
+        <span>${payPretty(PAY.backup.num)} — احتياطي${a==="backup"?" ✓":""}</span></button>
+    </div>
+    <p class="foot" style="text-align:start;padding-top:12px">
+      إذا وقف الرقم الأساسي، بدّل للاحتياطي من هنا وشاشة الدفع تتغيّر فوراً.
+      التبديل يخص جهازك — إذا تريده يوصل كل المستخدمين لازم تعدّل السطرين
+      بأعلى وحدة PRO داخل الملف وترفعه من جديد.</p>`);
+  document.querySelectorAll('[data-pay]').forEach(b=>{
+    b.onclick=()=>{ lsSet(PAY_LS,b.dataset.pay); closeSheet();
+      toast("انبدّل الرقم ✓"); renderAdmin() };
+  });
+}
+
+function proGenSheet(plan){
+  openSheet(`<h3 style="font-size:18px;margin-bottom:4px">توليد رموز ${plan==="y"?"سنوية":"شهرية"}</h3>
+    <p class="sub" style="font-size:12.5px;margin-bottom:12px">
+      كل رمز يفتح اشتراك ${plan==="y"?"٣٦٥ يوم":"٣٠ يوم"} لحساب واحد</p>
+    <div class="opt" style="margin-top:0"><label for="pg-n">العدد</label>
+      <input class="ctrl mono" id="pg-n" type="number" value="10" min="1" max="100"></div>
+    <div class="acts"><button class="btn btn-p" id="pg-go">ولّد</button></div>`);
+  const g=document.getElementById('pg-go');
+  if(g) g.onclick=async()=>{
+    const n=Math.max(1,Math.min(100,+document.getElementById('pg-n').value||10));
+    const l=pArr(PK.gen), made=[];
+    for(let i=0;i<n;i++){
+      const c=proMakeCode(plan);
+      made.push(c); l.push({code:c,plan,at:Date.now(),used:false});
+    }
+    ps(PK.gen,l);
+    /* نحاول نسجّلهن بالقاعدة حتى ما ينستعملون مرتين بأجهزة مختلفة */
+    let saved=false;
+    try{
+      await sbReq("pro_codes",{method:"POST",headers:{Prefer:"return=minimal"},
+        body:JSON.stringify(made.map(c=>({code:c,plan})))});
+      saved=true;
+    }catch(e){}
+    openSheet(`<h3 style="font-size:18px;margin-bottom:4px">${n} رمز جاهز</h3>
+      <p class="sub" style="font-size:12px;margin-bottom:8px">${
+        saved?"انحفظوا بالقاعدة ✓":"محفوظين بجهازك — شغّل SQL حتى ينحفظون بالقاعدة"}</p>
+      <div class="pro-codes">${made.map(c=>`<div><span>${c}</span></div>`).join('')}</div>
+      <div class="acts" style="margin-top:12px">
+        <button class="btn btn-p" id="pgo-cp">انسخ الكل</button></div>`);
+    const cp=document.getElementById('pgo-cp');
+    if(cp) cp.onclick=()=>shareCopy(made.join("\n"),"انتسخوا ✓");
+    renderAdmin();
+  };
+}
+
+function proCodesSheet(){
+  const l=pArr(PK.gen).slice().reverse();
+  openSheet(`<h3 style="font-size:18px;margin-bottom:10px">الرموز (${l.length})</h3>
+    <div class="pro-codes">${l.length?l.map(g=>
+      `<div class="${g.used?'used':''}"><span>${g.code}</span>
+        <i>${g.plan==="y"?"سنوي":"شهري"}</i></div>`).join('')
+      :'<p class="foot" style="padding:0">ماكو رموز — ولّد أول دفعة</p>'}</div>
+    ${l.length?`<div class="acts" style="margin-top:12px">
+      <button class="btn btn-o" id="pcs-cp">انسخ الكل</button></div>`:''}`);
+  const cp=document.getElementById('pcs-cp');
+  if(cp) cp.onclick=()=>shareCopy(l.map(g=>g.code).join("\n"),"انتسخوا ✓");
+}
+
+function proGrantSheet(){
+  openSheet(`<h3 style="font-size:18px;margin-bottom:4px">منح PRO مباشرة</h3>
+    <p class="sub" style="font-size:12.5px;margin-bottom:12px">
+      بلا رمز — تكتب اليوزر وينفتحله الاشتراك (يحتاج عمودَي pro_until و pro_plan)</p>
+    <div class="opt" style="margin-top:0"><label for="pgr-u">اليوزر</label>
+      <input class="ctrl" id="pgr-u" placeholder="بلا @"></div>
+    <div class="opt"><label for="pgr-d">عدد الأيام</label>
+      <input class="ctrl mono" id="pgr-d" type="number" value="30" min="1" max="3650"></div>
+    <div class="acts">
+      <button class="btn btn-p" id="pgr-go">امنح</button>
+      <button class="btn btn-o" id="pgr-rm">اسحب الاشتراك</button></div>
+    <div id="pgr-out" class="foot" style="text-align:start"></div>`);
+  const set=async(days)=>{
+    const u=(document.getElementById('pgr-u').value||"").trim().replace(/^@/,"");
+    const out=document.getElementById('pgr-out');
+    if(!u){ toast("اكتب اليوزر"); return }
+    out.textContent="جاري…";
+    try{
+      const rows=await sbSelect("user_profiles",
+        "select=phone,name&username=eq."+encodeURIComponent(u)+"&limit=1");
+      if(!rows||!rows.length){ out.textContent="ما لگيت هذا اليوزر"; return }
+      const until=days?new Date(Date.now()+days*864e5).toISOString():null;
+      await sbReq("user_profiles?phone=eq."+encodeURIComponent(rows[0].phone),
+        {method:"PATCH",headers:{Prefer:"return=minimal"},
+         body:JSON.stringify({pro_until:until,pro_plan:days?(days>=365?"y":"m"):null})});
+      out.textContent=days?("انمنح PRO لـ "+(rows[0].name||u)+" لمدة "+days+" يوم ✓")
+                          :("انسحب الاشتراك من "+(rows[0].name||u)+" ✓");
+    }catch(e){ out.textContent="فشل — غالباً عمود pro_until مو مضاف. اضغط «انسخ SQL» بلوحة المالك." }
+  };
+  const g=document.getElementById('pgr-go');
+  if(g) g.onclick=()=>set(Math.max(1,+document.getElementById('pgr-d').value||30));
+  const r=document.getElementById('pgr-rm');
+  if(r) r.onclick=()=>confirmAsk("ينسحب اشتراك هذا الحساب؟",()=>set(0));
+}
+
+/* ══════════════════ فرض حدود الحساب المجاني ══════════════════ */
+function proEnforceFree(){
+  try{
+    if(isPro()) return;
+    const pins=lsGet("nxp_pin_convs_v1");
+    if(Array.isArray(pins)&&pins.length>FREE.pins){
+      lsSet("nxp_pin_convs_v1",pins.slice(-FREE.pins));
+      toast("الحساب المجاني يثبّت "+FREE.pins+" محادثات — PRO بلا حد");
+      setTimeout(proScreen,600);
+    }
+    const sv=lsGet("nxp_saved_msgs_v1");
+    if(Array.isArray(sv)&&sv.length>FREE.saved){
+      lsSet("nxp_saved_msgs_v1",sv.slice(0,FREE.saved));
+      toast("الحساب المجاني يحفظ "+FREE.saved+" رسالة — PRO بلا حد");
+    }
+  }catch(e){}
+}
+
+/* ══════════════════ الالتفاف حول الدوال ══════════════════ */
+
+function proWrap(){
+  /* شارة PRO جنب الاسم بكل مكان */
+  if(typeof nameHTML==="function"&&!nameHTML._pro){
+    const o=nameHTML;
+    nameHTML=function(p,lg){
+      let h=o.apply(this,arguments);
+      try{ if(rowIsPro(p)) h='<span class="pro-name">'+h+'</span><span class="pro-badge">PRO</span>' }catch(e){}
+      return h;
+    };
+    nameHTML._pro=1;
+  }
+
+  /* قائمة المحادثات: مجلدات + فرض الحدود + رد تلقائي */
+  if(typeof msgRenderConvs==="function"&&!msgRenderConvs._pro){
+    const o=msgRenderConvs;
+    msgRenderConvs=async function(){
+      const r=await o.apply(this,arguments);
+      try{ proFilterFolders(); proEnforceFree() }catch(e){}
+      return r;
+    };
+    msgRenderConvs._pro=1;
+  }
+
+  /* قائمة المحادثة ⋮ : الإضافات الجديدة */
+  if(typeof chatMenuOpen==="function"&&!chatMenuOpen._pro){
+    const o=chatMenuOpen;
+    chatMenuOpen=function(){
+      o.apply(this,arguments);
+      try{
+        const list=document.querySelector('#sheet-body .opt-list'); if(!list) return;
+        const tag=isPro()?'':'<span class="pro-tag">PRO</span>';
+        const add=(icn,label,fn)=>{
+          const b=document.createElement('button');
+          b.className='opt-row';
+          b.innerHTML=pic(icn)+'<span>'+label+tag+'</span>';
+          b.onclick=()=>{ closeSheet(); fn() };
+          list.insertBefore(b,list.firstChild);
+          return b;
+        };
+        add('down','تصدير المحادثة',proExport);
+        add('chart','تلخيص المحادثة بالذكاء',proSummarize);
+        add('reply','رد سريع',proQuickUse);
+        add('clock','رسائل تختفي وحدها',proTTLSheet);
+        add('bolt','جدولة رسالة',proSchedNew);
+      }catch(e){}
+    };
+    chatMenuOpen._pro=1;
+  }
+
+  /* خيارات الرسالة: ترجمة */
+  if(typeof msgOptions==="function"&&!msgOptions._pro){
+    const o=msgOptions;
+    msgOptions=function(msgId){
+      o.apply(this,arguments);
+      try{
+        const list=document.querySelector('#sheet-body .opt-list'); if(!list) return;
+        const b=document.createElement('button');
+        b.className='opt-row';
+        b.innerHTML=pic('lang')+'<span>ترجمة الرسالة'+(isPro()?'':'<span class="pro-tag">PRO</span>')+'</span>';
+        b.onclick=()=>{ closeSheet(); proTranslate(msgId) };
+        list.appendChild(b);
+      }catch(e){}
+    };
+    msgOptions._pro=1;
+  }
+
+  /* قراءة بلا علامة */
+  if(typeof msgMarkRead==="function"&&!msgMarkRead._pro){
+    const o=msgMarkRead;
+    msgMarkRead=async function(){
+      if(isPro()&&pg(PK.nork,false)) return;
+      return o.apply(this,arguments);
+    };
+    msgMarkRead._pro=1;
+  }
+
+  /* وضع التخفي يمنع تحديث آخر ظهور */
+  if(typeof msgStartPresence==="function"&&!msgStartPresence._pro){
+    const o=msgStartPresence;
+    msgStartPresence=function(){
+      if(isPro()&&pg(PK.ghost,false)) return;
+      return o.apply(this,arguments);
+    };
+    msgStartPresence._pro=1;
+  }
+
+  /* فتح المحادثة: شريط الرسائل المؤقتة */
+  if(typeof msgOpenChat==="function"&&!msgOpenChat._pro){
+    const o=msgOpenChat;
+    msgOpenChat=async function(){
+      const r=await o.apply(this,arguments);
+      try{ proTTLPill(); proTTLSweep() }catch(e){}
+      return r;
+    };
+    msgOpenChat._pro=1;
+  }
+
+  /* لوحة المالك */
+  if(typeof renderAdmin==="function"&&!renderAdmin._pro){
+    const o=renderAdmin;
+    renderAdmin=function(){
+      const r=o.apply(this,arguments);
+      try{ proAdminSection() }catch(e){}
+      return r;
+    };
+    renderAdmin._pro=1;
+  }
+
+  /* صف PRO بقائمة الملف الشخصي */
+  if(typeof renderAcct==="function"&&!renderAcct._pro){
+    const o=renderAcct;
+    renderAcct=function(){
+      const r=o.apply(this,arguments);
+      try{ proAcctRow() }catch(e){}
+      return r;
+    };
+    renderAcct._pro=1;
+  }
+
+  /* ضغطة مطوّلة على المحادثة: نضيف «نقل لمجلد» */
+  if(typeof window.NXP==="object"){ /* لا شي — التوسعة تصير بالمراقب أدناه */ }
+}
+
+/* «نقل لمجلد» ينضاف لورقة خيارات المحادثة اللي تفتحها حزمة NΞXA+ */
+function proWatchConvSheet(){
+  const body=document.getElementById('sheet-body'); if(!body||body._pro) return;
+  body._pro=1;
+  new MutationObserver(()=>{
+    try{
+      const list=body.querySelector('.opt-list');
+      if(!list||!document.getElementById('np-c-pin')) return;
+      if(list.querySelector('[data-profld]')) return;
+      const b=document.createElement('button');
+      b.className='opt-row'; b.setAttribute('data-profld','1');
+      b.innerHTML=pic('fold')+'<span>نقل لمجلد'+(isPro()?'':'<span class="pro-tag">PRO</span>')+'</span>';
+      const src=document.getElementById('np-c-prf');
+      b.onclick=()=>{
+        let id="";
+        try{ id=String(_lastConvMenuId||"") }catch(e){}
+        closeSheet();
+        if(proGate("مجلدات المحادثات")) setTimeout(()=>proFolderPick(id),260);
+      };
+      if(src&&src.parentNode) src.parentNode.insertBefore(b,src); else list.appendChild(b);
+    }catch(e){}
+  }).observe(body,{childList:true,subtree:true});
+}
+/* نمسك رقم المحادثة اللي انفتحت عليها القائمة */
+let _lastConvMenuId="";
+function proTrackConvMenu(){
+  const box=document.getElementById('msg-conv-list'); if(!box||box._pro) return;
+  box._pro=1;
+  const grab=e=>{
+    const el=e.target&&e.target.closest?e.target.closest('.msg-conv'):null;
+    if(!el) return;
+    try{ _lastConvMenuId=String(JSON.parse(el.dataset.conv).id||"") }catch(err){}
+  };
+  box.addEventListener('touchstart',grab,{passive:true,capture:true});
+  box.addEventListener('mousedown',grab,true);
+}
+
+/* تصفية المجلدات بقائمة المحادثات */
+function proFilterFolders(){
+  try{
+    if(typeof luxFilter==="undefined"||!/^fld:/.test(luxFilter)) return;
+    const name=luxFilter.slice(4);
+    const ids=(pObj(PK.fld)[name]||[]).map(String);
+    const box=document.getElementById('msg-conv-list'); if(!box) return;
+    box.querySelectorAll('.msg-conv').forEach(el=>{
+      let id=""; try{ id=String(JSON.parse(el.dataset.conv).id||"") }catch(e){}
+      if(ids.indexOf(id)<0) el.remove();
+    });
+    const empty=document.getElementById('msg-empty-box');
+    if(empty&&!box.querySelector('.msg-conv')){
+      empty.hidden=false;
+      setTxt('t-msgEmpty','مجلد «'+name+'» فارغ');
+      setTxt('t-msgEmptyD','ضغطة مطوّلة على أي محادثة ← نقل لمجلد');
+    }
+  }catch(e){}
+}
+
+/* صف PRO بقائمة الملف الشخصي */
+function proAcctRow(){
+  const body=document.getElementById('pm-body');
+  if(!body||document.getElementById('pro-pm-row')) return;
+  const b=document.createElement('button');
+  b.className='pm-row'; b.id='pro-pm-row';
+  b.innerHTML=`<span class="pm-ic"><svg viewBox="0 0 24 24">${PI.crown}</svg></span>
+    <span class="pm-label">NΞXA PRO</span>
+    <span class="pro-badge" style="margin-inline-start:auto">${isPro()?proDaysLeft()+" يوم":"ترقية"}</span>
+    ${pmChev}`;
+  body.appendChild(b);
+  b.onclick=()=>isPro()?proPanel():proScreen();
+}
+
+/* ══════════════════ الإقلاع ══════════════════ */
+function proBoot(){
+  try{
+    if(!document.getElementById('pro-css')){
+      const s=document.createElement('style'); s.id='pro-css'; s.textContent=PRO_CSS;
+      document.head.appendChild(s);
+    }
+  }catch(e){}
+  try{ proWrap() }catch(e){}
+  try{ proApplyBody() }catch(e){}
+  try{ proChips() }catch(e){}
+  try{ proWatchConvSheet(); proTrackConvMenu() }catch(e){}
+  setTimeout(()=>{ try{ proSync() }catch(e){} },3000);
+  /* المجدولة + الرسائل المؤقتة */
+  setInterval(()=>{ try{ if(!document.hidden){ proSchedTick(); proTTLSweep() } }catch(e){} },30000);
+}
+
+if(document.readyState==="loading")
+  document.addEventListener('DOMContentLoaded',()=>setTimeout(proBoot,120));
+else setTimeout(proBoot,120);
+setTimeout(()=>{ try{ proWrap(); proChips() }catch(e){} },2200);
+
+try{
+  window.NXPRO={open:proScreen,panel:proPanel,is:isPro,state:proLocal,
+    redeem:proRedeem,make:proMakeCode,sql:PRO_SQL,price:PRICE};
+}catch(e){}
+
+})();
+
 </script>
 </body>
 </html>
