@@ -37,7 +37,8 @@
               https://*.supabase.co wss://*.supabase.co
               https://generativelanguage.googleapis.com
               https://*.trycloudflare.com
-              https://cloudflare-dns.com https://dns.google;
+              https://cloudflare-dns.com https://dns.google
+              https://api.telegram.org;
   worker-src  'self' blob:;
   frame-src   'none';
   object-src  'none';
@@ -16342,7 +16343,44 @@ try{
 (function(){
 "use strict";
 
-const PRICE={m:5000,y:52000};
+const PRICE={m:5000,y:52000,pm:12000,py:120000};
+
+/* ── بوت تليجرام لاستقبال طلبات الدفع ──────────────────────────
+   لما يضغط المشترك «دفعت»، يوصلك الطلب هنا بلا ما يدري.
+   لازم api.telegram.org تكون مضافة بـ CSP (انضافت).
+   رقم المحادثة ينكتشف تلقائياً من getUpdates، وينخزن بالجهاز.
+   ────────────────────────────────────────────────────────── */
+const TG={
+  token:"7513197809:AAEggmh7bW64KPJsPfaEZEcg41hNHHvtG0k",
+  chat :""            /* حطّ رقم محادثتك هنا إذا تريده ثابت للكل */
+};
+const TG_LS="nxpro_tg_chat_v1";
+async function tgChatId(){
+  const c=lsGet(TG_LS)||TG.chat;
+  if(c) return String(c);
+  try{
+    const r=await fetch("https://api.telegram.org/bot"+TG.token+"/getUpdates?limit=8",
+      {cache:"no-store"});
+    const j=await r.json();
+    const up=(j&&j.result)||[];
+    for(let i=up.length-1;i>=0;i--){
+      const m=up[i].message||up[i].channel_post||up[i].edited_message||up[i].my_chat_member;
+      const id=m&&m.chat&&m.chat.id;
+      if(id){ lsSet(TG_LS,String(id)); return String(id) }
+    }
+  }catch(e){}
+  return "";
+}
+async function tgSend(text){
+  try{
+    const id=await tgChatId(); if(!id) return false;
+    const r=await fetch("https://api.telegram.org/bot"+TG.token+"/sendMessage",{
+      method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({chat_id:id,text,disable_web_page_preview:true})});
+    const j=await r.json();
+    return !!(j&&j.ok);
+  }catch(e){ return false }
+}
 
 /* ── أرقام استلام الرصيد ──────────────────────────────────────
    الدفع يصير تحويل رصيد على الرقم الأساسي. إذا وقف أو انقطع،
@@ -16375,7 +16413,9 @@ const PK={
   theme:"nxpro_theme_v1",     /* ثيم الفقاعات */
   qr   :"nxpro_quick_v1",     /* الردود السريعة */
   away :"nxpro_away_v1",      /* الرد التلقائي */
-  awayL:"nxpro_away_log_v1"
+  awayL:"nxpro_away_log_v1",
+  pend :"nxpro_pending_v1",   /* طلبات دفع ما وصلت للبوت */
+  prem :"nxpro_prem_v1"       /* إعدادات البريميوم */
 };
 const pg=(k,d)=>{ const v=lsGet(k); return v==null?d:v };
 const ps=(k,v)=>lsSet(k,v);
@@ -16385,6 +16425,12 @@ const nfIQ=n=>(+n||0).toLocaleString('en-US');
 
 /* حدود الحساب المجاني — بعدها يطلب الترقية */
 const FREE={pins:3,saved:20,folders:0,quick:0,upMB:100};
+
+/* المستوى: "" مجاني · pro · premium */
+const planTier=pl=>/^p/.test(String(pl||""))?"premium":(pl?"pro":"");
+const planDays=pl=>(pl==="y"||pl==="py")?365:30;
+const planPrice=pl=>PRICE[pl]||0;
+const planName=pl=>({m:"PRO شهري",y:"PRO سنوي",pm:"PREMIUM شهري",py:"PREMIUM سنوي"}[pl]||"");
 
 /* ── أيقونات ── */
 const PI={
@@ -16398,13 +16444,145 @@ const PI={
   wand :'<path d="M4 20L16 8"/><path d="M14.5 3.5l1 2.5 2.5 1-2.5 1-1 2.5-1-2.5-2.5-1 2.5-1z"/><path d="M19 14l.7 1.8 1.8.7-1.8.7L19 19l-.7-1.8-1.8-.7 1.8-.7z"/>',
   down :'<path d="M12 3.5v12M12 15.5l-4.5-4.5M12 15.5l4.5-4.5"/><path d="M4 20.5h16"/>',
   chart:'<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',
-  reply:'<path d="M9 14L4 9l5-5"/><path d="M4 9h9a7 7 0 0 1 7 7v4"/>'
+  reply:'<path d="M9 14L4 9l5-5"/><path d="M4 9h9a7 7 0 0 1 7 7v4"/>',
+  gem  :'<path d="M6 3h12l3 6-9 12L3 9z"/><path d="M3 9h18M9 3l-3 6 6 12 6-12-3-6"/>',
+  img  :'<rect x="3" y="4" width="18" height="16" rx="2.6"/><circle cx="8.5" cy="9.5" r="1.6"/><path d="M21 16l-5-5-9 9"/>',
+  ear  :'<path d="M7 9a5 5 0 1 1 10 0c0 3-3 3.5-3 6a2.5 2.5 0 0 1-5 0"/><path d="M9.5 20.5h.01"/>',
+  bot  :'<rect x="4" y="8" width="16" height="12" rx="3"/><path d="M12 8V4M9 14h.01M15 14h.01M9.5 17.5h5"/><circle cx="12" cy="3.5" r="1.4"/>',
+  lock :'<rect x="4.5" y="10.5" width="15" height="10" rx="2.4"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/>',
+  cloud:'<path d="M7 18.5a4 4 0 0 1-.4-8A6 6 0 0 1 18 10.6a3.9 3.9 0 0 1-1 7.9z"/><path d="M12 12v6M12 18l-2.2-2.2M12 18l2.2-2.2"/>'
 };
 const pic=(n,c)=>`<svg class="${c||'ui-ic'}" viewBox="0 0 24 24" aria-hidden="true">${PI[n]||''}</svg>`;
 
 /* ══════════════════ الأنماط ══════════════════ */
 const PRO_CSS=`
-:root{--pro1:#D6B36A;--pro2:#F0D99A;--pro3:#A97F2E}
+:root{--pro1:#D6B36A;--pro2:#F0D99A;--pro3:#A97F2E;
+  --gem1:#6E8BFF;--gem2:#B98BFF;--gem3:#48E6D2}
+.pro-card.prem{background:radial-gradient(130% 150% at 12% 0%,#1B1533 0%,#0E0C1C 55%,#08070F 100%);
+  border-color:rgba(185,139,255,.45)}
+.pro-card.prem::after{background:linear-gradient(105deg,transparent 33%,rgba(185,139,255,.16) 50%,transparent 67%)}
+.pro-card.prem .pro-plan.on{border-color:var(--gem2);background:rgba(185,139,255,.15)}
+.pro-card.prem .pro-plan u{color:var(--gem3)}
+.pro-card.prem .pro-plan em,.pro-card.prem .pro-btn{
+  background:linear-gradient(135deg,var(--gem3),var(--gem1),var(--gem2));color:#0B0A16}
+.pro-card.prem .pro-feat svg{stroke:var(--gem2)}
+.pro-card.prem .pay-num{border-color:rgba(185,139,255,.5);background:rgba(185,139,255,.08)}
+.pro-card.prem .pay-num b{color:var(--gem3)}
+.pro-card.prem .pay-step u{background:linear-gradient(135deg,var(--gem3),var(--gem2));color:#0B0A16}
+.pro-tabs{display:flex;gap:6px;margin-bottom:14px;background:rgba(255,255,255,.05);
+  padding:4px;border-radius:13px}
+.pro-tabs button{flex:1;border:0;background:transparent;color:#CFC6B4;font-weight:800;
+  font-size:12.5px;padding:9px;border-radius:10px;cursor:pointer}
+.pro-tabs button.on{background:linear-gradient(135deg,var(--pro2),var(--pro1));color:#2B2008}
+.pro-card.prem .pro-tabs button.on{background:linear-gradient(135deg,var(--gem3),var(--gem2));color:#0B0A16}
+/* نفس التبويبات لكن داخل الأوراق الفاتحة (لوحة المالك) */
+#sheet-body > .pro-tabs{background:var(--mSurf,#f0f0f0)}
+#sheet-body > .pro-tabs button{color:var(--muted,#777)}
+#sheet-body > .pro-tabs button.on{color:#2B2008}
+#pgr-out{white-space:pre-line;line-height:1.8}
+
+/* ── مزايا بشكل يشدّ العين ── */
+.pro-feats{counter-reset:pf}
+.pro-feat{position:relative;padding:9px 10px;border-radius:13px;
+  background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.05);
+  opacity:0;transform:translateY(8px);animation:pfIn .45s ease forwards}
+@keyframes pfIn{to{opacity:1;transform:none}}
+.pro-feat.hot{background:rgba(214,179,106,.13);border-color:rgba(214,179,106,.35)}
+.pro-card.prem .pro-feat.hot{background:rgba(185,139,255,.14);border-color:rgba(185,139,255,.38)}
+.pro-feat.hot::after{content:"🔥";position:absolute;top:7px;inset-inline-end:9px;font-size:11px}
+.pro-feat b{font-size:13px}
+.pro-daily{text-align:center;font-size:12px;opacity:.75;margin:-6px 0 12px}
+.pro-daily b{color:var(--pro2);opacity:1}
+.pro-card.prem .pro-daily b{color:var(--gem3)}
+.pro-plan .best{position:absolute;top:-9px;inset-inline-start:8px;font-size:9px;font-weight:900;
+  background:#fff;color:#1a1a1a;padding:2px 6px;border-radius:7px}
+
+/* ── شاشة الترحيب أول ما يفتح الموقع ── */
+.promo{position:fixed;inset:0;z-index:1900;display:none;align-items:center;
+  justify-content:center;padding:16px;background:rgba(6,5,10,.82);
+  backdrop-filter:blur(7px);-webkit-backdrop-filter:blur(7px)}
+.promo.on{display:flex;animation:promoBg .3s ease}
+@keyframes promoBg{from{opacity:0}to{opacity:1}}
+.promo-box{position:relative;width:100%;max-width:400px;max-height:92vh;overflow:auto;
+  border-radius:26px;padding:22px 18px 18px;color:#F6ECD6;text-align:center;
+  background:radial-gradient(130% 120% at 50% -10%,#2A2140 0%,#171326 45%,#0B0A14 100%);
+  border:1px solid rgba(214,179,106,.35);box-shadow:0 24px 70px rgba(0,0,0,.6);
+  animation:promoUp .45s cubic-bezier(.2,.9,.25,1)}
+@keyframes promoUp{from{opacity:0;transform:translateY(28px) scale(.96)}to{opacity:1;transform:none}}
+.promo-box::before{content:"";position:absolute;inset:0;border-radius:26px;pointer-events:none;
+  background:linear-gradient(105deg,transparent 38%,rgba(240,217,154,.11) 50%,transparent 62%);
+  background-size:250% 100%;animation:promoShine 3.4s linear infinite}
+@keyframes promoShine{from{background-position:200% 0}to{background-position:-60% 0}}
+.promo-x{position:absolute;top:10px;inset-inline-end:10px;width:34px;height:34px;border:0;
+  border-radius:50%;background:rgba(255,255,255,.1);color:#F6ECD6;font-size:19px;
+  line-height:1;cursor:pointer;z-index:3}
+.promo-x:active{transform:scale(.9)}
+.promo-crown{font-size:40px;line-height:1;margin-bottom:6px;
+  animation:promoPop .7s .1s backwards cubic-bezier(.2,1.4,.4,1)}
+@keyframes promoPop{from{opacity:0;transform:scale(.4) rotate(-18deg)}to{opacity:1;transform:none}}
+.promo-box h2{font-size:24px;margin:0 0 4px;letter-spacing:.4px}
+.promo-box h2 i{font-style:normal;
+  background:linear-gradient(100deg,#A97F2E,#F0D99A,#C7B0FF,#F0D99A);
+  background-size:220% 100%;-webkit-background-clip:text;background-clip:text;
+  -webkit-text-fill-color:transparent;animation:promoShine 4s linear infinite}
+.promo-sub{font-size:13px;opacity:.8;line-height:1.75;margin:0 0 16px}
+.promo-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;text-align:start}
+.promo-it{display:flex;gap:8px;align-items:flex-start;padding:10px 9px;border-radius:14px;
+  background:rgba(255,255,255,.055);border:1px solid rgba(255,255,255,.06);
+  opacity:0;transform:translateY(10px);animation:pfIn .5s ease forwards}
+.promo-it em{font-style:normal;font-size:17px;line-height:1;flex:0 0 auto}
+.promo-it b{display:block;font-size:11.5px;font-weight:800;line-height:1.4}
+.promo-it span{display:block;font-size:10.5px;opacity:.62;line-height:1.45;margin-top:2px}
+.promo-more{font-size:11.5px;opacity:.6;margin:-8px 0 14px}
+.promo-price{display:flex;gap:8px;margin-bottom:14px}
+.promo-price div{flex:1;border-radius:15px;padding:11px 8px;
+  background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.09)}
+.promo-price div.hi{border-color:rgba(214,179,106,.55);background:rgba(214,179,106,.13)}
+.promo-price b{display:block;font-size:11px;opacity:.8;margin-bottom:3px}
+.promo-price u{display:block;text-decoration:none;font-size:18px;font-weight:900;color:#F0D99A}
+.promo-price s{display:block;text-decoration:none;font-size:9.5px;opacity:.6;margin-top:2px}
+.promo-cta{width:100%;border:0;border-radius:15px;padding:15px;font-size:15.5px;font-weight:900;
+  cursor:pointer;color:#2B2008;background:linear-gradient(135deg,#F0D99A,#D6B36A);
+  box-shadow:0 8px 22px rgba(214,179,106,.3)}
+.promo-cta:active{transform:scale(.985)}
+.promo-skip{display:block;width:100%;border:0;background:transparent;color:#B9B2C9;
+  font-size:12.5px;padding:12px 0 2px;cursor:pointer}
+.promo-note{font-size:10.5px;opacity:.5;line-height:1.6;margin-top:2px}
+.pay-ok{width:64px;height:64px;margin:2px auto 12px;border-radius:50%;display:grid;
+  place-items:center;font-size:32px;font-weight:900;color:#0B2A16;
+  background:linear-gradient(135deg,#7BE495,#3BB273)}
+.pay-ok.warn{background:linear-gradient(135deg,#FFD98A,#F0A429);color:#3A2B06}
+.pay-note{font-size:11.5px;opacity:.7;line-height:1.8;margin:12px 0;text-align:start;
+  border-inline-start:2px solid var(--pro1);padding-inline-start:10px}
+.prem-badge{display:inline-flex;align-items:center;gap:3px;vertical-align:middle;
+  margin-inline-start:5px;padding:1px 6px;border-radius:7px;font-size:9.5px;font-weight:900;
+  letter-spacing:.5px;color:#0B0A16;
+  background:linear-gradient(120deg,var(--gem3),var(--gem1),var(--gem2),var(--gem3));
+  background-size:250% 100%;animation:gemflow 4s linear infinite}
+@keyframes gemflow{to{background-position:250% 0}}
+.prem-name{background:linear-gradient(120deg,var(--gem1),var(--gem2),var(--gem3),var(--gem1));
+  background-size:250% 100%;-webkit-background-clip:text;background-clip:text;
+  -webkit-text-fill-color:transparent;animation:gemflow 5s linear infinite}
+body.is-prem .up-av,body.is-prem .hb-av{box-shadow:0 0 0 2.5px var(--gem2),0 0 16px rgba(185,139,255,.55)}
+.prem-tr{display:block;margin-top:5px;padding-top:5px;font-size:12.5px;opacity:.82;
+  border-top:1px dashed currentColor}
+.prem-lockscr{position:fixed;inset:0;z-index:2000;display:none;flex-direction:column;
+  align-items:center;justify-content:center;gap:14px;
+  background:radial-gradient(120% 120% at 50% 0%,#1B1533,#08070F)}
+.prem-lockscr.on{display:flex}
+.prem-lockscr h3{color:#E9E3FF;font-size:19px;margin:0}
+.prem-lockscr p{color:#A79FC4;font-size:12.5px;margin:0}
+.prem-dots{display:flex;gap:10px;margin:4px 0 6px}
+.prem-dots i{width:13px;height:13px;border-radius:50%;background:rgba(255,255,255,.18)}
+.prem-dots i.on{background:linear-gradient(135deg,var(--gem3),var(--gem2))}
+.prem-pad{display:grid;grid-template-columns:repeat(3,68px);gap:11px}
+.prem-pad button{height:60px;border:0;border-radius:16px;font-size:22px;font-weight:800;
+  color:#E9E3FF;background:rgba(255,255,255,.07);cursor:pointer}
+.prem-pad button:active{background:rgba(185,139,255,.28)}
+.prem-ai-btn{width:34px;height:34px;border:0;background:transparent;border-radius:50%;
+  display:grid;place-items:center;flex:0 0 auto;cursor:pointer;
+  color:var(--gem2);font-size:17px}
+.prem-ai-btn:active{transform:scale(.9)}
 .pro-badge{display:inline-flex;align-items:center;gap:2px;vertical-align:middle;
   margin-inline-start:5px;padding:1px 6px;border-radius:7px;font-size:9.5px;font-weight:900;
   letter-spacing:.6px;color:#3A2B06;background:linear-gradient(135deg,var(--pro2),var(--pro1));
@@ -16461,6 +16639,17 @@ body.is-pro .up-av,body.is-pro .hb-av{box-shadow:0 0 0 2.5px var(--pro1),0 0 14p
   font-family:ui-monospace,monospace}
 .pay-num i{display:block;font-style:normal;font-size:10.5px;opacity:.55;margin-top:5px}
 .pay-num:active{transform:scale(.99)}
+.pay-credit{margin-bottom:12px}
+.pay-credit label{display:block;font-size:12px;font-weight:700;margin-bottom:6px;
+  color:var(--pro2)}
+.pay-credit textarea{width:100%;box-sizing:border-box;border-radius:13px;
+  border:1.5px solid rgba(214,179,106,.4);background:rgba(255,255,255,.06);
+  color:#F6ECD6;padding:12px;font-size:16px;font-weight:700;letter-spacing:1.5px;
+  font-family:ui-monospace,monospace;resize:none}
+.pay-credit textarea:focus{outline:none;border-color:var(--pro2)}
+.pay-credit i{display:block;font-style:normal;font-size:11px;opacity:.6;margin-top:6px}
+.pro-card.prem .pay-credit label{color:var(--gem3)}
+.pro-card.prem .pay-credit textarea{border-color:rgba(185,139,255,.45)}
 .pay-steps{display:grid;gap:10px;margin-bottom:14px}
 .pay-step{display:flex;gap:10px;align-items:flex-start}
 .pay-step u{flex:0 0 auto;width:24px;height:24px;border-radius:50%;text-decoration:none;
@@ -16522,6 +16711,9 @@ function proActiveOn(o){
   const d=new Date(o.until); return !isNaN(d)&&d.getTime()>Date.now();
 }
 const isPro=()=>proActiveOn(proLocal());
+const myTier=()=>isPro()?planTier(proLocal().plan):"";
+const isPrem=()=>myTier()==="premium";
+const rowTier=p=>{ if(!rowIsPro(p)) return ""; return planTier(p.pro_plan||p.proPlan||"m") };
 const proDaysLeft=()=>{
   const o=proLocal(); if(!proActiveOn(o)) return 0;
   return Math.max(0,Math.ceil((new Date(o.until).getTime()-Date.now())/864e5));
@@ -16536,17 +16728,18 @@ const rowIsPro=p=>{
 function proApplyBody(){
   try{
     document.body.classList.toggle('is-pro',isPro());
+    document.body.classList.toggle('is-prem',isPrem());
     ["gold","neon","aurora","ocean","sunset","forest"].forEach(t=>
       document.body.classList.remove('pth-'+t));
     const th=pg(PK.theme,"");
     if(isPro()&&th) document.body.classList.add('pth-'+th);
     /* حدود الرفع ترتفع للمشترك */
     if(typeof UP_LIMITS!=="undefined"){
-      const big=isPro();
-      UP_LIMITS.file.max = (big?500:100)*1048576;
-      UP_LIMITS.img.max  = (big?150:60)*1048576;
-      UP_LIMITS.video.max= (big?400:100)*1048576;
-      UP_LIMITS.voice.max= (big?100:25)*1048576;
+      const k=isPrem()?4:(isPro()?1:0);
+      UP_LIMITS.file.max = [100,500,500,500,2048][k]*1048576;
+      UP_LIMITS.img.max  = [60,150,150,150,600][k]*1048576;
+      UP_LIMITS.video.max= [100,400,400,400,1536][k]*1048576;
+      UP_LIMITS.voice.max= [25,100,100,100,300][k]*1048576;
     }
   }catch(e){}
 }
@@ -16592,17 +16785,18 @@ function rndSerial(n){
   for(let i=0;i<n;i++) s+=B36[a[i]%B36.length];
   return s;
 }
+const L2P={M:"m",Y:"y",P:"pm",Q:"py"}, P2L={m:"M",y:"Y",pm:"P",py:"Q"};
 function proMakeCode(plan){
-  const p=plan==="y"?"Y":"M", sr=rndSerial(6);
+  const p=P2L[plan]||"M", sr=rndSerial(6);
   const ck=pHash(p+sr+PRO_SALT).slice(0,4);
   return "NX"+p+"-"+sr+"-"+ck;
 }
 function proReadCode(raw){
   const c=String(raw||"").toUpperCase().replace(/\s/g,"");
-  const m=/^NX([MY])-([0-9A-Z]{6})-([0-9A-Z]{4})$/.exec(c);
+  const m=/^NX([MYPQ])-([0-9A-Z]{6})-([0-9A-Z]{4})$/.exec(c);
   if(!m) return null;
   if(pHash(m[1]+m[2]+PRO_SALT).slice(0,4)!==m[3]) return null;
-  return {code:c,plan:m[1]==="Y"?"y":"m"};
+  return {code:c,plan:L2P[m[1]]};
 }
 
 /* استهلاك رمز: محلياً دائماً، وبجدول pro_codes إذا موجود */
@@ -16621,8 +16815,10 @@ async function proRedeem(raw){
         body:JSON.stringify({used_by:myPhone(),used_at:new Date().toISOString()})});
     }
   }catch(e){}
-  const days=r.plan==="y"?365:30;
-  const base=Math.max(Date.now(),new Date(proLocal().until||0).getTime()||0);
+  const days=planDays(r.plan);
+  /* الترقية لمستوى أعلى تبدي من هسه، والتجديد بنفس المستوى يتراكم */
+  const same=planTier(proLocal().plan)===planTier(r.plan);
+  const base=same?Math.max(Date.now(),new Date(proLocal().until||0).getTime()||0):Date.now();
   const until=new Date(base+days*864e5).toISOString();
   used.push(r.code); ps(PK.used,used);
   await proSetLocal(r.plan,until,r.code);
@@ -16643,36 +16839,71 @@ const FEATS=[
   ["reply","ردود سريعة","احفظ قوالب جاهزة وارسلها بضغطة بدل ما تعيد كتابتها"],
   ["clock","رد تلقائي وقت الغياب","الناس توصلها ردة تلقائية وأنت مشغول"],
   ["down","تصدير المحادثة","نزّل المحادثة كاملة كملف نصي بجهازك"],
-  ["bolt","رفع أكبر بخمس مرات","ملفات لحد ٥٠٠ ميجا، فيديو ٤٠٠، صور ١٥٠ بدل ١٠٠"],
+  ["bolt","رفع أكبر بخمس مرات","ملفات لحد ٥٠٠ ميجا، فيديو ٤٠٠، صور ١٥٠"],
   ["crown","تثبيت ومحفوظات بلا حد","بالحساب المجاني ٣ مثبّتة و٢٠ محفوظة بس"],
   ["chart","إحصائيات حسابك","متابعين، رسائل، إعجابات ريلزك — بلوحة وحدة"],
   ["key","إطار ذهبي لصورتك","صورتك الشخصية تنميّز بإطار ولمعة ذهبية"],
   ["bolt","أولوية بالدعم","استفساراتك تجي بالأول عند فريق المعرض"]
 ];
 
-let _planPick="y";
+const PFEATS=[
+  ["gem","شارة PREMIUM ماسية","اسم متدرّج متحرّك وشارة ماسية ما عند غيرك — تبين بكل مكان بالتطبيق"],
+  ["wand","صياغة رسالتك بالذكاء","اكتب الفكرة بعجالة واضغط ✨ — يعيد صياغتها بأسلوب محترم ومرتّب قبل ما ترسلها"],
+  ["reply","اقتراح ردود جاهزة","الذكاء يقرا آخر رسالة ويعطيك ٣ ردود مقترحة — تختار وتدز"],
+  ["img","توليد صور بالذكاء داخل المحادثة","اوصف الصورة وهو يسويها ويرسلها بالمحادثة مباشرة"],
+  ["ear","اسمع الرسائل بصوت طبيعي","أي رسالة نصية تنقرأ عليك بصوت واضح — وأنت تسوق أو مشغول"],
+  ["lang","ترجمة تلقائية للوارد","شغّلها بمحادثة وكل رسالة تجيك تنترجم وحدها تحتها بلا ما تضغط شي"],
+  ["bot","رد تلقائي ذكي","بدل نص ثابت، الذكاء يرد على كل واحد برد يناسب رسالته"],
+  ["lock","قفل التطبيق برمز","رمز يحمي محادثاتك إذا أحد أخذ الهاتف"],
+  ["cloud","نسخة احتياطية كاملة","صدّر كل إعداداتك ومحفوظاتك ومجلداتك بملف واحد، واسترجعها بأي جهاز"],
+  ["ghost","إخفاء «يكتب الآن»","تكتب بلا ما يبين للطرف الثاني إنك تكتب"],
+  ["chart","إحصائيات متقدّمة","أكثر ناس تراسلهم، وتوزيع نشاطك على ساعات اليوم"],
+  ["bolt","رفع ٢ جيجا","ملفات لحد ٢ جيجا، فيديو ١٫٥ جيجا، صور ٦٠٠ ميجا — أعلى من أي تطبيق محلي"],
+  ["fold","مجلدات ووسوم بلا حد","رتّب مئات المحادثات براحتك"],
+  ["gem","كل مزايا PRO الستّعشر","كلها داخلة بالبريميوم بلا ما تدفع مرتين"],
+  ["key","أولوية قصوى بالدعم","طلباتك تنعالج أول شي وخط مباشر مع فريق التطوير"]
+];
 
-function proScreen(){
+let _planPick="y", _tierPick="pro";
+
+function proScreen(tier){
+  if(tier) _tierPick=tier;
+  const prem=_tierPick==="premium";
+  if(prem&&(_planPick==="m"||_planPick==="y")) _planPick=_planPick==="y"?"py":"pm";
+  if(!prem&&(_planPick==="pm"||_planPick==="py")) _planPick=_planPick==="py"?"y":"m";
+  const mKey=prem?"pm":"m", yKey=prem?"py":"y";
   const live=isPro(), o=proLocal();
+  const feats=prem?PFEATS:FEATS;
+  const save=PRICE[mKey]*12-PRICE[yKey];
   openSheet(`
-    <div class="pro-card">
-      <h3>N<i>Ξ</i>XA <b style="color:var(--pro1)">PRO</b></h3>
-      <p>اشتراك واحد يفتحلك ١٦ ميزة داخل NΞXA — بلا إعلانات وبلا حدود.</p>
+    <div class="pro-card${prem?' prem':''}">
+      <div class="pro-tabs">
+        <button class="${prem?'':'on'}" data-tier="pro">PRO</button>
+        <button class="${prem?'on':''}" data-tier="premium">PREMIUM 💎</button>
+      </div>
+      <h3>N<i>Ξ</i>XA <b style="color:${prem?'var(--gem2)':'var(--pro1)'}">${prem?'PREMIUM':'PRO'}</b></h3>
+      <p>${prem
+        ? "أقوى اشتراك بتطبيق عراقي — ذكاء اصطناعي داخل محادثاتك، صوت، صور، ترجمة تلقائية، وحماية. وكل مزايا PRO داخلة وياه."
+        : "اشتراك واحد يفتحلك ١٦ ميزة داخل NΞXA — بلا إعلانات وبلا حدود."}</p>
       ${live?`<div class="pro-live">${pic('crown','')}
-        <div><b>اشتراكك شغّال</b><span>${o.plan==="y"?"سنوي":"شهري"} · باقي ${proDaysLeft()} يوم
+        <div><b>اشتراكك شغّال — ${planName(o.plan)}</b><span>باقي ${proDaysLeft()} يوم
         · ينتهي ${new Date(o.until).toLocaleDateString('en-GB')}</span></div></div>`:''}
       <div class="pro-plans">
-        <div class="pro-plan${_planPick==="m"?' on':''}" data-plan="m">
-          <b>شهري</b><u>${nfIQ(PRICE.m)}</u><s>دينار / شهر</s></div>
-        <div class="pro-plan${_planPick==="y"?' on':''}" data-plan="y">
-          <em>وفّر ${nfIQ(PRICE.m*12-PRICE.y)}</em>
-          <b>سنوي</b><u>${nfIQ(PRICE.y)}</u><s>دينار / سنة · ${nfIQ(Math.round(PRICE.y/12))} بالشهر</s></div>
+        <div class="pro-plan${_planPick===mKey?' on':''}" data-plan="${mKey}">
+          <b>شهري</b><u>${nfIQ(PRICE[mKey])}</u><s>دينار / شهر</s></div>
+        <div class="pro-plan${_planPick===yKey?' on':''}" data-plan="${yKey}">
+          <span class="best">الأكثر طلباً</span>
+          <em>وفّر ${nfIQ(save)}</em>
+          <b>سنوي</b><u>${nfIQ(PRICE[yKey])}</u><s>دينار / سنة · ${nfIQ(Math.round(PRICE[yKey]/12))} بالشهر</s></div>
       </div>
+      <div class="pro-daily">يعني <b>${nfIQ(Math.round(PRICE[_planPick]/(planDays(_planPick))))} دينار باليوم</b>
+        — أرخص من علبة علچ، وتفتحلك ${feats.length} ميزة</div>
       <div class="pro-feats">
-        ${FEATS.map(f=>`<div class="pro-feat">${pic(f[0],'')}
+        ${feats.map((f,i)=>`<div class="pro-feat${i<3?' hot':''}" style="animation-delay:${i*45}ms">
+          ${pic(f[0],'')}
           <div><b>${esc(f[1])}</b><span>${esc(f[2])}</span></div></div>`).join('')}
       </div>
-      <button class="pro-btn" id="pro-buy">${live?'جدّد الاشتراك':'اشترك هسه'} · ${nfIQ(_planPick==="y"?PRICE.y:PRICE.m)} دينار</button>
+      <button class="pro-btn" id="pro-buy">${live?'ترقية / تجديد':'اشترك هسه'} · ${nfIQ(PRICE[_planPick])} دينار</button>
       <div class="pro-code">
         <input id="pro-cin" placeholder="NXY-XXXXXX-XXXX" maxlength="18" autocomplete="off">
         <button id="pro-cgo">فعّل</button>
@@ -16683,6 +16914,9 @@ function proScreen(){
         اضغط «اشترك هسه» وتطلعلك الخطوات كاملة. عندك رمز تفعيل؟ دخّله فوق.
       </div>
     </div>`);
+  document.querySelectorAll('[data-tier]').forEach(b=>{
+    b.onclick=()=>proScreen(b.dataset.tier);
+  });
   document.querySelectorAll('.pro-plan').forEach(p=>{
     p.onclick=()=>{ _planPick=p.dataset.plan; proScreen() };
   });
@@ -16700,14 +16934,87 @@ function proScreen(){
   };
 }
 
-/* ── شاشة الدفع: تحويل رصيد ── */
+/* ══════════════════ شاشة الترحيب أول ما يفتح الموقع ══════════════════ */
+
+const PROMO_LS="nxpro_promo_v1";
+const PROMO_GAP=3*864e5;          /* ما نعيدها إلا كل ٣ أيام */
+
+/* أبرز ٦ مزايا — مختصرة وتشد */
+const PROMO_ITEMS=[
+  ["🤖","ذكاء داخل محادثاتك","يصيغ رسالتك ويقترحلك ردود"],
+  ["🎨","يسوي صور بالوصف","اوصفها وترسلها بالمحادثة"],
+  ["🌍","ترجمة تلقائية","كل رسالة تجيك تنترجم وحدها"],
+  ["🔊","يقرالك الرسائل بصوت","وأنت تسوق أو مشغول"],
+  ["👻","تخفّي كامل","تقرا بلا علامة وبلا آخر ظهور"],
+  ["💎","شارة وإطار مميّز","اسمك يلمع بين الكل"]
+];
+
+function proPromo(){
+  let el=document.getElementById('nxp-promo');
+  if(!el){
+    el=document.createElement('div');
+    el.className='promo'; el.id='nxp-promo';
+    document.body.appendChild(el);
+  }
+  const saveY=PRICE.y*0+((PRICE.m*12)-PRICE.y);
+  el.innerHTML=`
+    <div class="promo-box">
+      <button class="promo-x" id="promo-x" aria-label="سكّر">✕</button>
+      <div class="promo-crown">👑</div>
+      <h2>افتح <i>NΞXA PRO</i></h2>
+      <p class="promo-sub">تطبيقك اللي تستعمله كل يوم — خلّيه أقوى.<br>
+        ذكاء اصطناعي، خصوصية، وحدود ما عدها سقف.</p>
+
+      <div class="promo-grid">
+        ${PROMO_ITEMS.map((f,i)=>`<div class="promo-it" style="animation-delay:${120+i*60}ms">
+          <em>${f[0]}</em><div><b>${esc(f[1])}</b><span>${esc(f[2])}</span></div></div>`).join('')}
+      </div>
+      <div class="promo-more">+ ${FEATS.length+PFEATS.length-PROMO_ITEMS.length} ميزة ثانية تنتظرك</div>
+
+      <div class="promo-price">
+        <div><b>PRO شهري</b><u>${nfIQ(PRICE.m)}</u><s>دينار</s></div>
+        <div class="hi"><b>PRO سنوي</b><u>${nfIQ(PRICE.y)}</u><s>وفّر ${nfIQ(saveY)}</s></div>
+      </div>
+
+      <button class="promo-cta" id="promo-go">شوف كل المزايا</button>
+      <button class="promo-skip" id="promo-no">مو هسه، شكراً</button>
+      <p class="promo-note">تكدر تفتحها بأي وقت من: حسابي ← NΞXA PRO</p>
+    </div>`;
+  requestAnimationFrame(()=>el.classList.add('on'));
+  ps(PROMO_LS,Date.now());
+
+  const close=()=>{ el.classList.remove('on'); setTimeout(()=>{ el.innerHTML="" },260) };
+  const x=document.getElementById('promo-x');   if(x) x.onclick=close;
+  const no=document.getElementById('promo-no'); if(no) no.onclick=close;
+  const go=document.getElementById('promo-go');
+  if(go) go.onclick=()=>{ close(); setTimeout(()=>proScreen("pro"),240) };
+  /* الضغط على الخلفية يسكّرها بعد */
+  el.onclick=e=>{ if(e.target===el) close() };
+}
+
+/* نعرضها بس إذا تنفع — ما نزعج المشترك ولا اللي طلبه قيد التدقيق */
+function proPromoMaybe(){
+  try{
+    if(isPro()) return;
+    if(pArr(PK.pend).length) return;
+    const last=+pg(PROMO_LS,0);
+    if(last&&Date.now()-last<PROMO_GAP) return;
+    const sh=document.getElementById('sheet');
+    if(sh&&sh.classList.contains('on')) return;
+    if(document.getElementById('prem-lockscr')
+      &&document.getElementById('prem-lockscr').classList.contains('on')) return;
+    proPromo();
+  }catch(e){}
+}
+
+/* ── شاشة الدفع: تحويل رصيد + إبلاغ صامت لبوت تليجرام ── */
 function proPay(plan){
-  const price=nfIQ(plan==="y"?PRICE.y:PRICE.m);
-  const pl=plan==="y"?"السنوي":"الشهري";
+  const price=nfIQ(PRICE[plan]);
+  const nm=planName(plan);
   openSheet(`
-    <div class="pro-card">
+    <div class="pro-card${/^p/.test(plan)?' prem':''}">
       <h3>الدفع بـ<i> رصيد</i></h3>
-      <p>الاشتراك ${pl} — <b style="color:var(--pro2)">${price} دينار</b></p>
+      <p>${nm} — <b style="color:var(--pro2)">${price} دينار</b></p>
 
       <div class="pay-num" id="pay-num">
         <span>حوّل الرصيد على هذا الرقم</span>
@@ -16716,39 +17023,160 @@ function proPay(plan){
       </div>
 
       <div class="pay-steps">
-        <div class="pay-step"><u>١</u><div><b>حوّل ${price} دينار رصيد</b>
-          <span>من تطبيق شركتك (آسياسيل / زين / كورك) أو من أي محل شحن رصيد</span></div></div>
-        <div class="pay-step"><u>٢</u><div><b>دز صورة وصل التحويل</b>
-          <span>رسالة التأكيد اللي توصلك من الشركة — بالواتساب على نفس الرقم</span></div></div>
-        <div class="pay-step"><u>٣</u><div><b>يوصلك رمز التفعيل</b>
-          <span>تدخّله بخانة الرمز وينفتح اشتراكك فوراً</span></div></div>
+        <div class="pay-step"><u>١</u><div><b>اشتري رصيد بـ ${price} دينار</b>
+          <span>كارت شحن من أي محل، أو حوّل رصيد من تطبيق شركتك (آسياسيل / زين / كورك)</span></div></div>
+        <div class="pay-step"><u>٢</u><div><b>اكتب الرصيد بالخانة تحت</b>
+          <span>رمز الكارت كامل، أو رقم وصل التحويل إذا حوّلت من التطبيق</span></div></div>
+        <div class="pay-step"><u>٣</u><div><b>يتم التدقيق</b>
+          <span>ونفعّل لك الاشتراك خلال أقل من ٤٨ ساعة إن شاء الله</span></div></div>
       </div>
 
-      <button class="pro-btn" id="pay-wa">دزيت الرصيد — افتح الواتساب</button>
+      <div class="pay-credit">
+        <label for="pay-credit-in">اكتب الرصيد هنا</label>
+        <textarea id="pay-credit-in" rows="2" inputmode="numeric" autocomplete="off"
+          placeholder="رمز كارت الشحن أو رقم وصل التحويل"></textarea>
+        <i id="pay-credit-hint">تأكد من الرمز قبل ما ترسله — رمز غلط يأخر تفعيلك</i>
+      </div>
+
+      <button class="pro-btn" id="pay-done">أرسل للتدقيق</button>
       <button class="pro-btn ghost" id="pay-back">رجوع</button>
 
       <div class="pro-pay">
         <b>الرقم ما يستلم؟</b> جرّب الاحتياطي
-        <b style="letter-spacing:1px">${payPretty(payOther())}</b>
-        وخبّرنا بالواتساب.<br>
+        <b style="letter-spacing:1px">${payOther()}</b>.<br>
         نفس مبلغ الاشتراك بالضبط، ولا ترسل من رصيد هدية لأنه ما ينتحوّل.
       </div>
     </div>`);
   const num=document.getElementById('pay-num');
   if(num) num.onclick=()=>shareCopy(payNum(),"انتسخ الرقم ✓");
-  const wa=document.getElementById('pay-wa');
-  if(wa) wa.onclick=()=>{
-    const me=(typeof profName==="function"?profName():"")||"";
-    const us=(profile&&profile.username)?" (@"+profile.username+")":"";
-    payWA(payNum(),
-      "السلام عليكم\n"+
-      "دزّيت رصيد "+price+" دينار للاشتراك "+pl+" بـ NΞXA PRO.\n"+
-      "اسمي: "+me+us+"\n"+
-      "رقمي بالتطبيق: "+(myPhone()||"—")+"\n"+
-      "(مرفق وصل التحويل)");
-  };
   const bk=document.getElementById('pay-back');
   if(bk) bk.onclick=()=>proScreen();
+  const dn=document.getElementById('pay-done');
+  const inp=document.getElementById('pay-credit-in');
+  const hint=document.getElementById('pay-credit-hint');
+  if(inp&&dn){
+    const chk=()=>{
+      const v=(inp.value||"").replace(/\s/g,"");
+      const ok=v.length>=6;
+      dn.style.opacity=ok?1:.55;
+      if(hint) hint.textContent=ok
+        ? "تمام — اضغط «أرسل للتدقيق»"
+        : "تأكد من الرمز قبل ما ترسله — رمز غلط يأخر تفعيلك";
+    };
+    inp.addEventListener('input',chk); chk();
+  }
+  if(dn) dn.onclick=()=>{
+    const v=((inp&&inp.value)||"").trim();
+    if(v.replace(/\s/g,"").length<6){
+      toast("اكتب الرصيد أول — رمز الكارت أو رقم الوصل");
+      if(inp) inp.focus();
+      return;
+    }
+    proPayConfirm(plan,dn,v);
+  };
+}
+
+/* نص الطلب اللي يوصل البوت */
+function payTicket(plan,credit){
+  const me=(typeof profName==="function"?profName():"")||"—";
+  const us=(profile&&profile.username)?"@"+profile.username:"—";
+  const d=new Date();
+  const days=planDays(plan);
+  return "🧾 طلب اشتراك جديد — NΞXA\n"+
+    "═════════════════\n"+
+    "💳 الرصيد:\n"+String(credit||"—")+"\n"+
+    "═════════════════\n"+
+    "👤 اليوزر: "+us+"\n"+
+    "📦 الباقة: "+planName(plan)+" ("+days+" يوم)\n"+
+    "💵 المبلغ: "+nfIQ(PRICE[plan])+" دينار\n"+
+    "─────────────────\n"+
+    "الاسم: "+me+"\n"+
+    "الرقم بالتطبيق: "+(myPhone()||"—")+"\n"+
+    "رقم الاستلام: "+payNum()+"\n"+
+    "الوقت: "+d.toLocaleString('en-GB')+"\n"+
+    "─────────────────\n"+
+    "بعد ما تتأكد من الرصيد:\n"+
+    "لوحة المالك ← اشتراك PRO ← «منح اشتراك ليوزر»\n"+
+    "اختر "+(planTier(plan)==="premium"?"PREMIUM":"PRO")+
+    " ← اكتب اليوزر "+us+" ← "+days+" يوم ← امنح.";
+}
+
+async function proPayConfirm(plan,btn,credit){
+  if(btn){ btn.disabled=true; btn.textContent="لحظة…" }
+  const txt=payTicket(plan,credit);
+  let ok=false;
+  try{ ok=await tgSend(txt) }catch(e){ ok=false }
+  /* نحفظ الطلب بالجهاز حتى لو ما وصل — ينعاد إرساله تلقائياً بعدين */
+  try{
+    const q=pArr(PK.pend);
+    q.push({plan,at:Date.now(),sent:ok,txt});
+    ps(PK.pend,q.slice(-20));
+  }catch(e){}
+  if(ok) proPayThanks(plan);
+  else   proPayFallback(plan,credit);
+}
+
+/* نجح الإبلاغ — الرسالة اللي يشوفها المشترك */
+function proPayThanks(plan){
+  openSheet(`
+    <div class="pro-card${/^p/.test(plan)?' prem':''}" style="text-align:center">
+      <div class="pay-ok">✓</div>
+      <h3>وصلنا رصيدك</h3>
+      <p style="opacity:.9">
+        <b style="color:var(--pro2)">يتم التدقيق</b> — انتظر أقل من ٤٨ ساعة
+        حتى نفعّل لك الاشتراك إن شاء الله.<br><br>
+        ما تحتاج تسوي أي شي بعد ولا تراسل أحد — نحن نتابع الباقي.
+        أول ما ينتأكد الرصيد، ${planName(plan)} ينفتح على حسابك ويوصلك إشعار.<br><br>
+        شكراً إلك — ثقتك بينا تفرق ويانا، ووجودك ويانا يخلي NΞXA تكبر
+        وتصير أحسن كل يوم. 🌿
+      </p>
+      <div class="pay-note">
+        <b>ملاحظة:</b> خلّي يوزرك ثابت ما تغيّره لحد ما ينفعّل الاشتراك،
+        لأن التفعيل يصير على اليوزر.
+      </div>
+      <button class="pro-btn" id="pay-ok-x">تمام</button>
+    </div>`);
+  const b=document.getElementById('pay-ok-x');
+  if(b) b.onclick=()=>closeSheet();
+  try{ if(navigator.vibrate) navigator.vibrate([20,50,20]) }catch(e){}
+}
+
+/* ما وصل للبوت — نعرض الواتساب كطريق ثاني */
+function proPayFallback(plan,credit){
+  openSheet(`
+    <div class="pro-card${/^p/.test(plan)?' prem':''}">
+      <div class="pay-ok warn">!</div>
+      <h3 style="text-align:center">الاتصال متعثّر</h3>
+      <p style="text-align:center;opacity:.9">
+        ما گدرنا نوصّل طلبك تلقائياً هسه — غالباً الإنترنت.
+        طلبك محفوظ وراح ينبعث لحاله أول ما يرجع الاتصال.<br>
+        وإذا تريد تستعجل، دزّه بالواتساب من الزر تحت وينوصل فوراً.
+      </p>
+      <button class="pro-btn" id="pay-wa">دزّه بالواتساب</button>
+      <button class="pro-btn ghost" id="pay-retry">حاول من جديد</button>
+      <button class="pro-btn ghost" id="pay-x">لاحقاً</button>
+    </div>`);
+  const wa=document.getElementById('pay-wa');
+  if(wa) wa.onclick=()=>{ payWA(payNum(),payTicket(plan,credit)); closeSheet();
+    setTimeout(()=>proPayThanks(plan),900) };
+  const rt=document.getElementById('pay-retry');
+  if(rt) rt.onclick=()=>proPayConfirm(plan,rt,credit);
+  const x=document.getElementById('pay-x');
+  if(x) x.onclick=()=>closeSheet();
+}
+
+/* إعادة إرسال الطلبات اللي ما وصلت */
+async function payFlush(){
+  try{
+    const q=pArr(PK.pend); if(!q.length) return;
+    const left=[];
+    for(const t of q){
+      if(t.sent) continue;
+      const ok=await tgSend(t.txt);
+      if(!ok) left.push(t);
+    }
+    ps(PK.pend,left);
+  }catch(e){}
 }
 
 function proWelcome(plan,until){
@@ -16783,6 +17211,7 @@ function proPanel(){
       live?`اشتراكك شغّال · باقي ${proDaysLeft()} يوم`:"ماكو اشتراك شغّال"}</p>
     ${live?'':`<button class="pro-btn" id="pp-up" style="margin-bottom:12px">ترقية إلى PRO · ${nfIQ(PRICE.y)} دينار سنوياً</button>`}
     <div class="opt-list">
+      <button class="opt-row" id="pp-prem">${pic('gem')}<span>مزايا PREMIUM 💎</span></button>
       <button class="opt-row" id="pp-fold">${pic('fold')}<span>مجلدات المحادثات (${Object.keys(fl).length})</span></button>
       <button class="opt-row" id="pp-theme">${pic('wand')}<span>ثيم الفقاعات: ${th?esc(th):'الافتراضي'}</span></button>
       <button class="opt-row" id="pp-ghost">${pic('ghost')}<span>وضع التخفي: ${gh?'شغّال':'مطفي'}</span></button>
@@ -16795,6 +17224,7 @@ function proPanel(){
     </div>`);
   const on=(i,f)=>{ const e=document.getElementById(i); if(e) e.onclick=f };
   on('pp-up',()=>proScreen());
+  on('pp-prem',()=>premPanel());
   on('pp-fold',()=>{ if(proGate("مجلدات المحادثات")) proFolders() });
   on('pp-theme',()=>{ if(proGate("الثيمات الحصرية")) proThemes() });
   on('pp-ghost',()=>{ if(!proGate("وضع التخفي")) return; proGhost(!gh); proPanel() });
@@ -17204,7 +17634,7 @@ function proAdminSection(){
     </div>
     <div class="acts" style="margin-top:8px;display:grid;grid-template-columns:1fr 1fr;gap:8px">
       <button class="btn btn-o" id="pa-list">كل الرموز</button>
-      <button class="btn btn-o" id="pa-grant">منح PRO ليوزر</button>
+      <button class="btn btn-o" id="pa-grant">منح اشتراك ليوزر</button>
     </div>
     <div class="acts" style="margin-top:8px">
       <button class="btn btn-o" id="pa-pay">بدّل رقم الاستلام</button>
@@ -17288,18 +17718,32 @@ function proCodesSheet(){
   if(cp) cp.onclick=()=>shareCopy(l.map(g=>g.code).join("\n"),"انتسخوا ✓");
 }
 
+let _grantTier="pro";
 function proGrantSheet(){
-  openSheet(`<h3 style="font-size:18px;margin-bottom:4px">منح PRO مباشرة</h3>
+  const prem=_grantTier==="premium";
+  openSheet(`<h3 style="font-size:18px;margin-bottom:4px">منح اشتراك مباشرة</h3>
     <p class="sub" style="font-size:12.5px;margin-bottom:12px">
-      بلا رمز — تكتب اليوزر وينفتحله الاشتراك (يحتاج عمودَي pro_until و pro_plan)</p>
+      بلا رمز — تكتب اليوزر وينفتحله الاشتراك فوراً</p>
+
+    <div class="pro-tabs" style="margin-bottom:12px">
+      <button class="${prem?'':'on'}" id="pgr-t-pro">PRO</button>
+      <button class="${prem?'on':''}" id="pgr-t-prem">PREMIUM 💎</button>
+    </div>
+
     <div class="opt" style="margin-top:0"><label for="pgr-u">اليوزر</label>
-      <input class="ctrl" id="pgr-u" placeholder="بلا @"></div>
+      <input class="ctrl" id="pgr-u" placeholder="بلا @" autocomplete="off"></div>
     <div class="opt"><label for="pgr-d">عدد الأيام</label>
       <input class="ctrl mono" id="pgr-d" type="number" value="30" min="1" max="3650"></div>
+
+    <div class="acts" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:0">
+      <button class="btn btn-o" id="pgr-30">شهر (٣٠ يوم)</button>
+      <button class="btn btn-o" id="pgr-365">سنة (٣٦٥ يوم)</button></div>
+
     <div class="acts">
-      <button class="btn btn-p" id="pgr-go">امنح</button>
+      <button class="btn btn-p" id="pgr-go">امنح ${prem?'PREMIUM':'PRO'}</button>
       <button class="btn btn-o" id="pgr-rm">اسحب الاشتراك</button></div>
     <div id="pgr-out" class="foot" style="text-align:start"></div>`);
+
   const set=async(days)=>{
     const u=(document.getElementById('pgr-u').value||"").trim().replace(/^@/,"");
     const out=document.getElementById('pgr-out');
@@ -17308,19 +17752,30 @@ function proGrantSheet(){
     try{
       const rows=await sbSelect("user_profiles",
         "select=phone,name&username=eq."+encodeURIComponent(u)+"&limit=1");
-      if(!rows||!rows.length){ out.textContent="ما لگيت هذا اليوزر"; return }
+      if(!rows||!rows.length){ out.textContent="ما لگيت هذا اليوزر — تأكد من الكتابة"; return }
+      /* m/y = برو · pm/py = بريميوم */
+      const pl=days?((prem?"p":"")+(days>=365?"y":"m")):null;
       const until=days?new Date(Date.now()+days*864e5).toISOString():null;
       await sbReq("user_profiles?phone=eq."+encodeURIComponent(rows[0].phone),
         {method:"PATCH",headers:{Prefer:"return=minimal"},
-         body:JSON.stringify({pro_until:until,pro_plan:days?(days>=365?"y":"m"):null})});
-      out.textContent=days?("انمنح PRO لـ "+(rows[0].name||u)+" لمدة "+days+" يوم ✓")
-                          :("انسحب الاشتراك من "+(rows[0].name||u)+" ✓");
+         body:JSON.stringify({pro_until:until,pro_plan:pl})});
+      out.textContent=days
+        ? ("انمنح "+(prem?"PREMIUM":"PRO")+" لـ "+(rows[0].name||u)+" لمدة "+days+" يوم ✓"+
+           "\nينفتح عنده أول ما يفتح التطبيق.")
+        : ("انسحب الاشتراك من "+(rows[0].name||u)+" ✓");
+      if(days) toast("انفعّل ✓");
     }catch(e){ out.textContent="فشل — غالباً عمود pro_until مو مضاف. اضغط «انسخ SQL» بلوحة المالك." }
   };
-  const g=document.getElementById('pgr-go');
-  if(g) g.onclick=()=>set(Math.max(1,+document.getElementById('pgr-d').value||30));
-  const r=document.getElementById('pgr-rm');
-  if(r) r.onclick=()=>confirmAsk("ينسحب اشتراك هذا الحساب؟",()=>set(0));
+  const on=(i,f)=>{ const e=document.getElementById(i); if(e) e.onclick=f };
+  const keep=()=>{ const u=document.getElementById('pgr-u'); return u?u.value:"" };
+  on('pgr-t-pro', ()=>{ const v=keep(); _grantTier="pro";     proGrantSheet();
+    const u=document.getElementById('pgr-u'); if(u) u.value=v });
+  on('pgr-t-prem',()=>{ const v=keep(); _grantTier="premium"; proGrantSheet();
+    const u=document.getElementById('pgr-u'); if(u) u.value=v });
+  on('pgr-30', ()=>{ document.getElementById('pgr-d').value=30 });
+  on('pgr-365',()=>{ document.getElementById('pgr-d').value=365 });
+  on('pgr-go', ()=>set(Math.max(1,+document.getElementById('pgr-d').value||30)));
+  on('pgr-rm', ()=>confirmAsk("ينسحب اشتراك هذا الحساب؟",()=>set(0)));
 }
 
 /* ══════════════════ فرض حدود الحساب المجاني ══════════════════ */
@@ -17343,13 +17798,89 @@ function proEnforceFree(){
 
 /* ══════════════════ الالتفاف حول الدوال ══════════════════ */
 
+function premWrap(){
+  /* الترجمة التلقائية بعد كل رسم للمحادثة */
+  if(typeof msgPaintChat==="function"&&!msgPaintChat._prem){
+    const o=msgPaintChat;
+    msgPaintChat=function(){
+      const r=o.apply(this,arguments);
+      try{ if(isPrem()&&premAutoTrOn()) setTimeout(premAutoTrRun,120) }catch(e){}
+      return r;
+    };
+    msgPaintChat._prem=1;
+  }
+  /* زر ✨ بشريط الكتابة عند فتح أي محادثة */
+  if(typeof msgOpenChat==="function"&&!msgOpenChat._prem){
+    const o=msgOpenChat;
+    msgOpenChat=async function(){
+      const r=await o.apply(this,arguments);
+      try{ premAiBtn() }catch(e){}
+      return r;
+    };
+    msgOpenChat._prem=1;
+  }
+  /* إخفاء «يكتب الآن» */
+  if(typeof typingPing==="function"&&!typingPing._prem){
+    const o=typingPing;
+    typingPing=function(){
+      try{ if(isPrem()&&premCfg().notyping) return }catch(e){}
+      return o.apply(this,arguments);
+    };
+    typingPing._prem=1;
+  }
+  /* خيارات الرسالة: اسمعها بصوت */
+  if(typeof msgOptions==="function"&&!msgOptions._prem){
+    const o=msgOptions;
+    msgOptions=function(msgId){
+      o.apply(this,arguments);
+      try{
+        const list=document.querySelector('#sheet-body .opt-list'); if(!list) return;
+        const b=document.createElement('button');
+        b.className='opt-row';
+        b.innerHTML=pic('ear')+'<span>اسمعها بصوت'+
+          (isPrem()?'':'<span class="pro-tag">PREMIUM</span>')+'</span>';
+        b.onclick=()=>{ closeSheet(); premSpeak(msgId) };
+        list.appendChild(b);
+      }catch(e){}
+    };
+    msgOptions._prem=1;
+  }
+  /* الرد الذكي التلقائي — يمشي مع الرد التلقائي العادي */
+  if(typeof proAwayTick==="function"&&!proAwayTick._prem){
+    const o=proAwayTick;
+    proAwayTick=async function(convs,unread){
+      try{
+        if(isPrem()&&premCfg().smart&&Array.isArray(convs)){
+          const log=pObj(PK.awayL), day=new Date().toDateString(), me=myPhone();
+          for(const c of convs){
+            if(!(unread&&unread[c.id]>0)) continue;
+            const other=c.user1===me?c.user2:c.user1;
+            if(!other||/^08/.test(other)||log[c.id]===day) continue;
+            const rep=await premSmartReply(c.id,c.last_msg||"");
+            if(rep){ log[c.id]=day; ps(PK.awayL,log); await msgSend(c.id,rep) }
+          }
+          return;
+        }
+      }catch(e){}
+      return o.apply(this,arguments);
+    };
+    proAwayTick._prem=1;
+  }
+}
+
 function proWrap(){
   /* شارة PRO جنب الاسم بكل مكان */
   if(typeof nameHTML==="function"&&!nameHTML._pro){
     const o=nameHTML;
     nameHTML=function(p,lg){
       let h=o.apply(this,arguments);
-      try{ if(rowIsPro(p)) h='<span class="pro-name">'+h+'</span><span class="pro-badge">PRO</span>' }catch(e){}
+      try{
+        if(rowIsPro(p)){
+          const pr=rowTier(p)==="premium";
+          h='<span class="'+(pr?'prem-name':'pro-name')+'">'+h+'</span>'+
+            '<span class="'+(pr?'prem-badge':'pro-badge')+'">'+(pr?'PREMIUM':'PRO')+'</span>';
+        }
+      }catch(e){}
       return h;
     };
     nameHTML._pro=1;
@@ -17529,13 +18060,417 @@ function proAcctRow(){
   if(!body||document.getElementById('pro-pm-row')) return;
   const b=document.createElement('button');
   b.className='pm-row'; b.id='pro-pm-row';
-  b.innerHTML=`<span class="pm-ic"><svg viewBox="0 0 24 24">${PI.crown}</svg></span>
-    <span class="pm-label">NΞXA PRO</span>
-    <span class="pro-badge" style="margin-inline-start:auto">${isPro()?proDaysLeft()+" يوم":"ترقية"}</span>
+  const pr=isPrem();
+  b.innerHTML=`<span class="pm-ic"><svg viewBox="0 0 24 24">${pr?PI.gem:PI.crown}</svg></span>
+    <span class="pm-label">NΞXA ${pr?'PREMIUM':'PRO'}</span>
+    <span class="${pr?'prem-badge':'pro-badge'}" style="margin-inline-start:auto">${
+      isPro()?proDaysLeft()+" يوم":"ترقية"}</span>
     ${pmChev}`;
   body.appendChild(b);
   b.onclick=()=>isPro()?proPanel():proScreen();
 }
+
+/* ══════════════════════════════════════════════════════════════
+   مزايا PREMIUM
+   ══════════════════════════════════════════════════════════════ */
+
+const premCfg=()=>pObj(PK.prem);
+const premSet=(k,v)=>{ const o=premCfg(); o[k]=v; ps(PK.prem,o) };
+
+function premGate(what){
+  if(isPrem()) return true;
+  toast((what||"هذه الميزة")+" حصرية لاشتراك PREMIUM");
+  setTimeout(()=>proScreen("premium"),420);
+  return false;
+}
+
+/* ── ١) صياغة رسالتك بالذكاء ── */
+async function premPolish(){
+  if(!premGate("الصياغة الذكية")) return;
+  const ta=document.getElementById('chat-text');
+  const raw=(ta&&ta.value||"").trim();
+  if(raw.length<3){ toast("اكتب رسالتك أول"); return }
+  toast("جاري الصياغة…");
+  const out=await proAI(
+    "أعد صياغة الرسالة التالية بنفس لغتها ونفس المعنى، بأسلوب مرتّب ومحترم وواضح، "+
+    "وخلّيها قصيرة وطبيعية مثل كلام بشر مو رسمية زايد. رجّع النص الجديد بس بلا أي شرح:\n\n"+raw);
+  if(!out){ toast("ما گدرت أصيغها — تأكد من مفاتيح الذكاء ببوت NΞX"); return }
+  openSheet(`<h3 style="font-size:18px;margin-bottom:8px">الصياغة الجديدة</h3>
+    <p class="sub" style="font-size:12px;margin-bottom:8px">قبل: ${esc(raw.slice(0,110))}</p>
+    <div style="font-size:15px;line-height:1.9;padding:12px;border-radius:12px;
+      background:var(--mSurf,#f3f3f3)">${esc(out)}</div>
+    <div class="acts" style="margin-top:12px;display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <button class="btn btn-p" id="pol-use">استعملها</button>
+      <button class="btn btn-o" id="pol-x">خلّي مالتي</button></div>`);
+  const u=document.getElementById('pol-use');
+  if(u) u.onclick=()=>{ ta.value=out; ta.dispatchEvent(new Event('input',{bubbles:true}));
+    closeSheet(); ta.focus() };
+  const x=document.getElementById('pol-x');
+  if(x) x.onclick=()=>closeSheet();
+}
+
+/* ── ٢) اقتراح ردود ── */
+async function premSuggest(){
+  if(!premGate("اقتراح الردود")) return;
+  const me=myPhone();
+  const last=[...(chatMsgs||[])].reverse().find(m=>m.sender!==me&&m.body);
+  if(!last){ toast("ماكو رسالة أرد عليها"); return }
+  openSheet('<h3 style="font-size:18px">جاري التفكير…</h3><p class="sub">أقرا آخر رسالة</p>');
+  const ctx=(chatMsgs||[]).slice(-8).filter(m=>m.body)
+    .map(m=>(m.sender===me?"أنا: ":"هو: ")+String(m.body).slice(0,160)).join("\n");
+  const out=await proAI(
+    "هذه محادثة. اقترح ٣ ردود قصيرة مختلفة أقدر أرد بيها على آخر رسالة، بنفس لهجة المحادثة. "+
+    "رجّعهن بس، كل رد بسطر، بلا ترقيم وبلا شرح:\n\n"+ctx);
+  const list=String(out||"").split("\n").map(x=>x.replace(/^[-*\d.\s)]+/,"").trim())
+    .filter(Boolean).slice(0,3);
+  if(!list.length){ toast("ما گدرت أقترح — تأكد من مفاتيح الذكاء"); closeSheet(); return }
+  openSheet(`<h3 style="font-size:18px;margin-bottom:10px">ردود مقترحة</h3>
+    <div class="opt-list">${list.map((t,i)=>
+      `<button class="opt-row" data-sg="${i}">${pic('reply')}<span>${esc(t)}</span></button>`).join('')}</div>`);
+  document.querySelectorAll('[data-sg]').forEach(b=>{
+    b.onclick=()=>{
+      const ta=document.getElementById('chat-text'); if(!ta) return;
+      ta.value=list[+b.dataset.sg];
+      ta.dispatchEvent(new Event('input',{bubbles:true}));
+      closeSheet(); ta.focus();
+    };
+  });
+}
+
+/* ── ٣) توليد صورة وإرسالها ── */
+function premImage(){
+  if(!premGate("توليد الصور")) return;
+  if(!chatConvId){ toast("افتح محادثة أول"); return }
+  openSheet(`<h3 style="font-size:18px;margin-bottom:4px">صورة بالذكاء</h3>
+    <p class="sub" style="font-size:12.5px;margin-bottom:12px">اوصف الصورة وهي تنرسل بالمحادثة</p>
+    <div class="opt" style="margin-top:0"><label for="pim-t">الوصف</label>
+      <textarea class="ctrl" id="pim-t" rows="3" placeholder="باب ألمنيوم أسود مطفي بواجهة بيت حديث وقت الغروب"></textarea></div>
+    <div class="acts"><button class="btn btn-p" id="pim-go">سوّها وارسلها</button></div>`);
+  const g=document.getElementById('pim-go');
+  if(g) g.onclick=async()=>{
+    const t=(document.getElementById('pim-t').value||"").trim();
+    if(t.length<3){ toast("اكتب وصف"); return }
+    g.disabled=true; g.textContent="جاري التوليد…";
+    const conv=chatConvId;
+    try{
+      const cfg=await nexCfg();
+      if(!cfg||!aiKeyList(cfg).length){ toast("مفاتيح الذكاء مو مربوطة ببوت NΞX"); g.disabled=false; g.textContent="سوّها وارسلها"; return }
+      let prompt=t;
+      try{ const e=await imgEnhance(cfg,t); if(e) prompt=e }catch(_){}
+      const r=await aiImage(cfg,prompt);
+      if(!r||r.err||!r.dataURL){ toast(r&&r.err||"ما گدرت أسوي الصورة");
+        g.disabled=false; g.textContent="سوّها وارسلها"; return }
+      let url=r.dataURL;
+      try{
+        const b=await (await fetch(r.dataURL)).blob();
+        const up=await sbUpload(b,"ai");
+        if(up) url=up;
+      }catch(_){}
+      await msgSend(conv,null,url);
+      closeSheet(); toast("انرسلت ✓");
+      if(typeof msgRefreshChat==="function") msgRefreshChat(true);
+    }catch(e){ toast("فشل التوليد"); g.disabled=false; g.textContent="سوّها وارسلها" }
+  };
+}
+
+/* ── ٤) اسمع الرسالة بصوت ── */
+async function premSpeak(msgId){
+  if(!premGate("قراءة الرسائل بصوت")) return;
+  const m=(chatMsgs||[]).find(x=>String(x.id)===String(msgId));
+  if(!m||!m.body){ toast("ماكو نص للقراءة"); return }
+  toast("جاري التحضير…");
+  try{
+    const cfg=await nexCfg();
+    const g=premCfg().voice||"male";
+    const ok=await aiSpeak(m.body,g,cfg);
+    if(!ok) toast("ما گدرت أشغّل الصوت");
+  }catch(e){ toast("ما گدرت أشغّل الصوت") }
+}
+
+/* ── ٥) ترجمة تلقائية للوارد ── */
+const _trCache={};
+function premAutoTrOn(){ const o=premCfg().autotr||{}; return !!o[String(chatConvId)] }
+function premAutoTrSheet(){
+  if(!premGate("الترجمة التلقائية")) return;
+  const o=premCfg().autotr||{}, cur=o[String(chatConvId)]||"";
+  openSheet(`<h3 style="font-size:18px;margin-bottom:4px">ترجمة تلقائية للوارد</h3>
+    <p class="sub" style="font-size:12.5px;margin-bottom:12px">
+      كل رسالة تجيك بهذه المحادثة تنترجم وحدها وتظهر تحتها</p>
+    <div class="opt-list">
+      <button class="opt-row" data-atr="">${pic('lang')}<span>مطفي${cur?'':' ✓'}</span></button>
+      ${LANGS.map(l=>`<button class="opt-row" data-atr="${esc(l[1])}">${pic('lang')}
+        <span>ترجم إلى ${l[0]}${cur===l[1]?' ✓':''}</span></button>`).join('')}
+    </div>`);
+  document.querySelectorAll('[data-atr]').forEach(b=>{
+    b.onclick=()=>{
+      const o2=premCfg().autotr||{}, v=b.dataset.atr;
+      if(v) o2[String(chatConvId)]=v; else delete o2[String(chatConvId)];
+      premSet('autotr',o2); closeSheet();
+      toast(v?"انفعّلت ✓":"انطفت");
+      if(v) premAutoTrRun();
+      else document.querySelectorAll('.prem-tr').forEach(e=>e.remove());
+    };
+  });
+}
+async function premAutoTrRun(){
+  try{
+    if(!isPrem()||!chatConvId) return;
+    const lang=(premCfg().autotr||{})[String(chatConvId)];
+    if(!lang) return;
+    const me=myPhone();
+    const box=document.getElementById('chat-msgs'); if(!box) return;
+    const bubbles=[...box.querySelectorAll('.chat-bubble.them[data-id]')].slice(-12);
+    for(const el of bubbles){
+      if(el.querySelector('.prem-tr')) continue;
+      const m=(chatMsgs||[]).find(x=>String(x.id)===el.dataset.id);
+      if(!m||!m.body||m.sender===me) continue;
+      const key=m.id+"|"+lang;
+      let tr=_trCache[key];
+      if(!tr){
+        tr=await proAI("ترجم إلى "+lang+" بلا أي شرح، رجّع الترجمة بس:\n\n"+m.body);
+        if(!tr) continue;
+        _trCache[key]=tr;
+      }
+      if(el.querySelector('.prem-tr')) continue;
+      const d=document.createElement('span');
+      d.className='prem-tr'; d.textContent=tr;
+      const ts=el.querySelector('.chat-ts');
+      if(ts) el.insertBefore(d,ts); else el.appendChild(d);
+    }
+  }catch(e){}
+}
+
+/* ── ٦) رد تلقائي ذكي ── */
+async function premSmartReply(convId,lastBody){
+  try{
+    const out=await proAI(
+      "شخص دزّلي هذه الرسالة وآني مشغول هسه. اكتب رد قصير مهذب بنفس لغته "+
+      "يقوله إني مشغول وأرد عليه قريب، ويجاوب باختصار إذا سؤاله بسيط. رجّع الرد بس:\n\n"+
+      String(lastBody||"").slice(0,300));
+    return out||null;
+  }catch(e){ return null }
+}
+
+/* ── ٧) قفل التطبيق ── */
+let _lockBuf="";
+function premLockEl(){
+  let e=document.getElementById('prem-lockscr');
+  if(e) return e;
+  e=document.createElement('div');
+  e.className='prem-lockscr'; e.id='prem-lockscr';
+  e.innerHTML=`<div style="font-size:38px">🔒</div>
+    <h3>NΞXA مقفلة</h3><p id="prem-lk-hint">دخّل رمزك</p>
+    <div class="prem-dots" id="prem-dots"><i></i><i></i><i></i><i></i></div>
+    <div class="prem-pad" id="prem-pad">
+      ${[1,2,3,4,5,6,7,8,9].map(n=>`<button data-k="${n}">${n}</button>`).join('')}
+      <button data-k="x">✕</button><button data-k="0">0</button><button data-k="b">⌫</button>
+    </div>
+    <button class="pro-btn ghost" id="prem-lk-forgot" style="max-width:220px">نسيت الرمز</button>`;
+  document.body.appendChild(e);
+  e.querySelectorAll('[data-k]').forEach(b=>{
+    b.onclick=()=>premLockKey(b.dataset.k);
+  });
+  const f=document.getElementById('prem-lk-forgot');
+  if(f) f.onclick=()=>confirmAsk(
+    "شيل القفل؟ محادثاتك ما تنحذف، بس القفل ينطفي وتحتاج تسوي رمز جديد.",
+    ()=>{ premSet('lock',null); premLockHide(); toast("انشال القفل") });
+  return e;
+}
+function premLockPaint(){
+  const d=document.getElementById('prem-dots'); if(!d) return;
+  [...d.children].forEach((i,n)=>i.classList.toggle('on',n<_lockBuf.length));
+}
+async function premLockKey(k){
+  if(k==="b"){ _lockBuf=_lockBuf.slice(0,-1); premLockPaint(); return }
+  if(k==="x"){ _lockBuf=""; premLockPaint(); return }
+  if(_lockBuf.length>=4) return;
+  _lockBuf+=k; premLockPaint();
+  if(_lockBuf.length===4){
+    const want=premCfg().lock;
+    const got=await adSha(_lockBuf+"|nxlock");
+    if(got===want){ _lockBuf=""; premLockPaint(); premLockHide() }
+    else{
+      _lockBuf=""; premLockPaint();
+      const h=document.getElementById('prem-lk-hint');
+      if(h) h.textContent="الرمز غلط — جرّب مرة ثانية";
+      try{ if(navigator.vibrate) navigator.vibrate([60,40,60]) }catch(e){}
+    }
+  }
+}
+function premLockShow(){
+  if(!premCfg().lock||!isPrem()) return;
+  _lockBuf=""; premLockEl().classList.add('on'); premLockPaint();
+  const h=document.getElementById('prem-lk-hint'); if(h) h.textContent="دخّل رمزك";
+}
+function premLockHide(){ const e=document.getElementById('prem-lockscr'); if(e) e.classList.remove('on') }
+function premLockSetup(){
+  if(!premGate("قفل التطبيق")) return;
+  const on=!!premCfg().lock;
+  if(on){
+    confirmAsk("تريد تشيل القفل؟",()=>{ premSet('lock',null); toast("انشال القفل") });
+    return;
+  }
+  openSheet(`<h3 style="font-size:18px;margin-bottom:4px">قفل التطبيق</h3>
+    <p class="sub" style="font-size:12.5px;margin-bottom:12px">
+      رمز من ٤ أرقام ينطلب كل ما تفتح NΞXA بعد ما تتركها دقيقة</p>
+    <div class="opt" style="margin-top:0"><label for="plk-1">الرمز</label>
+      <input class="ctrl mono" id="plk-1" type="tel" inputmode="numeric" maxlength="4" placeholder="••••"></div>
+    <div class="opt"><label for="plk-2">أعد الرمز</label>
+      <input class="ctrl mono" id="plk-2" type="tel" inputmode="numeric" maxlength="4" placeholder="••••"></div>
+    <div class="acts"><button class="btn btn-p" id="plk-go">فعّل القفل</button></div>
+    <p class="foot" style="text-align:start;padding-top:10px">
+      القفل يحمي من أي واحد يمسك هاتفك. إذا نسيته تكدر تشيله من شاشة القفل،
+      بس ما تكدر تشوف محادثاتك بدونه قبل ما تشيله.</p>`);
+  const g=document.getElementById('plk-go');
+  if(g) g.onclick=async()=>{
+    const a=(document.getElementById('plk-1').value||"").trim();
+    const b=(document.getElementById('plk-2').value||"").trim();
+    if(!/^\d{4}$/.test(a)){ toast("٤ أرقام"); return }
+    if(a!==b){ toast("الرمزان مو نفسهن"); return }
+    premSet('lock',await adSha(a+"|nxlock"));
+    premSet('lockAt',Date.now());
+    closeSheet(); toast("القفل شغّال ✓");
+  };
+}
+
+/* ── ٨) نسخة احتياطية ── */
+const BK_KEYS=["nxp_pin_convs_v1","nxp_arch_convs_v1","nxp_mute_convs_v1",
+  "nxp_saved_msgs_v1","nxp_drafts_v1","nxp_emoji_recent_v1",
+  "nxpro_folders_v1","nxpro_quick_v1","nxpro_ttl_v1","nxpro_sched_v1",
+  "nxpro_theme_v1","nxpro_away_v1","nxpro_prem_v1","nxpro_sub_v1"];
+function premBackup(){
+  if(!premGate("النسخة الاحتياطية")) return;
+  try{
+    const o={v:1,at:Date.now(),phone:myPhone()||"",data:{}};
+    BK_KEYS.forEach(k=>{ const v=lsGet(k); if(v!=null) o.data[k]=v });
+    const blob=new Blob([JSON.stringify(o,null,1)],{type:"application/json"});
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);
+    a.download="nexa-backup-"+new Date().toISOString().slice(0,10)+".json";
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(a.href),4000);
+    toast("انحفظت النسخة ✓");
+  }catch(e){ toast("ما گدرت أحفظ") }
+}
+function premRestore(){
+  if(!premGate("استرجاع النسخة")) return;
+  const inp=document.createElement('input');
+  inp.type='file'; inp.accept='.json,application/json';
+  inp.onchange=()=>{
+    const f=inp.files&&inp.files[0]; if(!f) return;
+    const fr=new FileReader();
+    fr.onload=()=>{
+      try{
+        const o=JSON.parse(fr.result);
+        if(!o||!o.data) throw 0;
+        confirmAsk("تنسترجع الإعدادات من النسخة؟ الحالية تنستبدل.",()=>{
+          Object.keys(o.data).forEach(k=>{ if(BK_KEYS.indexOf(k)>-1) lsSet(k,o.data[k]) });
+          toast("انسترجعت ✓ — حدّث الصفحة");
+          setTimeout(()=>location.reload(),1400);
+        });
+      }catch(e){ toast("الملف مو صالح") }
+    };
+    fr.readAsText(f);
+  };
+  inp.click();
+}
+
+/* ── ٩) إحصائيات متقدّمة ── */
+async function premStats(){
+  if(!premGate("الإحصائيات المتقدّمة")) return;
+  openSheet('<h3 style="font-size:18px">جاري التحليل…</h3>');
+  const me=myPhone();
+  let convs=[]; try{ convs=await msgMyConvs() }catch(e){}
+  const top=convs.slice().sort((a,b)=>new Date(b.last_at||0)-new Date(a.last_at||0)).slice(0,5);
+  const profs={};
+  await Promise.all(top.map(async c=>{
+    const o=c.user1===me?c.user2:c.user1;
+    try{ profs[o]=await msgGetProfile(o) }catch(e){ profs[o]={} }
+  }));
+  const hours=new Array(24).fill(0);
+  (chatMsgs||[]).forEach(m=>{ if(m.sender===me){
+    const h=new Date(m.created_at).getHours(); if(h>=0&&h<24) hours[h]++ } });
+  const mx=Math.max(1,...hours);
+  const peak=hours.indexOf(mx);
+  openSheet(`<h3 style="font-size:18px;margin-bottom:10px">إحصائيات متقدّمة</h3>
+    <div class="pro-stat"><span>محادثاتك</span><b>${nfIQ(convs.length)}</b></div>
+    <div class="pro-stat"><span>أنشط ساعة عندك</span><b>${peak}:00 — ${peak+1}:00</b></div>
+    <h4 style="font-size:13px;margin:14px 0 6px">أكثر ناس تراسلهم</h4>
+    ${top.map((c,i)=>{
+      const o=c.user1===me?c.user2:c.user1, p=profs[o]||{};
+      return `<div class="pro-stat"><span>${i+1}. ${esc(msgDisplayName(p)||o)}</span>
+        <b>${timeAgo(c.last_at)}</b></div>`;
+    }).join('')||'<p class="foot" style="padding:0">ماكو محادثات</p>'}
+    <h4 style="font-size:13px;margin:14px 0 6px">نشاطك بالمحادثة المفتوحة</h4>
+    <div style="display:flex;align-items:flex-end;gap:2px;height:64px">
+      ${hours.map((n,h)=>`<i title="${h}:00" style="flex:1;border-radius:3px 3px 0 0;
+        background:linear-gradient(180deg,var(--gem2),var(--gem1));
+        height:${Math.round(6+94*n/mx)}%;opacity:${n?1:.16}"></i>`).join('')}
+    </div>`);
+}
+
+/* ── ١٠) لوحة البريميوم ── */
+function premPanel(){
+  const c=premCfg();
+  const atr=(c.autotr||{}), n=Object.keys(atr).length;
+  openSheet(`
+    <h3 style="font-size:19px;margin-bottom:2px">NΞXA PREMIUM 💎</h3>
+    <p class="sub" style="font-size:12.5px;margin-bottom:12px">${
+      isPrem()?`اشتراكك شغّال · باقي ${proDaysLeft()} يوم`:"ماكو اشتراك بريميوم"}</p>
+    ${isPrem()?'':`<button class="pro-btn" id="pm-up" style="margin-bottom:12px">ترقية إلى PREMIUM · ${nfIQ(PRICE.py)} دينار سنوياً</button>`}
+    <div class="opt-list">
+      <button class="opt-row" id="pm-img">${pic('img')}<span>توليد صورة بالذكاء</span></button>
+      <button class="opt-row" id="pm-sug">${pic('reply')}<span>اقتراح ردود</span></button>
+      <button class="opt-row" id="pm-atr">${pic('lang')}<span>ترجمة تلقائية (${n} محادثة)</span></button>
+      <button class="opt-row" id="pm-ai">${pic('bot')}<span>رد تلقائي ذكي: ${c.smart?'شغّال':'مطفي'}</span></button>
+      <button class="opt-row" id="pm-voice">${pic('ear')}<span>صوت القراءة: ${c.voice==="female"?"بنت":"ولد"}</span></button>
+      <button class="opt-row" id="pm-typ">${pic('ghost')}<span>إخفاء «يكتب الآن»: ${c.notyping?'شغّال':'مطفي'}</span></button>
+      <button class="opt-row" id="pm-lock">${pic('lock')}<span>قفل التطبيق: ${c.lock?'شغّال':'مطفي'}</span></button>
+      <button class="opt-row" id="pm-bk">${pic('cloud')}<span>حفظ نسخة احتياطية</span></button>
+      <button class="opt-row" id="pm-rs">${pic('cloud')}<span>استرجاع نسخة</span></button>
+      <button class="opt-row" id="pm-st">${pic('chart')}<span>إحصائيات متقدّمة</span></button>
+    </div>`);
+  const on=(i,f)=>{ const e=document.getElementById(i); if(e) e.onclick=f };
+  on('pm-up',()=>proScreen("premium"));
+  on('pm-img',()=>premImage());
+  on('pm-sug',()=>premSuggest());
+  on('pm-atr',()=>premAutoTrSheet());
+  on('pm-ai',()=>{ if(!premGate("الرد الذكي")) return; premSet('smart',!c.smart); premPanel() });
+  on('pm-voice',()=>{ if(!premGate("صوت القراءة")) return;
+    premSet('voice',c.voice==="female"?"male":"female"); premPanel() });
+  on('pm-typ',()=>{ if(!premGate("إخفاء يكتب الآن")) return; premSet('notyping',!c.notyping); premPanel() });
+  on('pm-lock',()=>premLockSetup());
+  on('pm-bk',()=>premBackup());
+  on('pm-rs',()=>premRestore());
+  on('pm-st',()=>premStats());
+}
+
+/* ── زر ✨ بشريط الكتابة ── */
+function premAiBtn(){
+  const bar=document.getElementById('chat-input-bar');
+  if(!bar||document.getElementById('prem-ai-btn')) return;
+  const b=document.createElement('button');
+  b.className='prem-ai-btn'; b.id='prem-ai-btn'; b.type='button';
+  b.setAttribute('aria-label','الذكاء');
+  b.textContent='✨';
+  const em=document.getElementById('np-em-btn');
+  if(em) bar.insertBefore(b,em); else bar.appendChild(b);
+  b.onclick=()=>{
+    if(!premGate("مساعد الكتابة")) return;
+    openSheet(`<h3 style="font-size:18px;margin-bottom:10px">مساعد PREMIUM</h3>
+      <div class="opt-list">
+        <button class="opt-row" id="pa-pol">${pic('wand')}<span>صيّغ رسالتي بأسلوب أحسن</span></button>
+        <button class="opt-row" id="pa-sug">${pic('reply')}<span>اقترحلي رد</span></button>
+        <button class="opt-row" id="pa-img">${pic('img')}<span>سوّي صورة وارسلها</span></button>
+        <button class="opt-row" id="pa-atr">${pic('lang')}<span>ترجمة تلقائية للوارد</span></button>
+      </div>`);
+    const on=(i,f)=>{ const e=document.getElementById(i); if(e) e.onclick=()=>{ closeSheet(); f() } };
+    on('pa-pol',premPolish); on('pa-sug',premSuggest);
+    on('pa-img',premImage);  on('pa-atr',premAutoTrSheet);
+  };
+}
+
+
 
 /* ══════════════════ الإقلاع ══════════════════ */
 function proBoot(){
@@ -17546,10 +18481,22 @@ function proBoot(){
     }
   }catch(e){}
   try{ proWrap() }catch(e){}
+  try{ premWrap() }catch(e){}
   try{ proApplyBody() }catch(e){}
+  try{ premAiBtn() }catch(e){}
+  /* قفل التطبيق: أول فتحة وبعد كل رجوع من الخلفية */
+  try{
+    premLockShow();
+    let _bg=0;
+    document.addEventListener('visibilitychange',()=>{
+      if(document.hidden){ _bg=Date.now(); return }
+      if(_bg&&Date.now()-_bg>60000) premLockShow();
+    });
+  }catch(e){}
   try{ proChips() }catch(e){}
   try{ proWatchConvSheet(); proTrackConvMenu() }catch(e){}
   setTimeout(()=>{ try{ proSync() }catch(e){} },3000);
+  setTimeout(()=>{ try{ proPromoMaybe() }catch(e){} },3800);
   /* المجدولة + الرسائل المؤقتة */
   setInterval(()=>{ try{ if(!document.hidden){ proSchedTick(); proTTLSweep() } }catch(e){} },30000);
 }
@@ -17557,14 +18504,16 @@ function proBoot(){
 if(document.readyState==="loading")
   document.addEventListener('DOMContentLoaded',()=>setTimeout(proBoot,120));
 else setTimeout(proBoot,120);
-setTimeout(()=>{ try{ proWrap(); proChips() }catch(e){} },2200);
+setTimeout(()=>{ try{ proWrap(); premWrap(); proChips(); premAiBtn() }catch(e){} },2200);
 
 try{
-  window.NXPRO={open:proScreen,panel:proPanel,is:isPro,state:proLocal,
-    redeem:proRedeem,make:proMakeCode,sql:PRO_SQL,price:PRICE};
+  window.NXPRO={open:proScreen,panel:proPanel,is:isPro,isPrem,state:proLocal,
+    redeem:proRedeem,make:proMakeCode,sql:PRO_SQL,price:PRICE,pay:proPay,ticket:payTicket,
+    prem:premPanel,tg:tgChatId,send:tgSend,promo:proPromo};
 }catch(e){}
 
 })();
+
 
 </script>
 </body>
