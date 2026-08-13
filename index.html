@@ -16489,7 +16489,8 @@ const PRO_CSS=`
 @keyframes pfIn{to{opacity:1;transform:none}}
 .pro-feat.hot{background:rgba(214,179,106,.13);border-color:rgba(214,179,106,.35)}
 .pro-card.prem .pro-feat.hot{background:rgba(185,139,255,.14);border-color:rgba(185,139,255,.38)}
-.pro-feat.hot::after{content:"🔥";position:absolute;top:7px;inset-inline-end:9px;font-size:11px}
+.pro-feat.hot::after{content:"";position:absolute;top:12px;bottom:12px;inset-inline-start:0;
+  width:2px;border-radius:2px;background:linear-gradient(180deg,#F5E4B4,#C4A059)}
 .pro-feat b{font-size:13px}
 .pro-daily{text-align:center;font-size:12px;opacity:.75;margin:-6px 0 12px}
 .pro-daily b{color:var(--pro2);opacity:1}
@@ -16499,58 +16500,88 @@ const PRO_CSS=`
 
 /* ── شاشة الترحيب أول ما يفتح الموقع ── */
 .promo{position:fixed;inset:0;z-index:1900;display:none;align-items:center;
-  justify-content:center;padding:16px;background:rgba(6,5,10,.82);
-  backdrop-filter:blur(7px);-webkit-backdrop-filter:blur(7px)}
-.promo.on{display:flex;animation:promoBg .3s ease}
+  justify-content:center;padding:18px;background:rgba(8,8,11,.86);
+  backdrop-filter:blur(10px) saturate(120%);-webkit-backdrop-filter:blur(10px) saturate(120%)}
+.promo.on{display:flex;animation:promoBg .32s ease}
 @keyframes promoBg{from{opacity:0}to{opacity:1}}
-.promo-box{position:relative;width:100%;max-width:400px;max-height:92vh;overflow:auto;
-  border-radius:26px;padding:22px 18px 18px;color:#F6ECD6;text-align:center;
-  background:radial-gradient(130% 120% at 50% -10%,#2A2140 0%,#171326 45%,#0B0A14 100%);
-  border:1px solid rgba(214,179,106,.35);box-shadow:0 24px 70px rgba(0,0,0,.6);
-  animation:promoUp .45s cubic-bezier(.2,.9,.25,1)}
-@keyframes promoUp{from{opacity:0;transform:translateY(28px) scale(.96)}to{opacity:1;transform:none}}
-.promo-box::before{content:"";position:absolute;inset:0;border-radius:26px;pointer-events:none;
-  background:linear-gradient(105deg,transparent 38%,rgba(240,217,154,.11) 50%,transparent 62%);
-  background-size:250% 100%;animation:promoShine 3.4s linear infinite}
-@keyframes promoShine{from{background-position:200% 0}to{background-position:-60% 0}}
-.promo-x{position:absolute;top:10px;inset-inline-end:10px;width:34px;height:34px;border:0;
-  border-radius:50%;background:rgba(255,255,255,.1);color:#F6ECD6;font-size:19px;
-  line-height:1;cursor:pointer;z-index:3}
-.promo-x:active{transform:scale(.9)}
-.promo-crown{font-size:40px;line-height:1;margin-bottom:6px;
-  animation:promoPop .7s .1s backwards cubic-bezier(.2,1.4,.4,1)}
-@keyframes promoPop{from{opacity:0;transform:scale(.4) rotate(-18deg)}to{opacity:1;transform:none}}
-.promo-box h2{font-size:24px;margin:0 0 4px;letter-spacing:.4px}
-.promo-box h2 i{font-style:normal;
-  background:linear-gradient(100deg,#A97F2E,#F0D99A,#C7B0FF,#F0D99A);
+.promo-box{position:relative;width:100%;max-width:392px;max-height:92vh;overflow:auto;
+  border-radius:28px;padding:30px 22px 20px;color:#EFEAE1;
+  background:linear-gradient(180deg,#16151A 0%,#101014 55%,#0B0B0E 100%);
+  border:1px solid rgba(255,255,255,.07);
+  box-shadow:0 32px 90px rgba(0,0,0,.66),inset 0 1px 0 rgba(255,255,255,.05);
+  animation:promoUp .5s cubic-bezier(.16,1,.3,1);scrollbar-width:none}
+.promo-box::-webkit-scrollbar{display:none}
+@keyframes promoUp{from{opacity:0;transform:translateY(22px) scale(.975)}to{opacity:1;transform:none}}
+/* خط ذهبي رفيع بالأعلى بدل اللمعان الصارخ */
+.promo-box::before{content:"";position:absolute;top:0;inset-inline:52px;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(214,179,106,.75),transparent)}
+.promo-x{position:absolute;top:14px;inset-inline-end:14px;width:32px;height:32px;border:0;
+  border-radius:50%;background:rgba(255,255,255,.06);display:grid;place-items:center;
+  cursor:pointer;z-index:3;transition:background .18s}
+.promo-x svg{width:15px;height:15px;stroke:#9C978E;fill:none;stroke-width:1.8;stroke-linecap:round}
+.promo-x:active{transform:scale(.9);background:rgba(255,255,255,.12)}
+
+.promo-head{text-align:center;margin-bottom:22px}
+.promo-mark{width:60px;height:60px;margin:0 auto 14px;
+  animation:promoMark .8s .05s backwards cubic-bezier(.16,1,.3,1)}
+.promo-mark svg{width:100%;height:100%}
+@keyframes promoMark{from{opacity:0;transform:translateY(10px) scale(.86)}to{opacity:1;transform:none}}
+.promo-kicker{display:block;font-size:9.5px;font-weight:800;letter-spacing:2.6px;
+  color:#8D8579;margin-bottom:9px}
+.promo-box h2{font-size:27px;font-weight:300;margin:0 0 9px;letter-spacing:1.5px;color:#F4F1EA}
+.promo-box h2 i{font-style:normal;font-weight:800;
+  background:linear-gradient(96deg,#9C742A,#F5E4B4 42%,#D6B36A 72%,#F5E4B4);
   background-size:220% 100%;-webkit-background-clip:text;background-clip:text;
-  -webkit-text-fill-color:transparent;animation:promoShine 4s linear infinite}
-.promo-sub{font-size:13px;opacity:.8;line-height:1.75;margin:0 0 16px}
-.promo-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;text-align:start}
-.promo-it{display:flex;gap:8px;align-items:flex-start;padding:10px 9px;border-radius:14px;
-  background:rgba(255,255,255,.055);border:1px solid rgba(255,255,255,.06);
-  opacity:0;transform:translateY(10px);animation:pfIn .5s ease forwards}
-.promo-it em{font-style:normal;font-size:17px;line-height:1;flex:0 0 auto}
-.promo-it b{display:block;font-size:11.5px;font-weight:800;line-height:1.4}
-.promo-it span{display:block;font-size:10.5px;opacity:.62;line-height:1.45;margin-top:2px}
-.promo-more{font-size:11.5px;opacity:.6;margin:-8px 0 14px}
-.promo-price{display:flex;gap:8px;margin-bottom:14px}
-.promo-price div{flex:1;border-radius:15px;padding:11px 8px;
-  background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.09)}
-.promo-price div.hi{border-color:rgba(214,179,106,.55);background:rgba(214,179,106,.13)}
-.promo-price b{display:block;font-size:11px;opacity:.8;margin-bottom:3px}
-.promo-price u{display:block;text-decoration:none;font-size:18px;font-weight:900;color:#F0D99A}
-.promo-price s{display:block;text-decoration:none;font-size:9.5px;opacity:.6;margin-top:2px}
-.promo-cta{width:100%;border:0;border-radius:15px;padding:15px;font-size:15.5px;font-weight:900;
-  cursor:pointer;color:#2B2008;background:linear-gradient(135deg,#F0D99A,#D6B36A);
-  box-shadow:0 8px 22px rgba(214,179,106,.3)}
+  -webkit-text-fill-color:transparent;animation:promoShine 5.5s linear infinite}
+@keyframes promoShine{from{background-position:200% 0}to{background-position:-40% 0}}
+.promo-sub{font-size:12.5px;line-height:1.85;color:#918B81;margin:0;
+  max-width:270px;margin-inline:auto}
+
+.promo-grid{display:grid;gap:1px;margin-bottom:18px;background:rgba(255,255,255,.055);
+  border:1px solid rgba(255,255,255,.055);border-radius:18px;overflow:hidden}
+@media (min-width:360px){.promo-grid{grid-template-columns:1fr 1fr}}
+.promo-it{display:flex;gap:10px;align-items:flex-start;padding:13px 12px;text-align:start;
+  background:#121116;opacity:0;transform:translateY(9px);animation:pfIn .5s ease forwards}
+.promo-ic{flex:0 0 auto;width:32px;height:32px;border-radius:10px;display:grid;place-items:center;
+  background:linear-gradient(150deg,rgba(214,179,106,.16),rgba(214,179,106,.05));
+  border:1px solid rgba(214,179,106,.22)}
+.promo-ic svg{width:17px;height:17px;stroke:#DEBE7C;fill:none;stroke-width:1.5;
+  stroke-linecap:round;stroke-linejoin:round}
+.promo-it b{display:block;font-size:12px;font-weight:700;line-height:1.45;color:#E8E3DA}
+.promo-it span{display:block;font-size:10.5px;line-height:1.5;color:#7E7970}
+.promo-more{display:flex;align-items:center;gap:10px;margin-bottom:18px}
+.promo-more i{flex:1;height:1px;background:rgba(255,255,255,.08)}
+.promo-more span{font-size:10.5px;color:#7C766C;letter-spacing:.4px;white-space:nowrap}
+
+.promo-price{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:16px}
+.promo-price div{position:relative;border-radius:16px;padding:14px 10px;text-align:center;
+  background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07)}
+.promo-price div.hi{border-color:rgba(214,179,106,.42);
+  background:linear-gradient(165deg,rgba(214,179,106,.14),rgba(214,179,106,.04))}
+.promo-chip{position:absolute;top:-8px;inset-inline:0;margin-inline:auto;width:fit-content;
+  font-size:9px;font-weight:800;letter-spacing:.3px;padding:2px 8px;border-radius:20px;
+  color:#221A08;background:linear-gradient(135deg,#F5E4B4,#D6B36A)}
+.promo-price b{display:block;font-size:10.5px;font-weight:600;color:#8D8579;
+  letter-spacing:1.2px;margin-bottom:5px}
+.promo-price u{display:block;text-decoration:none;font-size:21px;font-weight:800;color:#F1E9DA;
+  font-variant-numeric:tabular-nums}
+.promo-price s{display:block;text-decoration:none;font-size:9.5px;color:#77726A;margin-top:2px}
+
+.promo-cta{width:100%;border:0;border-radius:16px;padding:16px;font-size:14.5px;font-weight:800;
+  cursor:pointer;color:#1F1809;display:flex;align-items:center;justify-content:center;gap:8px;
+  background:linear-gradient(135deg,#F5E4B4,#D6B36A 65%,#C4A059);
+  box-shadow:0 10px 26px rgba(214,179,106,.24)}
+.promo-cta svg{width:17px;height:17px;stroke:#1F1809;fill:none;stroke-width:2.2;
+  stroke-linecap:round;stroke-linejoin:round}
 .promo-cta:active{transform:scale(.985)}
-.promo-skip{display:block;width:100%;border:0;background:transparent;color:#B9B2C9;
-  font-size:12.5px;padding:12px 0 2px;cursor:pointer}
-.promo-note{font-size:10.5px;opacity:.5;line-height:1.6;margin-top:2px}
-.pay-ok{width:64px;height:64px;margin:2px auto 12px;border-radius:50%;display:grid;
-  place-items:center;font-size:32px;font-weight:900;color:#0B2A16;
-  background:linear-gradient(135deg,#7BE495,#3BB273)}
+.promo-skip{display:block;width:100%;border:0;background:transparent;color:#6F6A62;
+  font-size:12.5px;font-weight:600;padding:13px 0 3px;cursor:pointer}
+.promo-note{font-size:10px;color:#57534C;line-height:1.6;margin-top:0;text-align:center}
+.pay-ok{width:60px;height:60px;margin:2px auto 14px;border-radius:50%;display:grid;
+  place-items:center;background:linear-gradient(140deg,#6FD68C,#34A76A)}
+.pay-ok svg{width:28px;height:28px;stroke:#08240F;fill:none;stroke-width:2.6;
+  stroke-linecap:round;stroke-linejoin:round}
+.pay-ok.warn svg{stroke:#3A2B06}
 .pay-ok.warn{background:linear-gradient(135deg,#FFD98A,#F0A429);color:#3A2B06}
 .pay-note{font-size:11.5px;opacity:.7;line-height:1.8;margin:12px 0;text-align:start;
   border-inline-start:2px solid var(--pro1);padding-inline-start:10px}
@@ -16579,6 +16610,8 @@ body.is-prem .up-av,body.is-prem .hb-av{box-shadow:0 0 0 2.5px var(--gem2),0 0 1
 .prem-pad button{height:60px;border:0;border-radius:16px;font-size:22px;font-weight:800;
   color:#E9E3FF;background:rgba(255,255,255,.07);cursor:pointer}
 .prem-pad button:active{background:rgba(185,139,255,.28)}
+.prem-ai-btn svg{width:21px;height:21px;stroke:currentColor;fill:none;stroke-width:1.6;
+  stroke-linecap:round;stroke-linejoin:round}
 .prem-ai-btn{width:34px;height:34px;border:0;background:transparent;border-radius:50%;
   display:grid;place-items:center;flex:0 0 auto;cursor:pointer;
   color:var(--gem2);font-size:17px}
@@ -16848,7 +16881,7 @@ const FEATS=[
 
 const PFEATS=[
   ["gem","شارة PREMIUM ماسية","اسم متدرّج متحرّك وشارة ماسية ما عند غيرك — تبين بكل مكان بالتطبيق"],
-  ["wand","صياغة رسالتك بالذكاء","اكتب الفكرة بعجالة واضغط ✨ — يعيد صياغتها بأسلوب محترم ومرتّب قبل ما ترسلها"],
+  ["wand","صياغة رسالتك بالذكاء","اكتب الفكرة بعجالة واضغط زر المساعد — يعيد صياغتها بأسلوب مرتّب قبل ما ترسلها"],
   ["reply","اقتراح ردود جاهزة","الذكاء يقرا آخر رسالة ويعطيك ٣ ردود مقترحة — تختار وتدز"],
   ["img","توليد صور بالذكاء داخل المحادثة","اوصف الصورة وهو يسويها ويرسلها بالمحادثة مباشرة"],
   ["ear","اسمع الرسائل بصوت طبيعي","أي رسالة نصية تنقرأ عليك بصوت واضح — وأنت تسوق أو مشغول"],
@@ -16879,7 +16912,7 @@ function proScreen(tier){
     <div class="pro-card${prem?' prem':''}">
       <div class="pro-tabs">
         <button class="${prem?'':'on'}" data-tier="pro">PRO</button>
-        <button class="${prem?'on':''}" data-tier="premium">PREMIUM 💎</button>
+        <button class="${prem?'on':''}" data-tier="premium">PREMIUM</button>
       </div>
       <h3>N<i>Ξ</i>XA <b style="color:${prem?'var(--gem2)':'var(--pro1)'}">${prem?'PREMIUM':'PRO'}</b></h3>
       <p>${prem
@@ -16939,14 +16972,30 @@ function proScreen(tier){
 const PROMO_LS="nxpro_promo_v1";
 const PROMO_GAP=3*864e5;          /* ما نعيدها إلا كل ٣ أيام */
 
-/* أبرز ٦ مزايا — مختصرة وتشد */
+/* أيقونات الترحيب — مرسومة بالكامل، بلا إيموجي */
+const PROMO_SVG={
+  ai   :'<path d="M12 3.2v2.4"/><rect x="4.5" y="7.6" width="15" height="11.4" rx="3.4"/>'+
+        '<path d="M9.2 12.4v1.6M14.8 12.4v1.6M10 16.6h4"/><path d="M4.5 11.5H2.8M21.2 11.5h-1.7"/>'+
+        '<circle cx="12" cy="3.2" r="1.1"/>',
+  image:'<rect x="3.2" y="4.6" width="17.6" height="14.8" rx="3"/>'+
+        '<circle cx="8.6" cy="9.6" r="1.5"/><path d="M20.8 15.4l-4.6-4.6-7.4 7.4"/>',
+  globe:'<circle cx="12" cy="12" r="8.6"/><path d="M3.6 9.6h16.8M3.6 14.4h16.8"/>'+
+        '<path d="M12 3.4a13.5 13.5 0 0 1 0 17.2a13.5 13.5 0 0 1 0-17.2"/>',
+  wave :'<path d="M12.5 4.2v15.6c0 .9-1.1 1.3-1.7.6L7.2 16H4.4A1.4 1.4 0 0 1 3 14.6V9.4'+
+        'A1.4 1.4 0 0 1 4.4 8h2.8l3.6-4.4c.6-.7 1.7-.3 1.7.6z"/>'+
+        '<path d="M16.3 9.2a4 4 0 0 1 0 5.6M18.9 6.6a7.6 7.6 0 0 1 0 10.8"/>',
+  shield:'<path d="M12 3l7.2 2.8v5.6c0 4.3-3 8.2-7.2 9.6-4.2-1.4-7.2-5.3-7.2-9.6V5.8z"/>'+
+        '<path d="M8.6 12.6l2.3 2.3 4.5-4.6"/>',
+  gem  :'<path d="M7.4 3.4h9.2L21 9.2 12 20.6 3 9.2z"/><path d="M3 9.2h18"/>'+
+        '<path d="M9.6 3.4L7.4 9.2 12 20.6l4.6-11.4-2.2-5.8"/>'
+};
 const PROMO_ITEMS=[
-  ["🤖","ذكاء داخل محادثاتك","يصيغ رسالتك ويقترحلك ردود"],
-  ["🎨","يسوي صور بالوصف","اوصفها وترسلها بالمحادثة"],
-  ["🌍","ترجمة تلقائية","كل رسالة تجيك تنترجم وحدها"],
-  ["🔊","يقرالك الرسائل بصوت","وأنت تسوق أو مشغول"],
-  ["👻","تخفّي كامل","تقرا بلا علامة وبلا آخر ظهور"],
-  ["💎","شارة وإطار مميّز","اسمك يلمع بين الكل"]
+  ["ai",    "ذكاء داخل محادثاتك","يصيغ رسالتك ويقترحلك ردود"],
+  ["image", "يسوي صور بالوصف","اوصفها وترسلها بالمحادثة"],
+  ["globe", "ترجمة تلقائية","كل رسالة تجيك تنترجم وحدها"],
+  ["wave",  "يقرالك الرسائل بصوت","وأنت تسوق أو مشغول"],
+  ["shield","تخفّي كامل","تقرا بلا علامة وبلا آخر ظهور"],
+  ["gem",   "شارة وإطار مميّز","اسمك يتميّز بين الكل"]
 ];
 
 function proPromo(){
@@ -16959,26 +17008,49 @@ function proPromo(){
   const saveY=PRICE.y*0+((PRICE.m*12)-PRICE.y);
   el.innerHTML=`
     <div class="promo-box">
-      <button class="promo-x" id="promo-x" aria-label="سكّر">✕</button>
-      <div class="promo-crown">👑</div>
-      <h2>افتح <i>NΞXA PRO</i></h2>
-      <p class="promo-sub">تطبيقك اللي تستعمله كل يوم — خلّيه أقوى.<br>
-        ذكاء اصطناعي، خصوصية، وحدود ما عدها سقف.</p>
+      <button class="promo-x" id="promo-x" aria-label="إغلاق">
+        <svg viewBox="0 0 24 24"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/></svg></button>
+
+      <div class="promo-head">
+        <div class="promo-mark">
+          <svg viewBox="0 0 64 64" aria-hidden="true">
+            <defs><linearGradient id="pmGrad" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" stop-color="#F5E4B4"/><stop offset=".5" stop-color="#D6B36A"/>
+              <stop offset="1" stop-color="#9C742A"/></linearGradient></defs>
+            <rect x="5" y="5" width="54" height="54" rx="17" fill="none"
+              stroke="url(#pmGrad)" stroke-width="1.4" opacity=".55"/>
+            <path d="M22 22.5h20M22 32h15.5M22 41.5h20" stroke="url(#pmGrad)"
+              stroke-width="3.2" stroke-linecap="round" fill="none"/>
+          </svg>
+        </div>
+        <span class="promo-kicker">الاشتراك المدفوع</span>
+        <h2>NΞXA <i>PRO</i></h2>
+        <p class="promo-sub">التطبيق اللي تستعمله كل يوم — بإمكانيات ما موجودة بغيره.</p>
+      </div>
 
       <div class="promo-grid">
-        ${PROMO_ITEMS.map((f,i)=>`<div class="promo-it" style="animation-delay:${120+i*60}ms">
-          <em>${f[0]}</em><div><b>${esc(f[1])}</b><span>${esc(f[2])}</span></div></div>`).join('')}
+        ${PROMO_ITEMS.map((f,i)=>`<div class="promo-it" style="animation-delay:${140+i*55}ms">
+          <span class="promo-ic"><svg viewBox="0 0 24 24">${PROMO_SVG[f[0]]||''}</svg></span>
+          <div><b>${esc(f[1])}</b><span>${esc(f[2])}</span></div></div>`).join('')}
       </div>
-      <div class="promo-more">+ ${FEATS.length+PFEATS.length-PROMO_ITEMS.length} ميزة ثانية تنتظرك</div>
+
+      <div class="promo-more">
+        <i></i><span>و ${FEATS.length+PFEATS.length-PROMO_ITEMS.length} ميزة إضافية</span><i></i>
+      </div>
 
       <div class="promo-price">
-        <div><b>PRO شهري</b><u>${nfIQ(PRICE.m)}</u><s>دينار</s></div>
-        <div class="hi"><b>PRO سنوي</b><u>${nfIQ(PRICE.y)}</u><s>وفّر ${nfIQ(saveY)}</s></div>
+        <div>
+          <b>شهري</b><u>${nfIQ(PRICE.m)}</u><s>دينار</s></div>
+        <div class="hi">
+          <span class="promo-chip">وفّر ${nfIQ(saveY)}</span>
+          <b>سنوي</b><u>${nfIQ(PRICE.y)}</u><s>دينار</s></div>
       </div>
 
-      <button class="promo-cta" id="promo-go">شوف كل المزايا</button>
-      <button class="promo-skip" id="promo-no">مو هسه، شكراً</button>
-      <p class="promo-note">تكدر تفتحها بأي وقت من: حسابي ← NΞXA PRO</p>
+      <button class="promo-cta" id="promo-go">
+        <span>استعرض المزايا</span>
+        <svg viewBox="0 0 24 24"><path d="M14.5 6l-6 6 6 6"/></svg></button>
+      <button class="promo-skip" id="promo-no">لاحقاً</button>
+      <p class="promo-note">متاح بأي وقت من: حسابي ← NΞXA PRO</p>
     </div>`;
   requestAnimationFrame(()=>el.classList.add('on'));
   ps(PROMO_LS,Date.now());
@@ -17120,7 +17192,7 @@ async function proPayConfirm(plan,btn,credit){
 function proPayThanks(plan){
   openSheet(`
     <div class="pro-card${/^p/.test(plan)?' prem':''}" style="text-align:center">
-      <div class="pay-ok">✓</div>
+      <div class="pay-ok"><svg viewBox="0 0 24 24"><path d="M5 12.8l4.6 4.6L19 8"/></svg></div>
       <h3>وصلنا رصيدك</h3>
       <p style="opacity:.9">
         <b style="color:var(--pro2)">يتم التدقيق</b> — انتظر أقل من ٤٨ ساعة
@@ -17128,7 +17200,7 @@ function proPayThanks(plan){
         ما تحتاج تسوي أي شي بعد ولا تراسل أحد — نحن نتابع الباقي.
         أول ما ينتأكد الرصيد، ${planName(plan)} ينفتح على حسابك ويوصلك إشعار.<br><br>
         شكراً إلك — ثقتك بينا تفرق ويانا، ووجودك ويانا يخلي NΞXA تكبر
-        وتصير أحسن كل يوم. 🌿
+        وتصير أحسن كل يوم.
       </p>
       <div class="pay-note">
         <b>ملاحظة:</b> خلّي يوزرك ثابت ما تغيّره لحد ما ينفعّل الاشتراك،
@@ -17145,7 +17217,7 @@ function proPayThanks(plan){
 function proPayFallback(plan,credit){
   openSheet(`
     <div class="pro-card${/^p/.test(plan)?' prem':''}">
-      <div class="pay-ok warn">!</div>
+      <div class="pay-ok warn"><svg viewBox="0 0 24 24"><path d="M12 7v6.5M12 17h.01"/></svg></div>
       <h3 style="text-align:center">الاتصال متعثّر</h3>
       <p style="text-align:center;opacity:.9">
         ما گدرنا نوصّل طلبك تلقائياً هسه — غالباً الإنترنت.
@@ -17181,7 +17253,16 @@ async function payFlush(){
 
 function proWelcome(plan,until){
   openSheet(`<div class="pro-card" style="text-align:center">
-    <div style="font-size:44px;line-height:1;margin-bottom:8px">👑</div>
+    <div class="promo-mark" style="margin:0 auto 10px">
+      <svg viewBox="0 0 64 64" aria-hidden="true">
+        <defs><linearGradient id="wGrad" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="#F5E4B4"/><stop offset=".5" stop-color="#D6B36A"/>
+          <stop offset="1" stop-color="#9C742A"/></linearGradient></defs>
+        <rect x="5" y="5" width="54" height="54" rx="17" fill="none"
+          stroke="url(#wGrad)" stroke-width="1.4" opacity=".55"/>
+        <path d="M22 22.5h20M22 32h15.5M22 41.5h20" stroke="url(#wGrad)"
+          stroke-width="3.2" stroke-linecap="round" fill="none"/>
+      </svg></div>
     <h3>أهلاً بيك بـ <i>PRO</i></h3>
     <p>اشتراكك ${plan==="y"?"السنوي":"الشهري"} انفعّل — ينتهي
       ${new Date(until).toLocaleDateString('en-GB')}.<br>كل الميزات مفتوحة هسه.</p>
@@ -17211,7 +17292,7 @@ function proPanel(){
       live?`اشتراكك شغّال · باقي ${proDaysLeft()} يوم`:"ماكو اشتراك شغّال"}</p>
     ${live?'':`<button class="pro-btn" id="pp-up" style="margin-bottom:12px">ترقية إلى PRO · ${nfIQ(PRICE.y)} دينار سنوياً</button>`}
     <div class="opt-list">
-      <button class="opt-row" id="pp-prem">${pic('gem')}<span>مزايا PREMIUM 💎</span></button>
+      <button class="opt-row" id="pp-prem">${pic('gem')}<span>مزايا PREMIUM</span></button>
       <button class="opt-row" id="pp-fold">${pic('fold')}<span>مجلدات المحادثات (${Object.keys(fl).length})</span></button>
       <button class="opt-row" id="pp-theme">${pic('wand')}<span>ثيم الفقاعات: ${th?esc(th):'الافتراضي'}</span></button>
       <button class="opt-row" id="pp-ghost">${pic('ghost')}<span>وضع التخفي: ${gh?'شغّال':'مطفي'}</span></button>
@@ -17481,7 +17562,7 @@ function proAwaySheet(){
   openSheet(`<h3 style="font-size:18px;margin-bottom:4px">الرد التلقائي</h3>
     <p class="sub" style="font-size:12.5px;margin-bottom:12px">يرد مرة وحدة باليوم على كل شخص يراسلك</p>
     <div class="opt" style="margin-top:0"><label for="pa-t">نص الرد</label>
-      <textarea class="ctrl" id="pa-t" rows="3">${esc(a.txt||"هلا بيك 👋 آني مشغول هسه وأرد عليك بأقرب وقت.")}</textarea></div>
+      <textarea class="ctrl" id="pa-t" rows="3">${esc(a.txt||"هلا بيك، آني مشغول هسه وأرد عليك بأقرب وقت.")}</textarea></div>
     <div class="acts">
       <button class="btn btn-p" id="pa-on">${a.on?'إطفاء':'تفعيل'}</button>
       <button class="btn btn-o" id="pa-save">حفظ النص</button></div>`);
@@ -17727,7 +17808,7 @@ function proGrantSheet(){
 
     <div class="pro-tabs" style="margin-bottom:12px">
       <button class="${prem?'':'on'}" id="pgr-t-pro">PRO</button>
-      <button class="${prem?'on':''}" id="pgr-t-prem">PREMIUM 💎</button>
+      <button class="${prem?'on':''}" id="pgr-t-prem">PREMIUM</button>
     </div>
 
     <div class="opt" style="margin-top:0"><label for="pgr-u">اليوزر</label>
@@ -18258,7 +18339,10 @@ function premLockEl(){
   if(e) return e;
   e=document.createElement('div');
   e.className='prem-lockscr'; e.id='prem-lockscr';
-  e.innerHTML=`<div style="font-size:38px">🔒</div>
+  e.innerHTML=`<svg viewBox="0 0 24 24" style="width:40px;height:40px;stroke:#C9BEE8;fill:none;
+      stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round">
+      <rect x="4.5" y="10.5" width="15" height="10" rx="2.4"/>
+      <path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/><path d="M12 14.6v2.2"/></svg>
     <h3>NΞXA مقفلة</h3><p id="prem-lk-hint">دخّل رمزك</p>
     <div class="prem-dots" id="prem-dots"><i></i><i></i><i></i><i></i></div>
     <div class="prem-pad" id="prem-pad">
@@ -18414,7 +18498,7 @@ function premPanel(){
   const c=premCfg();
   const atr=(c.autotr||{}), n=Object.keys(atr).length;
   openSheet(`
-    <h3 style="font-size:19px;margin-bottom:2px">NΞXA PREMIUM 💎</h3>
+    <h3 style="font-size:19px;margin-bottom:2px">NΞXA PREMIUM</h3>
     <p class="sub" style="font-size:12.5px;margin-bottom:12px">${
       isPrem()?`اشتراكك شغّال · باقي ${proDaysLeft()} يوم`:"ماكو اشتراك بريميوم"}</p>
     ${isPrem()?'':`<button class="pro-btn" id="pm-up" style="margin-bottom:12px">ترقية إلى PREMIUM · ${nfIQ(PRICE.py)} دينار سنوياً</button>`}
@@ -18452,7 +18536,9 @@ function premAiBtn(){
   const b=document.createElement('button');
   b.className='prem-ai-btn'; b.id='prem-ai-btn'; b.type='button';
   b.setAttribute('aria-label','الذكاء');
-  b.textContent='✨';
+  b.innerHTML=`<svg viewBox="0 0 24 24"><path d="M12 3.6l1.6 4.4 4.4 1.6-4.4 1.6L12 15.6
+    l-1.6-4.4L6 9.6l4.4-1.6z"/><path d="M18.4 15.2l.8 2.1 2.1.8-2.1.8-.8 2.1-.8-2.1-2.1-.8
+    2.1-.8z"/></svg>`;
   const em=document.getElementById('np-em-btn');
   if(em) bar.insertBefore(b,em); else bar.appendChild(b);
   b.onclick=()=>{
