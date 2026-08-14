@@ -19047,6 +19047,10 @@ body.is-prem .nexa-logo{
   font-family:var(--font),system-ui,sans-serif}
 #nx-auth.on{display:block}
 body.nx-authon{overflow:hidden}
+
+/* ── زر القصة العائم: يختفي جوّا المحادثة ── */
+body.nx-chatopen #st-fab{display:none!important}
+
 #nx-auth::before{
   content:"";position:fixed;inset:0;pointer-events:none;
   background:
@@ -19127,6 +19131,25 @@ html[dir="rtl"] .nxa-f input[type="email"]{text-align:right}
 .nxa-swap b{font-weight:800}
 #nx-auth.nxa-reg .nxa-swap b{color:#FF9A4A}
 #nx-auth.nxa-log .nxa-swap b{color:#A97BFF}
+
+/* ── مداخل التسجيل الظاهرة ── */
+.nxa-hdr{
+  position:relative;z-index:2;flex:none;border:0;cursor:pointer;
+  padding:10px 15px;border-radius:20px;white-space:nowrap;
+  font:800 13px var(--font),sans-serif;color:#0A0A0A;
+  background:linear-gradient(140deg,#F0D99A,#D6B36A);
+  box-shadow:0 6px 16px rgba(214,179,106,.30)}
+.nxa-hdr[hidden]{display:none}
+.nxa-empty{display:flex;flex-direction:column;gap:9px;
+  width:100%;max-width:290px;margin:16px auto 0}
+.nxa-empty[hidden]{display:none}
+.nxa-empty button{border:0;cursor:pointer;border-radius:14px;padding:14px;
+  font:800 14.5px var(--font),sans-serif}
+.nxa-empty .nxa-e1{color:#fff;background:linear-gradient(135deg,#FF8420,#E4630C);
+  box-shadow:0 8px 20px rgba(255,110,20,.28)}
+.nxa-empty .nxa-e2{color:#fff;background:linear-gradient(135deg,#8A4BFF,#6A28E0);
+  box-shadow:0 8px 20px rgba(120,50,235,.28)}
+
 
 .nxa-skip{display:block;margin:2px auto 0;background:0;border:0;cursor:pointer;
   padding:12px 16px;font:600 13px var(--font),sans-serif;
@@ -20627,6 +20650,143 @@ function nxaClose(){
   if(v) v.classList.remove("on");
   document.body.classList.remove("nx-authon");
 }
+
+/* ── مداخل ظاهرة للتسجيل بكل مكان يوصله الزائر ── */
+const nxaIsOpen=()=>{
+  const v=document.getElementById("nx-auth");
+  return !!(v&&v.classList.contains("on"));
+};
+function nxaEntry(){
+  try{
+    const logged=(typeof isLoggedMsg==="function"&&isLoggedMsg());
+    /* ١) زر ثابت بترويسة N\u039EXA */
+    const acts=document.querySelector("#v-messages .msg-head-acts");
+    if(acts){
+      let b=document.getElementById("nxa-hdr");
+      if(!b){
+        b=document.createElement("button");
+        b.id="nxa-hdr"; b.className="nxa-hdr"; b.type="button";
+        b.textContent="دخول";
+        b.onclick=()=>nxaOpen("log");
+        acts.insertBefore(b,acts.firstChild);
+      }
+      b.hidden=logged;
+    }
+    /* ٢) زرّان بمكان القائمة الفارغة بدل نص ميت */
+    const box=document.getElementById("msg-empty-box");
+    if(box){
+      let e=document.getElementById("nxa-empty");
+      if(!e){
+        e=document.createElement("div");
+        e.id="nxa-empty"; e.className="nxa-empty";
+        e.innerHTML='<button class="nxa-e1" type="button">إنشاء حساب جديد</button>'+
+                    '<button class="nxa-e2" type="button">تسجيل الدخول</button>';
+        box.appendChild(e);
+        e.children[0].onclick=()=>nxaOpen("reg");
+        e.children[1].onclick=()=>nxaOpen("log");
+      }
+      e.hidden=logged;
+    }
+  }catch(e){}
+}
+/* ٣) أي رسالة «سجّل دخولك أول» تفتح الشاشة بدل ما تختفي بلا فائدة */
+if(typeof toast==="function"&&!toast._nxa){
+  const _tst=toast;
+  toast=function(m){
+    const r=_tst.apply(this,arguments);
+    try{
+      if(/سجّل دخولك أول|Sign in first|بچۆ ژوورەوە/.test(String(m||""))&&!nxaIsOpen())
+        setTimeout(()=>nxaOpen("log"),600);
+    }catch(e){}
+    return r;
+  };
+  toast._nxa=true;
+}
+nxaEntry();
+setInterval(nxaEntry,3000);
+
+
+/* ══════════════════════════════════════════════════════════════
+   زر القصة العائم + الإشعارات بالإعدادات
+   ══════════════════════════════════════════════════════════════ */
+
+/* ١) الزر العائم مال القصة يختفي جوّا المحادثة أو الملف الشخصي */
+function nxFabWatch(){
+  const sync=()=>{
+    try{ document.body.classList.toggle("nx-chatopen",
+      !!document.querySelector(".chat-screen.on")) }catch(e){}
+  };
+  document.querySelectorAll(".chat-screen").forEach(el=>{
+    try{ new MutationObserver(sync)
+      .observe(el,{attributes:true,attributeFilter:["class"]}) }catch(e){}
+  });
+  sync();
+}
+
+/* ٢) شريط «فعّل الإشعارات» ينشال من شاشة المراسلات */
+function nxHidePushBar(){
+  try{
+    const b=document.getElementById("push-btn");
+    if(b&&b.parentNode&&b.parentNode.id!=="sheet-body") b.parentNode.style.display="none";
+  }catch(e){}
+}
+
+/* ٣) بدلها: صف الإشعارات جوّا الإعدادات */
+function nxPushPaint(){
+  const v=document.getElementById("set-push-val"); if(!v) return;
+  let txt="مطفية", ok=false;
+  try{
+    if(typeof pushSupported==="function"&&!pushSupported()) txt="مو مدعومة بهذا المتصفح";
+    else if(typeof pushSecure==="function"&&!pushSecure()) txt="تحتاج رابط https";
+    else { ok=!!_pushOn; txt=ok?"مفعّلة":"مطفية" }
+  }catch(e){ txt="—" }
+  v.textContent=txt;
+  v.classList.toggle("ok",ok);
+}
+async function nxPushToggle(){
+  try{
+    if(typeof pushSupported==="function"&&!pushSupported()){
+      toast("متصفحك ما يدعم الإشعارات"); return }
+    if(typeof pushSecure==="function"&&!pushSecure()){
+      toast("افتح الموقع من رابطه (https) حتى تشتغل الإشعارات"); return }
+    const el=document.getElementById("set-push"); if(el) el.disabled=true;
+    if(_pushOn){ await pushDisable() } else { await pushEnable(false) }
+    if(el) el.disabled=false;
+  }catch(e){}
+  nxPushPaint();
+  try{ if(typeof renderAcct==="function") renderAcct() }catch(e){}
+}
+function nxNotifRow(){
+  try{
+    if(!document.getElementById("set-push")){
+      const priv=document.getElementById("set-priv"); if(!priv) return;
+      const list=priv.parentNode;                       /* .opt-list */
+      const before=list.previousElementSibling || list; /* عنوان «الخصوصية والحساب» */
+      const lbl=document.createElement("p");
+      lbl.className="setlabel"; lbl.textContent="الإشعارات";
+      const box=document.createElement("div");
+      box.className="opt-list";
+      box.innerHTML='<button class="opt-row" id="set-push">'+
+        '<span>إشعارات الرسائل</span><span class="pm-val" id="set-push-val"></span></button>';
+      list.parentNode.insertBefore(lbl,before);
+      list.parentNode.insertBefore(box,before);
+      const btn=document.getElementById("set-push");
+      if(btn) btn.onclick=nxPushToggle;
+    }
+    nxPushPaint();
+  }catch(e){}
+}
+(function(){
+  const sb=document.getElementById("settings-btn");
+  if(sb&&!sb._nxpush){
+    sb.addEventListener("click",()=>setTimeout(nxNotifRow,80));
+    sb._nxpush=true;
+  }
+})();
+nxFabWatch();
+nxHidePushBar();
+setTimeout(()=>{ nxFabWatch(); nxHidePushBar() },2500);
+
 function nxaMaybe(){
   try{
     if(typeof isLoggedMsg==="function"&&isLoggedMsg()) return;
